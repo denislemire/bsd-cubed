@@ -29,3 +29,9 @@ inherit a host's launchd configuration. macOS dbus-daemon cannot report peer PID
 there the authorization-dependent groups are skipped and a separate test verifies
 that missing credentials produce AccessDenied rather than a UID-only fallback.
 All credential-dependent tests must run on the FreeBSD VM executor.
+
+Native FreeBSD CI build 6 at 80ad99a ran the new ownership/failure tests twice:
+once directly and once through the ports test target. Seven groups passed; the
+Mac-only missing-PID negative test was skipped because FreeBSD provides peer PIDs.
+The Mac ran five applicable groups and skipped the three peer-PID-dependent
+groups. No root/backend device access or actual VT switching was claimed.

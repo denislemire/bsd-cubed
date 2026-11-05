@@ -13,7 +13,8 @@
 .Sh DESCRIPTION
 BSD cubed is a BSD-licensed desktop compatibility project for
 .Fx .
-This version supplies read-only session discovery through ConsoleKit2.
+This version supplies session discovery and controller lifetime
+management through ConsoleKit2.
 It does not yet enable a native GNOME Wayland login.
 .Pp
 The
@@ -32,6 +33,12 @@ No D-Bus policy or boot service is installed by this version.
 .Pp
 The service implements GetSession, GetSessionByPID, ListSessions,
 and the read-only session properties Id, Active, Type, Class and State.
+TakeControl requires the original D-Bus peer to own and belong to the session.
+ReleaseControl is restricted to that controlling connection.
+Each controller uses a separate backend connection, which is closed on client
+disconnect, backend restart, release failure or daemon shutdown.
+Forced takeover is unsupported.
+.Pp
 It does not implement session creation, seats, device access, inhibitors,
 power management, notifications, or a user service manager.
 Consumers must not interpret the presence of the bus name

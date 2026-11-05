@@ -65,8 +65,9 @@ https://circle.ehws.generic.business/gh/denislemire/bsd-cubed/1
 
 It tested commit ff84228be649b018e4259f4e6400bafeca26d223 in a generic
 FreeBSD KubeVirt VM, including the full-tree ports path, stage/test/check-plist/QA,
-package creation and artifact upload. An explicitly triggered duplicate pipeline
-#2 was canceled while queued; it is not a failed test. The current CLI watch
+package creation and artifact upload. Cancellation was requested for duplicate pipeline #2, but the job finished
+successfully before cancellation took effect; the authoritative job result is
+success. The same occurred for duplicate job #4. Neither is a failed test. The current CLI watch
 command could not read the legacy server response; direct server-compatible API
 monitoring confirmed job success. No CI credentials were added to this project.
 
@@ -106,3 +107,19 @@ private `denislemire/bsd-cubed` repository. GitHub reports its SSH signature val
 author and committer are Denis Lemire <denis@lemire.name>, with DCO sign-off.
 Local verification initially lacked an allowed-signers trust file; this was not
 an unsigned commit. No signing configuration was disabled.
+
+## Discovery beta publication and installation boundary
+
+Native FreeBSD CI build5 passed at 0be5de6ce7e98b9d9d1b0f8f822ccdc51deb1596.
+Signed tag v0.1.0-beta1 and a GitHub prerelease were published with the actual
+CI package, matching source tarball, SHA256SUMS, distinfo and build provenance.
+Assets were downloaded again from GitHub and verified; both assets were also
+verified after staging on the laptop. Package SHA256:
+`15cb7a57a0b4d6d385af9ec6ca9c9556f1f556a95451982b1689f0bd0cb9e952`.
+No package was installed: the later VM-first direction reserves the laptop for
+final acceptance while parallel kernel/Wi-Fi work reboots it regularly.
+
+Staging exposed an outer tcsh quoting failure for multiline /bin/sh -c scripts.
+Use /bin/sh -s with script on stdin instead. Also, pkg add does not support -n;
+the attempted dry-run returned usage without changing installed packages.
+Do not reuse or stop another investigation's SSH control masters.
