@@ -1,0 +1,13 @@
+--- meson.build.orig
++++ meson.build
+@@ -251,7 +251,9 @@
+   libgbm_dep = dependency('gbm', version: gbm_req)
+   libinput_dep = dependency('libinput', version: libinput_req)
+ 
+-  if libsystemd_dep.found()
++  if host_machine.system() == 'freebsd'
++    logind_provider_dep = dependency('bsd3-login', static: true)
++  elif libsystemd_dep.found()
+     logind_provider_dep = libsystemd_dep
+   else
+     logind_provider_dep = dependency('libelogind')

@@ -23,8 +23,13 @@ case "$distname:$pkgname" in *[!A-Za-z0-9_.:+-]*|:*|*:) exit 1 ;; esac
 source_root="$work_root/source/$distname"
 mkdir -p "$source_root"
 # Explicit source inputs: no .git, private captures, generated binaries or secrets.
-for input in Makefile LICENSE README.md src include man tests; do
-    cp -R "$input" "$source_root/"
+for input in Makefile LICENSE README.md src include man tests packaging/bsd3-login.pc.in; do
+    if [ "$input" = packaging/bsd3-login.pc.in ]; then
+        mkdir -p "$source_root/packaging"
+        cp "$input" "$source_root/packaging/"
+    else
+        cp -R "$input" "$source_root/"
+    fi
 done
 tar -C "$work_root/source" -czf "$work_root/distfiles/$distname.tar.gz" "$distname"
 # This checksum identifies the CI snapshot, not an unpublished upstream release.

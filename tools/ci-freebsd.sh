@@ -22,6 +22,7 @@ trap 'rm -rf "$stage_root"' EXIT HUP INT TERM
 make DESTDIR="$stage_root" PREFIX=/usr/local install
 test -x "$stage_root/usr/local/sbin/bsddd"
 test -f "$stage_root/usr/local/lib/libbsd3-login.a"
+test -f "$stage_root/usr/local/libdata/pkgconfig/bsd3-login.pc"
 test -f "$stage_root/usr/local/include/bsd3/sd-login.h"
 test -f "$stage_root/usr/local/share/man/man8/bsddd.8"
 sh tools/ci-port.sh
