@@ -1,0 +1,46 @@
+.\" SPDX-License-Identifier: BSD-2-Clause
+.Dd November 5, 2026
+.Dt BSD3-SESSION 1
+.Os
+.Sh NAME
+.Nm bsd3-session
+.Nd register and supervise an ordinary local Wayland session
+.Sh SYNOPSIS
+.Nm
+.Fl -
+.Ar command
+.Op Ar argument ...
+.Sh DESCRIPTION
+.Nm
+requires an ordinary user in the foreground process group of a real controlling
+FreeBSD virtual terminal.
+It opens a ConsoleKit session or validates an inherited cookie against the
+caller's PID, UID, local Wayland/user identity, actual VT and active state.
+The runtime directory must belong to the caller with mode0700.
+Failure prevents execution of the command; cookies are never printed.
+.Pp
+The original registration connection stays open while the child runs.
+The child retains its controlling terminal on standard input.
+Native procctl descendant supervision forwards termination and reaps remaining
+session processes, including processes that detach into another session.
+Termination escalates after five seconds; final cleanup is bounded.
+A newly created session is closed on exit; an inherited session is not closed.
+Loss of the pinned ConsoleKit owner terminates the command.
+This cannot recover a frozen kernel or signal a child that acquired different
+privileges through an unrelated privileged program.
+.Pp
+The opt-in
+.Pa libexec/bsd3-sddm-session
+adapter runs this launcher, a private session D-Bus and SDDM's existing Wayland
+profile script.
+An example SDDM fragment is installed under
+.Pa share/examples/bsd-cubed/sddm-wayland.conf .
+Installation does not enable it, modify PAM or replace a desktop entry.
+.Sh EXIT STATUS
+The child's exit status is returned after cleanup.
+Setup or cleanup failure returns nonzero.
+Root and invalid invocation are refused.
+.Sh SEE ALSO
+.Xr bsddd 8 ,
+.Xr bsd3-vt-guard 8 ,
+.Xr procctl 2

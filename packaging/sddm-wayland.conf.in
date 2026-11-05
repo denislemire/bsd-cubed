@@ -1,0 +1,7 @@
+# Opt-in within an isolated trial environment. Installation does not enable this.
+[Wayland]
+SessionCommand=@PREFIX@/libexec/bsd3-sddm-session
+
+# Session reuse/activation is outside the supported login1 subset.
+[Users]
+ReuseSession=false

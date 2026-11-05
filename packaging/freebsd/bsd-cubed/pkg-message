@@ -1,13 +1,16 @@
 [
 { type: install
   message: <<EOM
-BSD cubed is an experimental prototype, not a complete logind replacement.
-It does not yet enable a native GNOME Wayland session.
+BSD cubed provides experimental GNOME47 Wayland integration.
+It is not a complete logind replacement or a hardware-readiness guarantee.
 
 Use 'bsddd --probe' as an ordinary user to inspect ConsoleKit sessions.
 The rc.d service is disabled by default; the bus policy permits only root
 to own login1. It does not replace an existing owner.
-Use a disposable VM for service/device trials before laptop integration.
+The ordinary-user bsd3-session launcher requires a real controlling VT.
+An opt-in SDDM example is in share/examples/bsd-cubed/sddm-wayland.conf.
+Installation does not activate it or modify PAM. Test in a disposable VM
+and an isolated boot environment before hardware integration.
 EOM
 }
 ]

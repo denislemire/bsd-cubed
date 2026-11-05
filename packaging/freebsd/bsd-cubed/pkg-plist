@@ -1,6 +1,10 @@
+bin/bsd3-session
+libexec/bsd3-sddm-session
+share/examples/bsd-cubed/sddm-wayland.conf
 etc/dbus-1/system.d/org.bsd3.login1.conf
 include/bsd3/sd-login.h
 lib/libbsd3-login.a
 libdata/pkgconfig/bsd3-login.pc
 sbin/bsddd
 share/man/man8/bsddd.8.gz
+share/man/man1/bsd3-session.1.gz

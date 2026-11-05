@@ -1,0 +1,5 @@
+#!/bin/sh
+# SPDX-License-Identifier: BSD-2-Clause
+# Opt-in SDDM Wayland SessionCommand; preserve SDDM's supplied command string.
+exec @PREFIX@/bin/bsd3-session -- @LOCALBASE@/bin/dbus-run-session -- \
+    @LOCALBASE@/share/sddm/scripts/wayland-session "$@"
