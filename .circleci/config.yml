@@ -23,6 +23,10 @@ jobs:
           name: Native service lifecycle and root-only system-bus policy
           command: sh tools/ci-service.sh
       - run:
+          name: Rebuild ConsoleKit and verify real session locality/control
+          no_output_timeout: 20m
+          command: sh tools/ci-consolekit.sh
+      - run:
           name: Rebuild Mutter port with native backend and BSD3 provider
           no_output_timeout: 30m
           command: sh tools/ci-mutter.sh
