@@ -194,3 +194,15 @@ Environments menu. Since the trial is one-shot, a normal reboot should return to
 the persistent fallback; verify that R selection before every trial reboot.
 Do not destroy the trial BE or replace its kernel before failure evidence is
 preserved. No hardware run is authorized merely by this preparation document.
+
+## Later November5 SDDM preparation update
+
+The read-only [seat-discovery correction](sddm-seat-discovery-2026-11-05.md) is
+PR11, and the [strict local-session launcher](local-session-bootstrap-2026-11-05.md)
+is PR12. Real SDDM registration and full GNOME47 headless window/logout passed
+direct VM trials. A [bounded recovery tool and reusable runner](guarded-sddm-trial-2026-11-05.md)
+are the next focused change. The CI33 packages above identify the earlier
+candidate and **do not contain these new features**. Do not install them as if
+they supplied the SDDM bootstrap/recovery solution. Final exact-source native CI,
+release/checksum refresh and the coordinated window remain gates. No hardware
+readiness or beta3 publication is claimed.

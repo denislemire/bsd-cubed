@@ -1,0 +1,58 @@
+.\" SPDX-License-Identifier: BSD-2-Clause
+.Dd November 5, 2026
+.Dt BSD3-VT-GUARD 8
+.Os
+.Sh NAME
+.Nm bsd3-vt-guard
+.Nd supervise a bounded desktop trial and restore console state
+.Sh SYNOPSIS
+.Nm
+.Ar seconds evidence-directory
+.Fl -
+.Ar command
+.Op Ar argument ...
+.Sh DESCRIPTION
+This root-only program is never setuid.
+It refuses an existing process-controlled VT and snapshots available consoles,
+including VT mode, keyboard/display modes, terminal settings and ownership.
+The command runs under a separate timeout controller.
+The parent remains a native process reaper with a longer deadline and confines
+termination to its own descendants.
+Afterward it reopens the consoles, restores their saved state and checks readback,
+including the original active VT.
+It does not change power policy, networking, boot selection or rc.conf.
+.Pp
+The deadline is between1 and600 seconds.
+A new private evidence directory is required.
+The readiness files identify the separate guard/controller processes;
+verify them while workload output is still streaming.
+The command-exit file precedes final recovery evidence.
+Only complete.txt is the final evidence barrier.
+A timeout, signal request, forced termination or failed restore is recorded as
+failure or assisted recovery, never as an unassisted pass.
+The parent allows fifteen seconds beyond the inner deadline, followed by bounded
+termination and restoration waits.
+.Pp
+KVM is allowed by default.
+Physical hardware additionally requires
+.Ev BSD3_ALLOW_HARDWARE_TRIAL=yes
+and an explicitly coordinated operator window with a preserved boot fallback.
+This flag is not permission to interrupt someone else's experiment.
+A kernel freeze or SIGKILL of the guard cannot be repaired by this process.
+No GPU presentation guarantee follows from restored terminal settings.
+.Pp
+Use immutable, reviewed root-owned copies of any trial scripts and preserve their
+hashes with matching source/package identities.
+Run detached from SSH with a separate control connection.
+Never install this program with elevated mode bits or grant unrestricted sudo
+as part of a test.
+.Sh EXIT STATUS
+Zero means the command exited zero without intervention and console restoration
+passed.
+Nonzero includes timeout, interruption, descendant cleanup intervention,
+command failure or incomplete recovery.
+.Sh SEE ALSO
+.Xr bsd3-session 1 ,
+.Xr daemon 8 ,
+.Xr procctl 2 ,
+.Xr timeout 1

@@ -36,6 +36,10 @@ jobs:
       - run:
           name: Real ConsoleKit GNOME session, Wayland window and logout
           command: sh tools/ci-gnome.sh
+      - run:
+          name: Real SDDM registration and bounded GNOME trial recovery
+          no_output_timeout: 10m
+          command: sh tools/ci-sddm.sh
       - store_artifacts:
           path: dist
           destination: freebsd

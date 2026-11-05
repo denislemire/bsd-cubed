@@ -316,6 +316,7 @@ done:
 		g_object_unref(bus);
 	g_strfreev(environment);
 	g_free(owner); g_free(cookie); g_free(path); g_free(runtime);
+	fprintf(stderr, "bsd3-session: exit status=%d\n", result);
 	return (result);
 }
 #else
