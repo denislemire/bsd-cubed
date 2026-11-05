@@ -25,4 +25,10 @@ test -f "$stage_root/usr/local/lib/libbsd3-login.a"
 test -f "$stage_root/usr/local/libdata/pkgconfig/bsd3-login.pc"
 test -f "$stage_root/usr/local/include/bsd3/sd-login.h"
 test -f "$stage_root/usr/local/share/man/man8/bsddd.8"
+# Exercise relocated installed metadata and embedding the static archive in a DSO.
+consumer_flags=$(PKG_CONFIG_PATH="$stage_root/usr/local/libdata/pkgconfig" \
+    pkg-config --define-prefix --cflags --libs --static bsd3-login)
+# pkg-config emits compiler arguments; intentional field splitting here.
+cc -fPIC -shared -Wl,-z,defs -o "$stage_root/consumer.so" \
+    tests/shared-consumer.c $consumer_flags
 sh tools/ci-port.sh

@@ -25,8 +25,12 @@ licensing; the original bridge code remains BSD-2-Clause.
 exact bridge package produced by the preceding native build, installs binary
 build dependencies and runs ports stage/check-plist/QA/package. It records actual
 kernel/userland versions, ABI, compiler, dependencies, configuration and failures
-as private CI artifacts. No native Mutter package is installed into the VM yet;
-only the bridge package and build dependencies are installed. No laptop changes.
+as private CI artifacts. After a successful package build, the bounded runtime
+test installs that exact
+Mutter package in this disposable VM, starts its native headless backend with a
+virtual monitor and connects wayland-info. This checks native backend startup and
+protocol globals; it does not validate hardware/VT behavior or a GNOME session.
+No laptop changes.
 
 First falsifiable prediction: the modified port will configure against BSD3 and
 reach compilation of the native backend. Compilation errors establish the next
@@ -50,3 +54,11 @@ handle. These adaptations still require the native compile/runtime trial.
 Patch containers retain required context whitespace. `.gitattributes` excludes
 those containers from generic whitespace checks; the complete applied source
 patch stack was checked separately without whitespace findings.
+
+The first native iteration passed bridge tests, stage/manifest/QA and packaging,
+then exposed a missing local port origin during dependency enumeration. It also
+showed that install-missing-packages recursively requests build dependencies of
+binary dependencies (311 packages, including Rust and cross toolchains). The next
+iteration registers the local origin and requests only the direct port dependency
+packages; pkg resolves their runtime closure. This avoids rebuilding or installing
+toolchains used to produce those already-built binary dependencies.
