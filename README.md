@@ -69,7 +69,7 @@ release; never replace the existing beta assets.
 
 ## What a working desktop still requires
 
-See the [guarded SDDM trial](docs/guarded-sddm-trial-2026-11-05.md),
+[guarded SDDM trial](docs/guarded-sddm-trial-2026-11-05.md),
 [strict local bootstrap](docs/local-session-bootstrap-2026-11-05.md),
 [gated hardware handoff](docs/hardware-handoff-2026-11-05.md),
 [real VT/device regression](docs/native-vt-regression-2026-11-05.md),
