@@ -29,3 +29,11 @@ limits their evidence to the tested protocol contract and simulated backend.
 
 No working hardware handoff is claimed. The mock's passing tests cannot establish
 that an unmodified ConsoleKit package returns the correct inactivity value.
+
+## November 5 runtime follow-up
+
+The real stable/15 input test reproduced the incorrect reply and an additional
+FreeBSD revoke-ioctl ABI mismatch in the installed stock backend. See the
+[actual descriptor regression](consolekit-device-regression-2026-11-05.md). A port
+correction and real kernel-state test are under review; no hardware acceptance
+or successful patched-backend runtime result is claimed yet.

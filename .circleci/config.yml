@@ -16,6 +16,10 @@ jobs:
             export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
             sudo pkg install -y git pkgconf glib dbus consolekit2
       - run:
+          name: Rebuild ConsoleKit with native FreeBSD device semantics
+          no_output_timeout: 20m
+          command: sh tools/ci-consolekit.sh
+      - run:
           name: Native build, private-bus tests and ports stage QA
           no_output_timeout: 20m
           command: sh tools/ci-freebsd.sh
@@ -23,9 +27,8 @@ jobs:
           name: Native service lifecycle and root-only system-bus policy
           command: sh tools/ci-service.sh
       - run:
-          name: Rebuild ConsoleKit and verify real session locality/control
-          no_output_timeout: 20m
-          command: sh tools/ci-consolekit.sh
+          name: Real ConsoleKit session and kernel input-revocation regression
+          command: sh tools/test-native-consolekit.sh
       - run:
           name: Rebuild Mutter port with native backend and BSD3 provider
           no_output_timeout: 30m

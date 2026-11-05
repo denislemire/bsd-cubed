@@ -6,6 +6,7 @@ export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 [ "$(uname -s)" = FreeBSD ] && [ "${CIRCLECI:-}" = true ] || exit 1
 unset DBUS_SYSTEM_BUS_ADDRESS DBUS_SESSION_BUS_ADDRESS XDG_SESSION_COOKIE XDG_RUNTIME_DIR
 repo_root=$(pwd)
+sudo service dbus onestatus >/dev/null 2>&1 || sudo service dbus onestart
 mkdir -p dist/consolekit/packages
 work_root=$(mktemp -d)
 service_started=no
@@ -69,7 +70,7 @@ case "$source_name" in ConsoleKit2-[0-9]*) ;; *) exit 1 ;; esac
 tar -C "${wrksrc%/*}" -czf "$repo_root/dist/consolekit/consolekit2-bsd3-source.tar.gz" "$source_name"
 tar -C "$work_root/overlay" -czf "$repo_root/dist/consolekit/consolekit2-bsd3-port.tar.gz" \
     sysutils/consolekit2 -C "$repo_root" packaging/freebsd/consolekit2 \
-    packaging/freebsd/mutter/PORTS_REVISION tools/ci-consolekit.sh tests/native-session.c
+    packaging/freebsd/mutter/PORTS_REVISION tools/ci-consolekit.sh tools/test-native-consolekit.sh tests/native-session.c tests/native-device.c
 if ! make -C "$port" PORTSDIR="$ports_root" BATCH=yes DEVELOPER=yes \
     WRKDIRPREFIX="$work_root/work" PACKAGES="$repo_root/dist/consolekit/packages" \
     stage check-plist stage-qa package >dist/consolekit/build.log 2>&1; then
@@ -87,16 +88,3 @@ owner=$(gdbus call --system --dest org.freedesktop.DBus --object-path /org/freed
 sudo pkg add -f "$1"
 sudo gdbus call --system --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
     --method org.freedesktop.DBus.ReloadConfig >/dev/null
-cc -std=c11 -Wall -Wextra -Werror $(pkg-config --cflags bsd3-login) \
-    -o "$work_root/test-native-session" tests/native-session.c $(pkg-config --libs bsd3-login)
-# The parent temporary directory starts private; allow only this existing test user.
-sudo chown circleci "$work_root" "$work_root/test-native-session"
-[ "$(id -u circleci)" -gt 0 ]
-service_started=yes
-sudo service bsddd onestart
-if ! sudo -H -u circleci timeout -k 2 30 "$work_root/test-native-session" \
-    "$work_root/test-native-session" --verify >dist/consolekit/session-regression.txt 2>&1; then
-    cat dist/consolekit/session-regression.txt
-    exit 1
-fi
-cat dist/consolekit/session-regression.txt

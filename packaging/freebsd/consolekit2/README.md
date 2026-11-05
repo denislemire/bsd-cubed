@@ -11,3 +11,8 @@ and VT zero, then verifies child UID/type/class and authenticated bridge control
 This is a change to the GPL ConsoleKit dependency; BSD3's original C remains
 BSD-2-Clause. Preserve the complete modified dependency source with its package.
 This does not fix the separate TakeDevice inactivity reply or prove VT/devices.
+
+The follow-up revision4 also uses FreeBSD's correct revoke fallback encoding,
+fails initial inactive opens when revocation fails, reports device inactivity
+and tracks inactive fallback opens. A real VM input regression checks kernel
+revocation without reading events. The BSD3 candidate requires revision4.

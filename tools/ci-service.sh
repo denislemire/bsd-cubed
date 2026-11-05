@@ -10,6 +10,8 @@ id -u | tee dist/service/build-uid.txt
 set -- dist/packages/All/bsd-cubed-*.pkg
 [ "$#" -eq 1 ] && [ -f "$1" ]
 sudo pkg add -f "$1"
+sudo gdbus call --system --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
+    --method org.freedesktop.DBus.ReloadConfig >/dev/null
 service_started=no
 foreign_pid=
 guard_root=
