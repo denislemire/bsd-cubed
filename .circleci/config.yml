@@ -1,0 +1,29 @@
+version: 2.1
+
+# EhWS CircleCI Server native FreeBSD machine executor.
+# Package artifacts only; no host deployment, boot changes or catalogue publishing.
+jobs:
+  freebsd-build-test-package:
+    machine:
+      image: freebsd-15.1:current
+    resource_class: freebsd.medium
+    steps:
+      - checkout
+      - run:
+          name: Install build and ports validation dependencies
+          command: |
+            set -eu
+            export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+            sudo pkg install -y git pkgconf glib dbus consolekit2
+      - run:
+          name: Native build, private-bus tests and ports stage QA
+          no_output_timeout: 20m
+          command: sh tools/ci-freebsd.sh
+      - store_artifacts:
+          path: dist
+          destination: freebsd
+
+workflows:
+  build:
+    jobs:
+      - freebsd-build-test-package
