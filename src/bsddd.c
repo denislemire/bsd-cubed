@@ -10,6 +10,7 @@
 #include <gio/gio.h>
 #include <glib-unix.h>
 #include "bsd3/sd-login.h"
+#include "control.h"
 
 #define ROOT "/org/freedesktop/login1"
 #define SESSION ROOT "/session"
@@ -27,6 +28,8 @@ static const char xml[] =
     "<method name='ListSessions'><arg type='a(susso)' direction='out'/>"
     "</method></interface>"
     "<interface name='org.freedesktop.login1.Session'>"
+    "<method name='TakeControl'><arg type='b' direction='in'/></method>"
+    "<method name='ReleaseControl'/>"
     "<property name='Id' type='s' access='read'/>"
     "<property name='Active' type='b' access='read'/>"
     "<property name='Type' type='s' access='read'/>"
@@ -184,11 +187,25 @@ property(GDBusConnection *bus, const char *sender, const char *path,
 	return (NULL);
 }
 
+static void
+session_call(GDBusConnection *bus, const char *sender, const char *path,
+    const char *iface, const char *method, GVariant *args,
+    GDBusMethodInvocation *invocation, gpointer data)
+{
+	const char *id = strrchr(path, '/');
+	(void)bus; (void)sender; (void)iface; (void)data;
+	if (id == NULL) {
+		return_error(invocation, -EINVAL);
+		return;
+	}
+	bsd3_control_call(id + 1, method, args, invocation);
+}
+
 static const GDBusInterfaceVTable manager_vtable = {
 	.method_call = manager_call
 };
 static const GDBusInterfaceVTable session_vtable = {
-	.get_property = property
+	.method_call = session_call, .get_property = property
 };
 
 static gchar **
@@ -232,6 +249,7 @@ bus_ready(GDBusConnection *bus, const char *name, gpointer data)
 {
 	GError *error = NULL;
 	(void)name; (void)data;
+	bsd3_controls_start(bus);
 	if (g_dbus_connection_register_object(bus, ROOT, schema->interfaces[0],
 	    &manager_vtable, NULL, NULL, &error) == 0 ||
 	    g_dbus_connection_register_subtree(bus, SESSION, &subtree,
@@ -248,7 +266,7 @@ static void
 name_ready(GDBusConnection *bus, const char *name, gpointer data)
 {
 	(void)bus; (void)name; (void)data;
-	g_print("READY: BSD3 read-only login1 prototype\n");
+	g_print("READY: BSD3 session-controller prototype\n");
 	fflush(stdout);
 }
 
@@ -289,7 +307,7 @@ probe(void)
 		free(type); free(state);
 	}
 	g_strfreev(sessions);
-	g_print("Read-only prototype; device handoff and GNOME startup remain open.\n");
+	g_print("Session discovery; device handoff and GNOME startup remain open.\n");
 	return (0);
 }
 
@@ -317,6 +335,7 @@ main(int argc, char **argv)
 	    G_BUS_NAME_OWNER_FLAGS_DO_NOT_QUEUE, bus_ready, name_ready, name_lost,
 	    NULL, NULL);
 	g_main_loop_run(loop);
+	bsd3_controls_stop();
 	g_bus_unown_name(owner);
 	g_main_loop_unref(loop);
 	g_dbus_node_info_unref(schema);

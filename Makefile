@@ -19,8 +19,8 @@ login.o: src/login.c include/bsd3/sd-login.h
 libbsd3-login.a: login.o
 	$(AR) rcs $@ login.o
 
-bsddd: src/bsddd.c libbsd3-login.a
-	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ src/bsddd.c libbsd3-login.a $(BSD3_LIBS)
+bsddd: src/bsddd.c src/control.c src/control.h libbsd3-login.a
+	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ src/bsddd.c src/control.c libbsd3-login.a $(BSD3_LIBS)
 
 mock-ck: tests/mock-ck.c
 	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ tests/mock-ck.c $(BSD3_LIBS)
@@ -29,7 +29,7 @@ test-login: tests/test-login.c libbsd3-login.a
 	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ tests/test-login.c libbsd3-login.a $(BSD3_LIBS)
 
 test: all mock-ck test-login
-	dbus-run-session -- sh tests/run.sh
+	dbus-run-session --config-file=tests/dbus.conf -- sh tests/run.sh
 
 install: all
 	$(INSTALL) -d $(DESTDIR)$(PREFIX)/sbin $(DESTDIR)$(PREFIX)/lib $(DESTDIR)$(PREFIX)/include/bsd3 $(DESTDIR)$(PREFIX)/share/man/man8

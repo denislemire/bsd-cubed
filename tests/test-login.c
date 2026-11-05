@@ -7,6 +7,7 @@
 #define CK "org.freedesktop.ConsoleKit"
 #define MANAGER "/org/freedesktop/ConsoleKit/Manager"
 static GDBusConnection *bus;
+static gboolean peer_pid_available = TRUE;
 
 static GVariant *
 call(const char *dest, const char *path, const char *iface,
@@ -113,6 +114,10 @@ test_errors(void)
 static void
 test_daemon(void)
 {
+	if (!peer_pid_available) {
+		g_test_skip("Host D-Bus cannot report peer PIDs; requires native FreeBSD CI");
+		return;
+	}
 	const char *path;
 	GVariant *r, *value;
 	GError *error = NULL;
@@ -139,10 +144,167 @@ test_daemon(void)
 	g_variant_unref(value); g_variant_unref(r);
 	r = g_dbus_connection_call_sync(bus, "org.freedesktop.login1",
 	    "/org/freedesktop/login1/session/Session1", "org.freedesktop.login1.Session",
-	    "TakeControl", g_variant_new("(b)", FALSE), NULL, 0, 3000, NULL, &error);
+	    "TakeDevice", g_variant_new("(uu)", 1U, 2U), NULL, 0, 3000, NULL, &error);
 	g_assert_null(r);
 	g_assert_error(error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD);
 	g_clear_error(&error);
+}
+
+static GDBusConnection *
+client_connection(void)
+{
+	GError *error = NULL;
+	char *address = g_dbus_address_get_for_bus_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
+	GDBusConnection *client;
+	g_assert_no_error(error);
+	client = g_dbus_connection_new_for_address_sync(address,
+	    G_DBUS_CONNECTION_FLAGS_AUTHENTICATION_CLIENT |
+	    G_DBUS_CONNECTION_FLAGS_MESSAGE_BUS_CONNECTION, NULL, NULL, &error);
+	g_free(address);
+	g_assert_no_error(error);
+	g_dbus_connection_set_exit_on_close(client, FALSE);
+	return (client);
+}
+
+static void
+control(GDBusConnection *client, const char *id, const char *method,
+    gboolean force, const char *expected_error)
+{
+	GError *error = NULL;
+	char *path = g_strconcat("/org/freedesktop/login1/session/", id, NULL);
+	GVariant *r = g_dbus_connection_call_sync(client, "org.freedesktop.login1",
+	    path, "org.freedesktop.login1.Session", method,
+	    strcmp(method, "TakeControl") == 0 ? g_variant_new("(b)", force) : NULL,
+	    G_VARIANT_TYPE("()"), 0, 3000, NULL, &error);
+	g_free(path);
+	if (expected_error == NULL) {
+		g_assert_no_error(error);
+		g_assert_nonnull(r);
+		g_variant_unref(r);
+	} else {
+		char *remote;
+		g_assert_null(r);
+		g_assert_nonnull(error);
+		remote = g_dbus_error_get_remote_error(error);
+		g_assert_cmpstr(remote, ==, expected_error);
+		g_free(remote);
+		g_error_free(error);
+	}
+}
+
+static void
+wait_no_controllers(void)
+{
+	unsigned int i;
+	guint32 takes, releases, active = 1;
+	for (i = 0; i < 100; i++) {
+		GVariant *r = call(CK, MANAGER, "org.bsd3.Test", "GetCounters", NULL, "(uuu)");
+		g_variant_get(r, "(uuu)", &takes, &releases, &active);
+		g_variant_unref(r);
+		if (active == 0)
+			return;
+		g_usleep(20000);
+	}
+	g_assert_cmpuint(active, ==, 0);
+}
+
+static void
+test_control_ownership(void)
+{
+	if (!peer_pid_available) {
+		g_test_skip("Host D-Bus cannot report peer PIDs; requires native FreeBSD CI");
+		return;
+	}
+	GDBusConnection *first = client_connection(), *second = client_connection();
+	GVariant *r;
+	guint32 takes, releases, active;
+	mode("control");
+	control(first, "Session6", "TakeControl", TRUE,
+	    "org.freedesktop.DBus.Error.NotSupported");
+	control(first, "Session7", "TakeControl", FALSE,
+	    "org.freedesktop.DBus.Error.AccessDenied");
+	mode("uid-mismatch");
+	control(first, "Session8", "TakeControl", FALSE,
+	    "org.freedesktop.DBus.Error.AccessDenied");
+	mode("control");
+	control(first, "Session6", "TakeControl", FALSE, NULL);
+	control(first, "Session6", "TakeControl", FALSE, NULL);
+	r = call(CK, MANAGER, "org.bsd3.Test", "GetCounters", NULL, "(uuu)");
+	g_variant_get(r, "(uuu)", &takes, &releases, &active);
+	g_assert_cmpuint(takes, ==, 1);
+	g_assert_cmpuint(active, ==, 1);
+	g_variant_unref(r);
+	control(second, "Session6", "TakeControl", FALSE,
+	    "org.freedesktop.login1.SessionBusy");
+	control(second, "Session6", "ReleaseControl", FALSE,
+	    "org.freedesktop.DBus.Error.AccessDenied");
+	control(first, "Session7", "ReleaseControl", FALSE,
+	    "org.freedesktop.DBus.Error.AccessDenied");
+	control(first, "Session6", "ReleaseControl", FALSE, NULL);
+	control(first, "Session6", "ReleaseControl", FALSE,
+	    "org.freedesktop.DBus.Error.AccessDenied");
+	control(second, "Session6", "TakeControl", FALSE, NULL);
+	g_dbus_connection_close_sync(second, NULL, NULL);
+	g_object_unref(second);
+	wait_no_controllers();
+	control(first, "Session6", "TakeControl", FALSE, NULL);
+	control(first, "Session6", "ReleaseControl", FALSE, NULL);
+	g_dbus_connection_close_sync(first, NULL, NULL);
+	g_object_unref(first);
+	mode("normal");
+}
+
+static void
+test_control_failures(void)
+{
+	if (!peer_pid_available) {
+		g_test_skip("Host D-Bus cannot report peer PIDs; requires native FreeBSD CI");
+		return;
+	}
+	GDBusConnection *client = client_connection();
+	mode("unsupported");
+	control(client, "Session6", "TakeControl", FALSE,
+	    "org.freedesktop.DBus.Error.NotSupported");
+	mode("take-fail");
+	control(client, "Session6", "TakeControl", FALSE,
+	    "org.freedesktop.DBus.Error.Failed");
+	wait_no_controllers();
+	mode("control");
+	control(client, "Session6", "TakeControl", FALSE, NULL);
+	mode("release-fail");
+	control(client, "Session6", "ReleaseControl", FALSE,
+	    "org.freedesktop.DBus.Error.Failed");
+	wait_no_controllers();
+	mode("control");
+	control(client, "Session6", "TakeControl", FALSE, NULL);
+	mode("restart");
+	control(client, "Session6", "ReleaseControl", FALSE,
+	    "org.freedesktop.DBus.Error.AccessDenied");
+	wait_no_controllers();
+	mode("control");
+	control(client, "Session6", "TakeControl", FALSE, NULL);
+	control(client, "Session6", "ReleaseControl", FALSE, NULL);
+	g_dbus_connection_close_sync(client, NULL, NULL);
+	g_object_unref(client);
+	mode("normal");
+}
+
+static void
+test_missing_credentials(void)
+{
+	GDBusConnection *client;
+	if (peer_pid_available) {
+		g_test_skip("Host provides peer process IDs");
+		return;
+	}
+	client = client_connection();
+	mode("control");
+	control(client, "Session6", "TakeControl", FALSE,
+	    "org.freedesktop.DBus.Error.AccessDenied");
+	wait_no_controllers();
+	g_dbus_connection_close_sync(client, NULL, NULL);
+	g_object_unref(client);
+	mode("normal");
 }
 
 int
@@ -153,11 +315,31 @@ main(int argc, char **argv)
 	g_test_init(&argc, &argv, NULL);
 	bus = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
 	g_assert_no_error(error);
+#ifdef __APPLE__
+	/* macOS dbus-daemon lacks peer PID credentials. Skip only this exact
+	 * platform limitation; the daemon itself must continue to fail closed. */
+	{
+		GVariant *r = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus",
+		    "/org/freedesktop/DBus", "org.freedesktop.DBus",
+		    "GetConnectionUnixProcessID", g_variant_new("(s)",
+		    g_dbus_connection_get_unique_name(bus)), G_VARIANT_TYPE("(u)"),
+		    0, 3000, NULL, &error);
+		if (r == NULL) {
+			g_assert_error(error, G_DBUS_ERROR, G_DBUS_ERROR_UNIX_PROCESS_ID_UNKNOWN);
+			peer_pid_available = FALSE;
+			g_clear_error(&error);
+		} else
+			g_variant_unref(r);
+	}
+#endif
 	g_test_add_func("/bsd3/discovery", test_discovery);
 	g_test_add_func("/bsd3/enumeration", test_enumeration);
 	g_test_add_func("/bsd3/display", test_display);
 	g_test_add_func("/bsd3/errors", test_errors);
 	g_test_add_func("/bsd3/daemon", test_daemon);
+	g_test_add_func("/bsd3/controller-ownership", test_control_ownership);
+	g_test_add_func("/bsd3/controller-failures", test_control_failures);
+	g_test_add_func("/bsd3/controller-missing-credentials", test_missing_credentials);
 	rc = g_test_run();
 	g_object_unref(bus);
 	return (rc);
