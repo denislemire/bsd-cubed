@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: BSD-2-Clause
-# Run on a disposable FreeBSD CircleCI machine, as its ordinary build user.
+# Run on a disposable FreeBSD CI machine; record the actual executor UID.
 set -eu
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 [ "$(uname -s)" = FreeBSD ] || { echo 'FreeBSD required' >&2; exit 1; }

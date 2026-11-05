@@ -44,8 +44,11 @@ trap 'exit 143' TERM
 sudo service dbus onestatus >/dev/null 2>&1 || sudo service dbus onestart
 service_started=yes
 sudo service bsddd onestart
-# Activation must reach the real installed CK daemon, not a private-bus fixture.
-timeout -k 1 15 gdbus call --system --dest org.freedesktop.ConsoleKit \
-    --object-path /org/freedesktop/ConsoleKit/Manager \
-    --method org.freedesktop.ConsoleKit.Manager.GetSessions >/dev/null
+# Load policies installed with GNOME after the bus was first started.
+sudo gdbus call --system --dest org.freedesktop.DBus \
+    --object-path /org/freedesktop/DBus --method org.freedesktop.DBus.ReloadConfig >/dev/null
+# Empty session inventory is valid. Activate without treating NoSessions as failure.
+timeout -k 1 15 gdbus call --system --dest org.freedesktop.DBus \
+    --object-path /org/freedesktop/DBus --method org.freedesktop.DBus.StartServiceByName \
+    org.freedesktop.ConsoleKit 0 >/dev/null
 sudo -H -u "$test_user" /bin/sh -c     'cd "$1" && exec timeout -k 5 120 sh tests/native-gnome-session.sh' sh "$work_root"
