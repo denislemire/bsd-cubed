@@ -84,7 +84,18 @@ if ! make -C "$port" PORTSDIR="$ports_root" BATCH=yes DEVELOPER=yes \
     exit 1
 fi
 tail -60 dist/mutter/build.log
-find dist/mutter/packages/All -name '*.pkg' -exec sha256 -r {} \; >dist/mutter/SHA256SUMS
+# Preserve corresponding GPL consumer source and the exact modified port recipe.
+wrksrc=$(make -C "$port" PORTSDIR="$ports_root" WRKDIRPREFIX="$work_root/work" -V WRKSRC)
+source_name=${wrksrc##*/}
+case "$source_name" in mutter-[0-9]*) ;; *) exit 1 ;; esac
+tar --exclude "$source_name/_build" -C "${wrksrc%/*}" -czf \
+    "$repo_root/dist/mutter/$source_name-bsd3-source.tar.gz" "$source_name"
+tar -C "$work_root/overlay" -czf "$repo_root/dist/mutter/$source_name-bsd3-port.tar.gz" \
+    x11-wm/mutter -C "$repo_root" packaging/freebsd/bsd-cubed \
+    tools/ci-mutter.sh tools/test-native-mutter.sh
+(cd dist/mutter/packages/All && sha256 -r mutter-*.pkg) >dist/mutter/MUTTER_SHA256SUMS
+(cd dist/mutter && sha256 -r "$source_name-bsd3-source.tar.gz" \
+    "$source_name-bsd3-port.tar.gz") >>dist/mutter/MUTTER_SHA256SUMS
 
 set -- dist/mutter/packages/All/mutter-*.pkg
 [ "$#" -eq 1 ] && [ -f "$1" ]
