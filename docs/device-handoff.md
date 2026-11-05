@@ -52,3 +52,10 @@ Hardware integration, aggregate deadlines/backpressure, controller-loss signalin
 seat/user objects, power/inhibitors, compositor porting and modern GNOME startup
 remain separate work. Do not publish or install a production login service on the
 strength of these mock-backend protocol tests.
+
+Native FreeBSD VM CI build9 at fb36606bcd5cd5ac0fb9be9575f111f301f3b030
+passed direct and ports-framework runs: eleven groups passed and the Mac-only
+missing-PID group was skipped. This includes actual pipe take/resume markers,
+acknowledgement/force/gone, observer exclusion, extra FD rejection, cleanup,
+256-lease limits and Active notifications. Ports stage, check-plist, stage QA
+and package creation passed. This does not establish kernel revocation behavior.

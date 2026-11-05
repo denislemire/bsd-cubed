@@ -21,8 +21,9 @@ ConsoleKit/PAM              native broker or libseat   per-user supervisor
 FreeBSD sessions            DRM/input/devfs/VT         ordinary processes
 ```
 
-Session discovery and authenticated controller lifetime now exist; descriptor
-handoff and session startup do not. Reuse
+Session discovery, authenticated controller lifetime and experimental descriptor
+transport/pause-resume protocol now exist. Real device revocation/VT switching
+and session startup remain unverified. Reuse
 ConsoleKit2 as the initial source of session truth; independently assess whether
 its device controller works on the target build before selecting it for handoff.
 Do not run ConsoleKit, seatd and BSD³ as competing DRM/VT owners.
@@ -56,7 +57,9 @@ Do not run ConsoleKit, seatd and BSD³ as competing DRM/VT owners.
 ## Current protocol limits
 
 The daemon owns login1 but intentionally exposes a small read-only interface.
-It does not yet export Seat/User objects, change signals or device methods.
+It does not yet export Seat/User objects. Device descriptor transport,
+pause/resume and Active change signals are experimental protocol support,
+not verified hardware revocation.
 TakeControl/ReleaseControl authenticate the original peer and isolate backend
 lifetimes; see [controller design](controller-lifecycle.md).
 ListSessions resolves local usernames where available. Session IDs are ConsoleKit
