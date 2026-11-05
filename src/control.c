@@ -559,3 +559,103 @@ bsd3_control_call(const char *id, const char *method, GVariant *args,
 	g_variant_unref(reply);
 	g_dbus_method_invocation_return_value(invocation, NULL);
 }
+
+/* Canonical bus component encoding: underscores and leading digits are escaped. */
+char *
+bsd3_seat_component(const char *name)
+{
+	GString *encoded = g_string_new(NULL);
+	const unsigned char *p;
+	for (p = (const unsigned char *)name; *p != '\0'; p++) {
+		if (g_ascii_isalpha(*p) ||
+		    (p != (const unsigned char *)name && g_ascii_isdigit(*p)))
+			g_string_append_c(encoded, *p);
+		else
+			g_string_append_printf(encoded, "_%02x", *p);
+	}
+	return (g_string_free(encoded, FALSE));
+}
+
+void
+bsd3_seat_call(const char *component, GVariant *args,
+    GDBusMethodInvocation *invocation)
+{
+	const char *sender = g_dbus_method_invocation_get_sender(invocation);
+	struct controller *c;
+	guint32 pid, vt;
+	gboolean active;
+	char *id = NULL, *seat_path = NULL, *seat_name = NULL, *encoded = NULL;
+	GVariant *reply = NULL;
+	GError *error = NULL;
+	g_autofree char *owner = NULL;
+
+	g_variant_get(args, "(u)", &vt);
+	if (vt == 0) {
+		failure(invocation, "org.freedesktop.DBus.Error.InvalidArgs",
+		    "VT numbers start at one");
+		return;
+	}
+	if (!credential(sender, "GetConnectionUnixProcessID", &pid) ||
+	    pid == 0 || pid > G_MAXINT32 || sd_pid_get_session((pid_t)pid, &id) < 0)
+		goto denied;
+	c = g_hash_table_lookup(controllers, id);
+	if (c == NULL || c->closing || strcmp(c->sender, sender) != 0 ||
+	    !authorized(id, sender))
+		goto denied;
+	owner = backend_owner();
+	if (g_strcmp0(owner, c->backend_owner) != 0)
+		goto denied;
+	/* Query through this controller's pinned backend, never a replacement owner. */
+	reply = backend_call(c, "IsActive", NULL, "(b)", &error);
+	if (reply == NULL)
+		goto failed;
+	g_variant_get(reply, "(b)", &active);
+	g_clear_pointer(&reply, g_variant_unref);
+	if (!active)
+		goto denied;
+	reply = backend_call(c, "GetSeatId", NULL, "(o)", &error);
+	if (reply == NULL)
+		goto failed;
+	g_variant_get(reply, "(o)", &seat_path);
+	g_clear_pointer(&reply, g_variant_unref);
+	if (!g_str_has_prefix(seat_path, "/org/freedesktop/ConsoleKit/") ||
+	    seat_path[strlen("/org/freedesktop/ConsoleKit/")] == '\0' ||
+	    strchr(seat_path + strlen("/org/freedesktop/ConsoleKit/"), '/') != NULL)
+		goto denied;
+	reply = g_dbus_connection_call_sync(c->backend, c->backend_owner,
+	    seat_path, CK ".Seat", "GetName", NULL, G_VARIANT_TYPE("(s)"),
+	    G_DBUS_CALL_FLAGS_NO_AUTO_START, 3000, NULL, &error);
+	if (reply == NULL)
+		goto failed;
+	g_variant_get(reply, "(s)", &seat_name);
+	g_clear_pointer(&reply, g_variant_unref);
+	if (seat_name[0] == '\0' || strlen(seat_name) > 255)
+		goto denied;
+	for (const unsigned char *p = (const unsigned char *)seat_name; *p != '\0'; p++)
+		if (!g_ascii_isalnum(*p) && *p != '_' && *p != '-')
+			goto denied;
+	encoded = bsd3_seat_component(seat_name);
+	if (strcmp(encoded, component) != 0)
+		goto denied;
+	/* Backend/kernel supplies the platform's VT range. No Linux VT limit. */
+	reply = g_dbus_connection_call_sync(c->backend, c->backend_owner,
+	    seat_path, CK ".Seat", "SwitchTo", g_variant_new("(u)", vt),
+	    G_VARIANT_TYPE("()"), G_DBUS_CALL_FLAGS_NO_AUTO_START, 3000, NULL, &error);
+	if (reply == NULL)
+		goto failed;
+	g_dbus_method_invocation_return_value(invocation, NULL);
+	goto done;
+denied:
+	failure(invocation, "org.freedesktop.DBus.Error.AccessDenied",
+	    "VT switching requires the active controller on this seat");
+	goto done;
+failed:
+	failure(invocation, "org.freedesktop.DBus.Error.Failed", error->message);
+done:
+	g_clear_pointer(&reply, g_variant_unref);
+	g_clear_error(&error);
+	free(id);
+	g_free(seat_path);
+	g_free(seat_name);
+	g_free(encoded);
+}
