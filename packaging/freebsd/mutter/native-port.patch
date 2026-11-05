@@ -1,0 +1,38 @@
+--- Makefile
++++ Makefile
+@@ -1,6 +1,6 @@
+ PORTNAME=	mutter
+ PORTVERSION=	47.10
+-PORTREVISION=	2
++PORTREVISION=	3
+ CATEGORIES=	x11-wm
+ MASTER_SITES=	GNOME
+ DIST_SUBDIR=	gnome
+@@ -12,7 +12,8 @@
+ LICENSE=	GPLv2+
+ LICENSE_FILE=	${WRKSRC}/COPYING
+ 
+-BUILD_DEPENDS=	evdev-proto>0:devel/evdev-proto \
++BUILD_DEPENDS=	${LOCALBASE}/libdata/pkgconfig/bsd3-login.pc:sysutils/bsd-cubed \
++		evdev-proto>0:devel/evdev-proto \
+ 		gnome-settings-daemon>0:sysutils/gnome-settings-daemon \
+ 		gsettings-desktop-schemas>0:devel/gsettings-desktop-schemas \
+ 		xkeyboard-config>0:x11/xkeyboard-config \
+@@ -37,7 +38,7 @@
+ 
+ USES=		compiler:c++0x gettext-tools gl gnome localbase meson \
+ 		pkgconfig tar:xz xorg
+-USE_GL=		egl gbm
++USE_GL=		egl gbm glesv2
+ USE_GNOME=	atk cairo gdkpixbuf gnomedesktop4 gtk40 introspection:build
+ USE_XORG=	ice pixman sm x11 xcb xcomposite xcursor xdamage xext \
+ 		xfixes xi xinerama xkbfile xrandr xrender xtst
+@@ -49,7 +50,7 @@
+ CPPFLAGS+=	-fno-omit-frame-pointer
+ MESON_ARGS=	-Dlibdisplay_info=enabled \
+ 		-Dlibwacom=false \
+-		-Dnative_backend=false \
++		-Dnative_backend=true \
+ 		-Dprofiler=false \
+ 		-Dsystemd=false \
+ 		-Dtests=disabled \
