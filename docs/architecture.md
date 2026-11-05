@@ -77,3 +77,12 @@ Before control methods exist, specify caller credentials, ownership, per-client
 backend connections or a native device broker, revocation and disconnect handling.
 Never accept a client-supplied UID as authorization. Do not gain device access by
 making all input devices world-readable or running the desktop as root.
+
+## Development environment boundary — November 4, 2026
+
+Denis clarified that this project is hardware-independent until final acceptance.
+Use generic FreeBSD VMs in EhWS KubeVirt, preferably provisioned by the existing
+CircleCI native machine executor. The physical laptop has parallel kernel work;
+reserve it for final VT/DRM/input integration trials with a recorded recovery plan.
+Early prototype validation on that laptop used only ordinary-user temporary files
+and private buses, with no installed package, kernel, boot or service changes.

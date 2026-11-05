@@ -26,3 +26,12 @@
 - At meaningful milestones, update the source audit/validation record and retain
   an accurately dated outcome with lifecycle state. A compiled prototype is not
   a verified native GNOME Wayland desktop or a submitted FreeBSD port.
+- Development and protocol/package validation belong in generic EhWS KubeVirt
+  FreeBSD VMs (normally the CircleCI machine executor). The physical laptop has
+  parallel kernel investigations; reserve it for agreed final hardware tests.
+  Do not change its kernel, boot selection, services or desktop for routine work.
+- When a package is ready for meaningful laptop integration, publish a GitHub
+  beta/prerelease first with the successful native CI package, matching source
+  archive, SHA256SUMS and provenance. Then download that exact release asset,
+  verify it and install it on the laptop. Do not install an ad hoc build or a
+  source-tree binary instead. A diagnostics-only prototype is not desktop-ready.
