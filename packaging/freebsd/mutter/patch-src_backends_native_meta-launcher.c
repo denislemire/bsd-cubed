@@ -6,8 +6,8 @@
  #include <sys/stat.h>
 +#ifndef __FreeBSD__
  #include <sys/sysmacros.h>
-+#endif
  #include <malloc.h>
++#endif
  #include <fcntl.h>
  #include <errno.h>
  #include <stdlib.h>
