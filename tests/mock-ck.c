@@ -19,6 +19,7 @@ static gboolean session6_active = TRUE;
 struct fake_device { char *owner; gboolean paused; gboolean awaiting_ack; };
 static const char xml[] =
  "<node><interface name='org.freedesktop.ConsoleKit.Manager'>"
+ "<method name='GetSeats'><arg type='ao' direction='out'/></method>"
  "<method name='GetSessions'><arg type='ao' direction='out'/></method>"
  "<method name='GetSessionsForUnixUser'><arg type='u' direction='in'/><arg type='ao' direction='out'/></method>"
  "<method name='GetSessionForUnixProcess'><arg type='u' direction='in'/><arg type='o' direction='out'/></method>"
@@ -50,6 +51,8 @@ static const char xml[] =
  "<method name='GetCounters'><arg type='u' direction='out'/><arg type='u' direction='out'/><arg type='u' direction='out'/></method>"
  "</interface><interface name='org.freedesktop.ConsoleKit.Seat'>"
  "<method name='GetName'><arg type='s' direction='out'/></method>"
+ "<method name='CanActivateSessions'><arg type='b' direction='out'/></method>"
+ "<property name='CanGraphical' type='b' access='read'/>"
  "<method name='SwitchTo'><arg type='u' direction='in'/></method>"
  "</interface></node>";
 
@@ -184,7 +187,17 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 		    "org.freedesktop.DBus.Error.AccessDenied", "Fixture denial");
 		return;
 	} else if (strcmp(iface, CK ".Manager") == 0) {
-		if (strcmp(name, "GetSessionForUnixProcess") == 0) {
+		if (strcmp(name, "GetSeats") == 0) {
+			GVariantBuilder seats;
+			g_variant_builder_init(&seats, G_VARIANT_TYPE("ao"));
+			if (strcmp(mode, "no-seat") != 0) {
+				const char *seat_path = strcmp(mode, "bad-seat-list") == 0 ? "/unrelated/seat" :
+				    strcmp(mode, "legacy-seat") == 0 ? ROOT "/Seat1" : ROOT "/seat0";
+				g_variant_builder_add(&seats, "o", seat_path);
+				g_variant_builder_add(&seats, "o", seat_path);
+			}
+			reply = g_variant_new("(ao)", &seats);
+		} else if (strcmp(name, "GetSessionForUnixProcess") == 0) {
 			g_variant_get(args, "(u)", &last_pid);
 			if (last_pid == 99999999) {
 				g_dbus_method_invocation_return_dbus_error(invocation,
@@ -219,6 +232,11 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 			reply = g_variant_new("(ao)", &builder);
 		}
 	} else if (strcmp(iface, CK ".Seat") == 0) {
+		if (strcmp(name, "CanActivateSessions") == 0) {
+			g_dbus_method_invocation_return_value(invocation,
+			    g_variant_new("(b)", strcmp(mode, "no-capabilities") != 0));
+			return;
+		}
 		if (strcmp(name, "SwitchTo") == 0) {
 			g_assert_cmpstr(g_hash_table_lookup(owners, ROOT "/Session6"), ==, sender);
 			g_variant_get(args, "(u)", &last_vt);
@@ -359,7 +377,22 @@ owner_changed(GDBusConnection *bus, const char *sender, const char *path,
 	}
 }
 
-static const GDBusInterfaceVTable vtable = { .method_call = method };
+static GVariant *
+mock_property(GDBusConnection *bus, const char *sender, const char *path,
+    const char *iface, const char *name, GError **error, gpointer data)
+{
+	(void)bus; (void)sender; (void)path; (void)data;
+	if (strcmp(iface, CK ".Seat") == 0 && strcmp(name, "CanGraphical") == 0) {
+		if (strcmp(mode, "capability-error") == 0) {
+			g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_ACCESS_DENIED, "Fixture capability failure");
+			return (NULL);
+		}
+		return (g_variant_new_boolean(strcmp(mode, "no-capabilities") != 0));
+	}
+	g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_PROPERTY, "Unknown fixture property");
+	return (NULL);
+}
+static const GDBusInterfaceVTable vtable = { .method_call = method, .get_property = mock_property };
 static gboolean stop(gpointer data)
 { (void)data; g_main_loop_quit(loop); return (G_SOURCE_REMOVE); }
 

@@ -714,6 +714,52 @@ test_owner_readiness(void)
 }
 
 static void
+test_seat_inventory(void)
+{
+	mode("empty"); /* No sessions must not hide a real seat from SDDM. */
+	GVariant *reply = call("org.freedesktop.login1", "/org/freedesktop/login1",
+	    "org.freedesktop.login1.Manager", "ListSeats", NULL, "(a(so))");
+	GVariant *seats = g_variant_get_child_value(reply, 0);
+	g_assert_cmpuint(g_variant_n_children(seats), ==, 1);
+	const char *name, *path;
+	g_variant_get_child(seats, 0, "(&s&o)", &name, &path);
+	g_assert_cmpstr(name, ==, "seat0");
+	g_assert_cmpstr(path, ==, "/org/freedesktop/login1/seat/seat0");
+	g_variant_unref(seats); g_variant_unref(reply);
+	mode("custom-seat-name");
+	reply = call("org.freedesktop.login1", "/org/freedesktop/login1",
+	    "org.freedesktop.login1.Manager", "GetSeat", g_variant_new("(s)", "seat-lab"), "(o)");
+	g_variant_get(reply, "(&o)", &path);
+	g_assert_cmpstr(path, ==, "/org/freedesktop/login1/seat/seat_2dlab");
+	g_variant_unref(reply);
+	for (unsigned i = 0; i < 2; i++) {
+		mode(i == 0 ? "normal" : "no-capabilities");
+		const char *properties[] = { "CanTTY", "CanGraphical" };
+		for (unsigned j = 0; j < G_N_ELEMENTS(properties); j++) {
+			reply = call("org.freedesktop.login1", "/org/freedesktop/login1/seat/seat0",
+			    "org.freedesktop.DBus.Properties", "Get",
+			    g_variant_new("(ss)", "org.freedesktop.login1.Seat", properties[j]), "(v)");
+			GVariant *value; g_variant_get(reply, "(v)", &value);
+			g_assert_cmpint(g_variant_get_boolean(value), ==, i == 0);
+			g_variant_unref(value); g_variant_unref(reply);
+		}
+	}
+	mode("capability-error");
+	GError *error = NULL;
+	reply = g_dbus_connection_call_sync(bus, "org.freedesktop.login1",
+	    "/org/freedesktop/login1/seat/seat0", "org.freedesktop.DBus.Properties", "Get",
+	    g_variant_new("(ss)", "org.freedesktop.login1.Seat", "CanGraphical"),
+	    G_VARIANT_TYPE("(v)"), 0, 5000, NULL, &error);
+	g_assert_null(reply); g_assert_nonnull(error); g_clear_error(&error);
+	mode("bad-seat-list");
+	reply = g_dbus_connection_call_sync(bus, "org.freedesktop.login1",
+	    "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "ListSeats",
+	    NULL, G_VARIANT_TYPE("(a(so))"), 0, 5000, NULL, &error);
+	g_assert_null(reply); g_assert_nonnull(error); g_clear_error(&error);
+	mode("normal");
+}
+
+static void
 test_seat_objects(void)
 {
 	const char *modes[] = { "normal", "legacy-seat", "custom-seat-name",
@@ -863,6 +909,7 @@ main(int argc, char **argv)
 	g_test_add_func("/bsd3/discovery", test_discovery);
 	g_test_add_func("/bsd3/seat-names", test_seat_names);
 	g_test_add_func("/bsd3/seat-objects", test_seat_objects);
+	g_test_add_func("/bsd3/seat-inventory", test_seat_inventory);
 	g_test_add_func("/bsd3/enumeration", test_enumeration);
 	g_test_add_func("/bsd3/display", test_display);
 	g_test_add_func("/bsd3/errors", test_errors);

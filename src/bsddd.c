@@ -11,6 +11,7 @@
 #include <glib-unix.h>
 #include "bsd3/sd-login.h"
 #include "control.h"
+#include "seats.h"
 
 #define ROOT "/org/freedesktop/login1"
 #define SESSION ROOT "/session"
@@ -27,8 +28,10 @@ static const char xml[] =
     "<method name='GetSessionByPID'><arg type='u' direction='in'/>"
     "<arg type='o' direction='out'/></method>"
     "<method name='ListSessions'><arg type='a(susso)' direction='out'/>"
-    "</method></interface>"
-    "<interface name='org.freedesktop.login1.Session'>"
+    "</method>"
+    "<method name='ListSeats'><arg type='a(so)' direction='out'/></method>"
+    "<method name='GetSeat'><arg type='s' direction='in'/><arg type='o' direction='out'/></method>"
+    "</interface><interface name='org.freedesktop.login1.Session'>"
     "<method name='TakeControl'><arg type='b' direction='in'/></method>"
     "<method name='ReleaseControl'/>"
     "<method name='TakeDevice'><arg type='u' direction='in'/><arg type='u' direction='in'/>"
@@ -44,6 +47,9 @@ static const char xml[] =
     "<property name='State' type='s' access='read'/>"
     "</interface><interface name='org.freedesktop.login1.Seat'>"
     "<method name='SwitchTo'><arg type='u' direction='in'/></method>"
+    "<property name='Id' type='s' access='read'/>"
+    "<property name='CanTTY' type='b' access='read'/>"
+    "<property name='CanGraphical' type='b' access='read'/>"
     "</interface></node>";
 
 static void
@@ -86,6 +92,36 @@ manager_call(GDBusConnection *bus, const char *sender, const char *path,
 	(void)path;
 	(void)iface;
 	(void)data;
+	if (strcmp(method, "ListSeats") == 0 || strcmp(method, "GetSeat") == 0) {
+		GError *error = NULL;
+		GPtrArray *seats = bsd3_seats_list(bus, &error);
+		if (seats == NULL) {
+			g_dbus_method_invocation_return_gerror(invocation, error);
+			g_error_free(error); return;
+		}
+		GVariantBuilder builder;
+		g_variant_builder_init(&builder, G_VARIANT_TYPE("a(so)"));
+		const char *requested = NULL;
+		if (strcmp(method, "GetSeat") == 0) g_variant_get(parameters, "(&s)", &requested);
+		for (guint i = 0; i < seats->len; i++) {
+			struct bsd3_seat *seat = g_ptr_array_index(seats, i);
+			char *object_path = g_strconcat(SEAT "/", seat->component, NULL);
+			if (requested == NULL) g_variant_builder_add(&builder, "(so)", seat->name, object_path);
+			else if (strcmp(requested, seat->name) == 0) {
+				g_dbus_method_invocation_return_value(invocation, g_variant_new("(o)", object_path));
+				g_free(object_path); g_ptr_array_unref(seats); g_variant_builder_clear(&builder); return;
+			}
+			g_free(object_path);
+		}
+		g_ptr_array_unref(seats);
+		if (requested == NULL)
+			g_dbus_method_invocation_return_value(invocation, g_variant_new("(a(so))", &builder));
+		else {
+			g_variant_builder_clear(&builder);
+			g_dbus_method_invocation_return_dbus_error(invocation, LOGIN ".NoSuchSeat", "Unknown seat");
+		}
+		return;
+	}
 	if (strcmp(method, "GetSessionByPID") == 0) {
 		guint32 pid;
 		g_variant_get(parameters, "(u)", &pid);
@@ -219,8 +255,15 @@ seat_call(GDBusConnection *bus, const char *sender, const char *path,
 	bsd3_seat_call(strrchr(path, '/') + 1, args, invocation);
 }
 
+static GVariant *
+seat_property(GDBusConnection *bus, const char *sender, const char *path,
+    const char *iface, const char *name, GError **error, gpointer data)
+{
+	(void)sender; (void)iface; (void)data;
+	return (bsd3_seat_property(bus, strrchr(path, '/') + 1, name, error));
+}
 static const GDBusInterfaceVTable seat_vtable = {
-	.method_call = seat_call
+	.method_call = seat_call, .get_property = seat_property
 };
 
 static const GDBusInterfaceVTable manager_vtable = {
@@ -233,30 +276,18 @@ static const GDBusInterfaceVTable session_vtable = {
 static gchar **
 enumerate(GDBusConnection *bus, const gchar *sender, const gchar *path, gpointer data)
 {
-	char **sessions = NULL;
-	(void)bus; (void)sender; (void)path; (void)data;
-	if (sd_get_sessions(&sessions) < 0)
-		return (g_new0(gchar *, 1));
+	(void)sender; (void)path;
 	if (data != NULL) {
-		GHashTable *seen = g_hash_table_new(g_str_hash, g_str_equal);
-		GPtrArray *seats = g_ptr_array_new();
-		for (unsigned i = 0; sessions[i] != NULL; i++) {
-			char *name = NULL, *encoded;
-			if (sd_session_get_seat(sessions[i], &name) < 0)
-				continue;
-			encoded = bsd3_seat_component(name);
-			free(name);
-			if (!g_hash_table_contains(seen, encoded)) {
-				g_hash_table_add(seen, encoded);
-				g_ptr_array_add(seats, encoded);
-			} else
-				g_free(encoded);
-		}
-		g_hash_table_unref(seen);
-		g_strfreev(sessions);
-		g_ptr_array_add(seats, NULL);
-		return ((gchar **)g_ptr_array_free(seats, FALSE));
+		GError *error = NULL;
+		GPtrArray *seats = bsd3_seats_list(bus, &error);
+		if (seats == NULL) { g_clear_error(&error); return (g_new0(gchar *, 1)); }
+		char **names = g_new0(char *, seats->len + 1);
+		for (guint i = 0; i < seats->len; i++)
+			names[i] = g_strdup(((struct bsd3_seat *)g_ptr_array_index(seats, i))->component);
+		g_ptr_array_unref(seats); return (names);
 	}
+	char **sessions = NULL;
+	if (sd_get_sessions(&sessions) < 0) return (g_new0(gchar *, 1));
 	return (sessions);
 }
 
