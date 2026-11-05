@@ -1,0 +1,56 @@
+#!/bin/sh
+# SPDX-License-Identifier: BSD-2-Clause
+# PROVIDE: bsddd
+# REQUIRE: dbus
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name=bsddd
+rcvar=bsddd_enable
+load_rc_config "$name"
+: ${bsddd_enable:=NO}
+
+command=/usr/sbin/daemon
+procname=%%PREFIX%%/sbin/bsddd
+pidfile=/var/run/bsddd.pid
+command_args="-c -f -S -T bsddd -p ${pidfile} -- ${procname} --foreground"
+start_postcmd=bsddd_poststart
+status_cmd=bsddd_status
+# Privileged service management must use the machine bus, not caller overrides.
+unset DBUS_SYSTEM_BUS_ADDRESS DBUS_SESSION_BUS_ADDRESS
+
+bsddd_ready()
+{
+    _bsd3_pid=$(check_pidfile "$pidfile" "$procname")
+    [ -n "$_bsd3_pid" ] || return 1
+    /usr/bin/timeout -k 1 1 "$procname" --check-owner "$_bsd3_pid" >/dev/null 2>&1
+}
+
+bsddd_poststart()
+{
+    _bsd3_tries=0
+    while [ "$_bsd3_tries" -lt 5 ]; do
+        if bsddd_ready; then
+            return 0
+        fi
+        _bsd3_tries=$((_bsd3_tries + 1))
+        sleep 1
+    done
+    warn "${name} did not acquire login1; check its bus policy and existing owner"
+    _bsd3_pid=$(check_pidfile "$pidfile" "$procname")
+    [ -z "$_bsd3_pid" ] || kill -TERM "$_bsd3_pid" 2>/dev/null || :
+    return 1
+}
+
+bsddd_status()
+{
+    if bsddd_ready; then
+        echo "${name} is running as pid ${_bsd3_pid} and owns login1."
+        return 0
+    fi
+    echo "${name} is not ready."
+    return 1
+}
+
+run_rc_command "$1"

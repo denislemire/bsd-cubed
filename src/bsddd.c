@@ -317,6 +317,50 @@ probe(void)
 	return (0);
 }
 
+/* A service readiness check, not a claim that a desktop/session is usable. */
+static int
+check_owner(const char *text)
+{
+	GDBusConnection *bus;
+	GVariant *reply;
+	GError *error = NULL;
+	const char *p;
+	guint64 expected;
+	guint32 actual;
+
+	if (*text == '\0')
+		return (64);
+	for (p = text; *p != '\0'; p++)
+		if (!g_ascii_isdigit(*p))
+			return (64);
+	errno = 0;
+	expected = g_ascii_strtoull(text, NULL, 10);
+	if (errno != 0 || expected == 0 || expected > G_MAXINT32)
+		return (64);
+	bus = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
+	if (bus == NULL)
+		goto failed;
+	reply = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus",
+	    "/org/freedesktop/DBus", "org.freedesktop.DBus",
+	    "GetConnectionUnixProcessID", g_variant_new("(s)", LOGIN),
+	    G_VARIANT_TYPE("(u)"), G_DBUS_CALL_FLAGS_NO_AUTO_START, 1000,
+	    NULL, &error);
+	g_object_unref(bus);
+	if (reply == NULL)
+		goto failed;
+	g_variant_get(reply, "(u)", &actual);
+	g_variant_unref(reply);
+	if (actual != expected) {
+		g_printerr("bsddd: login1 belongs to a different process\n");
+		return (1);
+	}
+	return (0);
+failed:
+	g_printerr("bsddd: cannot verify login1 owner: %s\n", error->message);
+	g_error_free(error);
+	return (1);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -324,8 +368,10 @@ main(int argc, char **argv)
 	guint owner;
 	if (argc == 2 && strcmp(argv[1], "--probe") == 0)
 		return (probe());
+	if (argc == 3 && strcmp(argv[1], "--check-owner") == 0)
+		return (check_owner(argv[2]));
 	if (argc != 2 || strcmp(argv[1], "--foreground") != 0) {
-		g_printerr("usage: bsddd --probe | --foreground\n");
+		g_printerr("usage: bsddd --probe | --foreground | --check-owner PID\n");
 		return (64);
 	}
 	schema = g_dbus_node_info_new_for_xml(xml, &error);

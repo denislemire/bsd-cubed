@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/wait.h>
 #include <gio/gio.h>
 #include <gio/gunixfdlist.h>
 #include "bsd3/sd-login.h"
@@ -663,6 +664,55 @@ test_seat_names(void)
 	mode("normal");
 }
 
+static void
+expect_owner_status(const char *pid, int expected)
+{
+	char *args[] = { "./bsddd", "--check-owner", (char *)pid, NULL };
+	char *output = NULL, *errors = NULL;
+	GError *error = NULL;
+	int status;
+	g_assert_true(g_spawn_sync(NULL, args, NULL, 0, NULL, NULL,
+	    &output, &errors, &status, &error));
+	g_assert_no_error(error);
+	g_assert_true(WIFEXITED(status));
+	g_assert_cmpint(WEXITSTATUS(status), ==, expected);
+	g_free(output);
+	g_free(errors);
+}
+
+static void
+test_owner_arguments(void)
+{
+	const char *bad[] = { "", "0", "-1", "+1", "1x", " 1", "4294967295",
+	    "18446744073709551616", NULL };
+	for (int i = 0; bad[i] != NULL; i++)
+		expect_owner_status(bad[i], 64);
+}
+
+static void
+test_owner_readiness(void)
+{
+	GVariant *reply;
+	guint32 pid;
+	char *text;
+	if (!peer_pid_available) {
+		g_test_skip("Host cannot provide the owner process ID");
+		return;
+	}
+	reply = call("org.freedesktop.DBus", "/org/freedesktop/DBus",
+	    "org.freedesktop.DBus", "GetConnectionUnixProcessID",
+	    g_variant_new("(s)", "org.freedesktop.login1"), "(u)");
+	g_variant_get(reply, "(u)", &pid);
+	g_variant_unref(reply);
+	text = g_strdup_printf("%u", pid);
+	expect_owner_status(text, 0);
+	g_free(text);
+	/* The test client is alive but does not own the service's bus name. */
+	text = g_strdup_printf("%u", (guint32)getpid());
+	expect_owner_status(text, 1);
+	g_free(text);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -688,6 +738,8 @@ main(int argc, char **argv)
 			g_variant_unref(r);
 	}
 #endif
+	g_test_add_func("/bsd3/readiness-arguments", test_owner_arguments);
+	g_test_add_func("/bsd3/readiness-owner", test_owner_readiness);
 	g_test_add_func("/bsd3/discovery", test_discovery);
 	g_test_add_func("/bsd3/seat-names", test_seat_names);
 	g_test_add_func("/bsd3/enumeration", test_enumeration);

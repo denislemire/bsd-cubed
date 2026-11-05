@@ -23,6 +23,9 @@ jobs:
           name: Rebuild Mutter port with native backend and BSD3 provider
           no_output_timeout: 30m
           command: sh tools/ci-mutter.sh
+      - run:
+          name: Native service lifecycle and root-only system-bus policy
+          command: sh tools/ci-service.sh
       - store_artifacts:
           path: dist
           destination: freebsd

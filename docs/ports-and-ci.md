@@ -5,7 +5,7 @@ The candidate port is `packaging/freebsd/bsd-cubed`, intended for
 build, GLib/pkgconf dependencies, ConsoleKit runtime dependency and `test` target.
 There is no systemd dependency. No daemon is enabled on install.
 
-The current candidate is 0.1.0-beta2, still experimental.
+The current candidate is 0.1.0-beta3, still experimental.
 The published 0.1.0-beta1 is the earlier read-only discovery preview.
 The matching release artifact must be published from successful native CI. The release URL in MASTER_SITES is the
 planned distribution layout, and **is not fetchable until a release is published**.
@@ -32,8 +32,12 @@ Run as an ordinary user on a disposable lab FreeBSD machine with dependencies:
 sh tools/ci-freebsd.sh
 ```
 
-Dependency installation is the only privileged step in the CircleCI configuration.
-The package stage is ordinary-user work. CI's machine image and the physical
+Package construction is ordinary-user work. Dependency/candidate installation and
+bounded service lifecycle checks use the disposable CI image's existing sudo
+access. The service test starts the machine bus and tests root-only login1
+ownership, onestart/quietstart/faststart, status/stop and refusal of another owner;
+it does not persistently enable the daemon. These checks do not run on the laptop.
+CI's machine image and the physical
 laptop are separate validation environments. CI cannot prove real VT switching,
 DRM master revocation, input permissions or a native GNOME login.
 
@@ -47,8 +51,10 @@ DRM master revocation, input permissions or a native GNOME login.
 4. Check package ownership, uninstall behavior, nondefault PREFIX and runtime
    dependencies. The current library is static; do not add USE_LDCONFIG until a
    shared library with a deliberate ABI exists.
-5. Only ship rc.subr integration and system-bus policy once privilege-bearing
-   operations, client death, recovery, startup and shutdown have been validated.
+5. Keep the rc.subr service disabled by default. Validate its real system-bus
+   ownership policy and startup/shutdown on a disposable VM, alongside the private
+   protocol tests for controller identity, client death and backend failure.
+   Physical device/VT recovery still requires separate acceptance testing.
 6. Submit one proper new-port change with accurate scope and test limits.
 
 [FreeBSD Porter's Handbook](https://docs.freebsd.org/en/books/porters-handbook/)
