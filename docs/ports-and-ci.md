@@ -5,8 +5,8 @@ The candidate port is `packaging/freebsd/bsd-cubed`, intended for
 build, GLib/pkgconf dependencies, ConsoleKit runtime dependency and `test` target.
 There is no systemd dependency. No daemon is enabled on install.
 
-The initial repository version is 0.1.0 under development. No upstream 0.1.0
-release artifact or checksum is claimed. The release URL in MASTER_SITES is the
+The current candidate is 0.1.0-beta1, a read-only discovery preview.
+The matching release artifact must be published from successful native CI. The release URL in MASTER_SITES is the
 planned distribution layout, and **is not fetchable until a release is published**.
 Do not submit this overlay upstream without a real source release and distinfo.
 
@@ -73,6 +73,6 @@ Denis requested this iteration path on November 4, 2026:
    preserve a working boot/session recovery path and distinguish package rollback
    from rollback of any future configuration changes.
 
-No initial discovery-only beta was published or installed. A release must state
-what can actually be tested; the first package is not a working GNOME desktop.
+The first beta candidate only supports discovery tests; its release notes must
+state this scope. The first package is not a working GNOME desktop.
 Do not publish the laptop-built exploratory artifact as the CI beta artifact.

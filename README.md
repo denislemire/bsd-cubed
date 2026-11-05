@@ -60,9 +60,9 @@ See [architecture and milestones](docs/architecture.md),
 The first acceptance target is a native GNOME Wayland session on a real VT, with
 keyboard/mouse, DRM access, VT switching and clean logout. The current FreeBSD
 GNOME 47 packages are a baseline, not the final definition of modern GNOME.
-GNOME 49 is the pinned upstream compatibility audit target; newer versions must
-be audited before support is claimed. GNOME 49 also needs a user-session startup
-solution. A login1 service alone cannot supply that.
+GNOME 51 is the current stable desktop target. The initial GNOME 49 source audit
+establishes where session startup changed; newer interfaces must also be ported
+and validated. GNOME 49 and later need a user-session startup solution. A login1 service alone cannot supply that.
 
 This repository is independent of the private laptop notebook. Public bug reports
 and patches should stand alone and avoid machine-identifying logs or credentials.

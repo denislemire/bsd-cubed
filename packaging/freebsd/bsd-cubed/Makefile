@@ -1,5 +1,5 @@
 PORTNAME=	bsd-cubed
-DISTVERSION=	0.1.0
+DISTVERSION=	0.1.0-beta1
 CATEGORIES=	sysutils
 MASTER_SITES=	https://github.com/denislemire/bsd-cubed/releases/download/v${DISTVERSION}/
 
