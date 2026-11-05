@@ -17,10 +17,24 @@ cc -std=c11 -Wall -Wextra -Werror $(pkg-config --cflags bsd3-login) \
 cc -std=c11 -Wall -Wextra -Werror $(pkg-config --cflags gtk+-3.0) \
     -o test-native-window tests/native-window.c $(pkg-config --libs gtk+-3.0)
 service_started=no
+work_root=$(mktemp -d /var/tmp/bsd3-gnome.XXXXXXXX)
+# Explicit ordinary identity, even if the executor launches commands as root.
+test_user=circleci
+test_uid=$(id -u "$test_user")
+[ "$test_uid" -gt 0 ]
+printf '%s\n' "$test_uid" >dist/gnome/test-uid.txt
+mkdir -p "$work_root/tests"
+cp test-native-session test-native-window "$work_root/"
+cp tests/native-gnome-session.sh "$work_root/tests/"
+sudo chown -R "$test_user" "$work_root"
 cleanup() {
     result=$?
     trap - EXIT HUP INT TERM
     [ "$service_started" = no ] || sudo service bsddd onestop || :
+    if [ -d "$work_root/dist/gnome" ]; then
+        sudo cp -R "$work_root/dist/gnome/." dist/gnome/ || :
+    fi
+    case "$work_root" in /var/tmp/bsd3-gnome.????????) sudo rm -rf "$work_root" ;; esac
     exit "$result"
 }
 trap cleanup EXIT
@@ -34,4 +48,4 @@ sudo service bsddd onestart
 timeout -k 1 15 gdbus call --system --dest org.freedesktop.ConsoleKit \
     --object-path /org/freedesktop/ConsoleKit/Manager \
     --method org.freedesktop.ConsoleKit.Manager.GetSessions >/dev/null
-timeout -k 5 120 sh tests/native-gnome-session.sh
+sudo -H -u "$test_user" /bin/sh -c     'cd "$1" && exec timeout -k 5 120 sh tests/native-gnome-session.sh' sh "$work_root"
