@@ -32,9 +32,12 @@ Run as an ordinary user on a disposable lab FreeBSD machine with dependencies:
 sh tools/ci-freebsd.sh
 ```
 
-Package construction is ordinary-user work. Dependency/candidate installation and
-bounded service lifecycle checks use the disposable CI image's existing sudo
-access. The service test starts the machine bus and tests root-only login1
+The current native executor runs job commands as UID0 (recorded in CI25); do not
+assume the existing circleci account is the build identity. The warm VM's separate
+bsd3 account provides ordinary-user compile/protocol coverage. Installed policy
+checks explicitly drop to nobody, and desktop acceptance explicitly uses circleci
+UID1001. Dependency/candidate installation and bounded lifecycle checks remain
+confined to the disposable CI VM. The service test starts the machine bus and tests root-only login1
 ownership, onestart/quietstart/faststart, status/stop and refusal of another owner;
 it does not persistently enable the daemon. These checks do not run on the laptop.
 CI's machine image and the physical

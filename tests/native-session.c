@@ -76,7 +76,8 @@ main(int argc, char **argv)
 	GError *error = NULL;
 	char *cookie, *path, *runtime;
 	struct stat st;
-	gboolean closed;
+	gboolean closed, local;
+	guint32 vt;
 	int status;
 
 	if (argc == 2 && strcmp(argv[1], "--verify") == 0)
@@ -90,8 +91,7 @@ main(int argc, char **argv)
 	g_variant_builder_add(&params, "(sv)", "session-type", g_variant_new_string("wayland"));
 	g_variant_builder_add(&params, "(sv)", "session-class", g_variant_new_string("user"));
 	g_variant_builder_add(&params, "(sv)", "session-service", g_variant_new_string("bsd3-ci"));
-	/* Headless testing must not pretend to own a local console or VT. */
-	g_variant_builder_add(&params, "(sv)", "is-local", g_variant_new_boolean(FALSE));
+	/* Leave locality to the backend, then verify it; do not claim a local VT. */
 	reply = request(bus, MANAGER, MANAGER_IF, "OpenSessionWithParameters",
 	    g_variant_new("(a(sv))", &params), "(s)");
 	g_variant_get(reply, "(s)", &cookie);
@@ -100,6 +100,14 @@ main(int argc, char **argv)
 	    g_variant_new("(s)", cookie), "(o)");
 	g_variant_get(reply, "(o)", &path);
 	g_variant_unref(reply);
+	reply = request(bus, path, SESSION_IF, "IsLocal", NULL, "(b)");
+	g_variant_get(reply, "(b)", &local);
+	g_variant_unref(reply);
+	g_assert_false(local);
+	reply = request(bus, path, SESSION_IF, "GetVTNr", NULL, "(u)");
+	g_variant_get(reply, "(u)", &vt);
+	g_variant_unref(reply);
+	g_assert_cmpuint(vt, ==, 0);
 	reply = request(bus, path, SESSION_IF, "GetXDGRuntimeDir", NULL, "(s)");
 	g_variant_get(reply, "(s)", &runtime);
 	g_variant_unref(reply);
