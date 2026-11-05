@@ -50,7 +50,7 @@ cp packaging/freebsd/mutter/native-port.patch dist/mutter/
 # Install the exact bridge package built and checked earlier in this same job.
 set -- dist/packages/All/bsd-cubed-*.pkg
 [ "$#" -eq 1 ] && [ -f "$1" ]
-sudo pkg add "$1"
+sudo pkg add -f "$1"
 make -C "$port" PORTSDIR="$ports_root" BATCH=yes -V MESON_ARGS >dist/mutter/meson-args.txt
 # Request direct build/runtime packages and let pkg resolve their runtime closure.
 # install-missing-packages recursively includes build tools of dependencies, even

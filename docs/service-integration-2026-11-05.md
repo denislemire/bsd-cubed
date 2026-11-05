@@ -50,3 +50,15 @@ peer-PID contract cannot be exercised on that host. On the warm FreeBSD VM,
 checks and all controller/device protocol groups; the deliberate missing-PID
 case was skipped because the native bus provides credentials. Shell syntax and
 `git diff --check` passed. Installed rc/policy checks are pending native CI.
+
+## CI22 correction
+
+CI22 passed protocol tests, ports package QA and native Mutter/Wayland startup,
+but failed the first installed ownership assertion. The supposedly ordinary
+foreground attempt actually acquired login1 and ran until the bound expired.
+This does not distinguish a root CI process, caller-supplied bus routing or a
+policy error. The revised test records numeric build/probe UIDs, explicitly drops
+to the existing nobody account for the denial check and clears bus-address
+overrides. It creates no account or new administrative grant. The installed
+service check now runs immediately after the small bridge package, before the
+Mutter rebuild, so failures are resolved earlier. Retest pending.
