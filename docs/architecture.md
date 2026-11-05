@@ -21,7 +21,8 @@ ConsoleKit/PAM              native broker or libseat   per-user supervisor
 FreeBSD sessions            DRM/input/devfs/VT         ordinary processes
 ```
 
-Only the read-only session discovery column exists in the prototype. Reuse
+Session discovery and authenticated controller lifetime now exist; descriptor
+handoff and session startup do not. Reuse
 ConsoleKit2 as the initial source of session truth; independently assess whether
 its device controller works on the target build before selecting it for handoff.
 Do not run ConsoleKit, seatd and BSD³ as competing DRM/VT owners.
@@ -55,7 +56,9 @@ Do not run ConsoleKit, seatd and BSD³ as competing DRM/VT owners.
 ## Current protocol limits
 
 The daemon owns login1 but intentionally exposes a small read-only interface.
-It does not yet export Seat/User objects, change signals or privileged methods.
+It does not yet export Seat/User objects, change signals or device methods.
+TakeControl/ReleaseControl authenticate the original peer and isolate backend
+lifetimes; see [controller design](controller-lifecycle.md).
 ListSessions resolves local usernames where available. Session IDs are ConsoleKit
 object-path components, not Linux session numbers. Missing backend is an error;
 no sessions is a valid empty result. There is a three-second timeout per backend

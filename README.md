@@ -6,7 +6,7 @@ BSD³ (`bsddd`; repository `bsd-cubed`) aims to bridge the desktop interfaces
 GNOME expects to native FreeBSD services. Original project code is C11 under
 the BSD-2-Clause license. FreeBSD keeps rc, PAM, devfs and its own kernel.
 
-**Status: experimental, read-only first milestone. This does not yet make native
+**Status: experimental session discovery and controller lifetime. This does not yet make native
 GNOME on Wayland work.** No systemd implementation or source is bundled.
 The daemon is not a complete logind replacement. Do not enable it as the machine's
 login service or use its presence as proof of native compositor readiness.
@@ -40,8 +40,9 @@ header and manual page. No boot service, D-Bus activation or policy is installed
 
 - `libbsd3-login.a`: selected `sd-login` functions over typed ConsoleKit D-Bus
   calls, with negative errno returns and caller-owned strings.
-- `bsddd --foreground`: partial read-only `org.freedesktop.login1` Manager and
-  Session objects. Existing bus owners are never replaced.
+- `bsddd --foreground`: partial `org.freedesktop.login1` Manager and Session objects,
+  authenticated TakeControl/ReleaseControl, and isolated controller lifetimes.
+  Device access is not implemented. Existing bus owners are never replaced.
 - Tests for session selection/filtering, PID-zero caller identity, properties,
   backend failure, invalid identifiers, duplicate ownership and shutdown.
 
@@ -50,6 +51,10 @@ The header lives at `<bsd3/sd-login.h>` and is **not** installed as
 version. Consumer ports must explicitly opt in once the interfaces they use
 are implemented. Linking both libraries that export the same `sd_*` symbols is
 unsupported.
+
+The published v0.1.0-beta1 remains the earlier read-only discovery preview.
+Controller work is validated separately and must receive a new version before
+release; never replace the existing beta assets.
 
 ## What a working desktop still requires
 

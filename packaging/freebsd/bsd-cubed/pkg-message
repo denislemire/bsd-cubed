@@ -1,7 +1,7 @@
 [
 { type: install
   message: <<EOM
-BSD cubed is a read-only prototype, not a complete logind replacement.
+BSD cubed is an experimental prototype, not a complete logind replacement.
 It does not yet enable a native GNOME Wayland session.
 
 Use 'bsddd --probe' as an ordinary user to inspect ConsoleKit sessions.

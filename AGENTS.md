@@ -40,3 +40,16 @@
   integration work but does not authorize claiming readiness for an unsupported
   compositor. Existing GNOME Wayland entries already exist; do not add a misleading
   duplicate or start a disruptive login test before the native backend is ready.
+
+- Latest direction: VMs are primary and the laptop is the final 'I am done'
+  acceptance target. Defer laptop installation/session integration until a real
+  native GNOME Wayland candidate is ready, despite the earlier preview-install
+  request. Its frequent parallel Wi-Fi/kernel reboots are not a BSD3 failure.
+- Prefer SSH scripts through explicit /bin/sh -s, with script on stdin; the
+  account's outer tcsh cannot safely parse multiline POSIX command quoting.
+  Use explicit /usr/local/sbin/pkg. FreeBSD pkg add has no -n dry-run option.
+- Reuse the EhWS package catalogue for tested rollout/upgrades alongside GitHub
+  beta assets. Publication is not authorization to install on other hosts.
+- Console true-color/btop belongs in the separate vt-chroma repository.
+  BSD3 handles session/device integration, not terminal color rendering.
+  Keep console research, kernel patches and btop work out of this repository.
