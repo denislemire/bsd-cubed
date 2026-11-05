@@ -77,3 +77,17 @@ SHEBANG_FILES; the ports framework selects the interpreter and rewrites its path
 Do not create an unmanaged system-wide python symlink. Native build diagnostics,
 Meson log and actual kernel/userland/compiler/ABI identities were preserved as
 private CI artifacts. No successful Mutter package or compositor startup yet.
+
+CI18, source d18a2ad2c1f4f5918ce0855c80392eb696f59851, confirms the generator fix:
+compilation progresses to core/meta-context-main.c. The stock FreeBSD patch hid
+its session header under HAVE_LIBSYSTEMD while newly enabled native code calls
+session selection functions. Replace that port patch with a combined patch that
+includes BSD3 for the FreeBSD native backend and preserves the existing guard on
+Linux-only user-unit metadata. This selects implemented interfaces rather than
+adding fake systemd support.
+
+The candidate Mutter package also declares BSD3 as a runtime dependency. Successful
+build artifacts will include the complete modified Mutter source and exact port
+recipe with licenses preserved, alongside a separate checksum manifest. These
+are corresponding-source artifacts for the GPL consumer, separate from BSD³'s
+original BSD-2-Clause code. No candidate has been published to the package catalogue.
