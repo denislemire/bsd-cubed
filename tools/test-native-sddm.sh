@@ -150,6 +150,12 @@ if ! service bsddd onestatus >/dev/null 2>&1; then
 fi
 gdbus call --system --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
     --method org.freedesktop.DBus.ReloadConfig >/dev/null
+gdbus call --system --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
+    --method org.freedesktop.DBus.NameHasOwner org.freedesktop.ConsoleKit >"$root_dir/backend-before.txt"
+# Match SDDM startup: seat discovery activates CK before the read-only inventory.
+# The SDK deliberately uses NO_AUTO_START; an absent backend is not an empty one.
+gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 \
+    --method org.freedesktop.login1.Manager.ListSeats >"$root_dir/seats-before.txt"
 gdbus call --system --dest org.freedesktop.login1 --object-path /org/freedesktop/login1 \
     --method org.freedesktop.login1.Manager.ListSessions >"$root_dir/sessions-before.txt"
 /usr/local/sbin/bsd3-vt-guard 180 "$root_dir/desktop" -- /usr/local/bin/sddm &

@@ -61,3 +61,33 @@ The manually staged VM-only SDDM config/probe entry remain disabled and require
 cleanup once access returns. They are not present on the laptop. The CI runner
 uses distinct names and refuses pre-existing inputs. Physical i915/DRM recovery,
 regular login and fallback-BE boot remain the coordinated hardware acceptance.
+
+## Cold backend ordering correction
+
+A later exact-CI36 package trial after VM reboot initially stopped before SDDM:
+ListSessions returned ENOTCONN (rendered as “Socket is not connected”). The
+session SDK deliberately uses NO_AUTO_START, and CK was absent. This did not
+establish a kernel or package binary fault. An explicit real CK GetSeats call
+activated the backend, after which the session inventory worked.
+
+The integration runner now records NameHasOwner and calls the same login1
+ListSeats path SDDM uses before querying inventory. A controlled test terminated
+an empty CK backend first; the immutable corrected script recorded backend=false,
+discovered real seat0, and completed the full SDDM/GNOME test with exit0. The
+production launcher exited0 and the original empty inventory returned. Requested
+greeter stop recorded child0, signal15, no outer deadline, seven terminated and
+zero killed descendants; recovery PASS and complete FAIL_OR_ASSISTED remain the
+correct separate outcomes. The first failed attempt and partial export were
+preserved. Test script SHA256:
+2e5bc00087364b89c89d9fb41c6449548eb06c5024b9b9983d5cf1a1269b9bf0.
+
+The rebooted VM reported all three version entries15.2-PRERELEASE and running
+GENERIC stable/15-n286624-646a485c3b2f. That is a distinct runtime identity from
+previous pre-reboot84aa3cb3204d results. Package ABI remained FreeBSD:15:amd64.
+The on-disk kernel predated this trial; none of the three packages installs a
+kernel. Do not silently attach the old kernel identity to the new trial.
+
+CI36 at implementation8bfa868 completed every build/test/upload action. The
+cold-ordering correction changes only the external integration runner; none of
+the compiled source or package inputs changed. Its native controlled result must
+be cited separately from the original CI36 runner result.
