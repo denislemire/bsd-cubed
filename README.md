@@ -42,7 +42,9 @@ header and manual page. No boot service, D-Bus activation or policy is installed
   calls, with negative errno returns and caller-owned strings.
 - `bsddd --foreground`: partial `org.freedesktop.login1` Manager and Session objects,
   authenticated TakeControl/ReleaseControl, and isolated controller lifetimes.
-  Device access is not implemented. Existing bus owners are never replaced.
+  Experimental descriptor handoff and pause/resume protocol are implemented;
+  real DRM/input revocation and VT switching remain unverified. Existing bus
+  owners are never replaced.
 - Tests for session selection/filtering, PID-zero caller identity, properties,
   backend failure, invalid identifiers, duplicate ownership and shutdown.
 

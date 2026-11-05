@@ -5,7 +5,8 @@ The candidate port is `packaging/freebsd/bsd-cubed`, intended for
 build, GLib/pkgconf dependencies, ConsoleKit runtime dependency and `test` target.
 There is no systemd dependency. No daemon is enabled on install.
 
-The current candidate is 0.1.0-beta1, a read-only discovery preview.
+The current candidate is 0.1.0-beta2, still experimental.
+The published 0.1.0-beta1 is the earlier read-only discovery preview.
 The matching release artifact must be published from successful native CI. The release URL in MASTER_SITES is the
 planned distribution layout, and **is not fetchable until a release is published**.
 Do not submit this overlay upstream without a real source release and distinfo.

@@ -4,6 +4,7 @@
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
+#include <gio/gunixfdlist.h>
 #include <gio/gio.h>
 #include <glib-unix.h>
 #define CK "org.freedesktop.ConsoleKit"
@@ -12,7 +13,10 @@ static GMainLoop *loop;
 static guint32 last_pid;
 static char *mode;
 static GHashTable *owners;
-static guint takes, releases;
+static guint takes, releases, acknowledgements;
+static GHashTable *devices;
+static gboolean session6_active = TRUE;
+struct fake_device { char *owner; gboolean paused; gboolean awaiting_ack; };
 static const char xml[] =
  "<node><interface name='org.freedesktop.ConsoleKit.Manager'>"
  "<method name='GetSessions'><arg type='ao' direction='out'/></method>"
@@ -29,11 +33,102 @@ static const char xml[] =
  "<method name='CanControlSession'><arg type='b' direction='out'/></method>"
  "<method name='TakeControl'><arg type='b' direction='in'/></method>"
  "<method name='ReleaseControl'/>"
+ "<method name='TakeDevice'><arg type='u' direction='in'/><arg type='u' direction='in'/><arg type='h' direction='out'/><arg type='b' direction='out'/></method>"
+ "<method name='ReleaseDevice'><arg type='u' direction='in'/><arg type='u' direction='in'/></method>"
+ "<method name='PauseDeviceComplete'><arg type='u' direction='in'/><arg type='u' direction='in'/></method>"
+ "<signal name='PauseDevice'><arg type='u'/><arg type='u'/><arg type='s'/></signal>"
+ "<signal name='ResumeDevice'><arg type='u'/><arg type='u'/><arg type='h'/></signal>"
+ "<signal name='ActiveChanged'><arg type='b'/></signal>"
  "</interface><interface name='org.bsd3.Test'>"
  "<method name='SetMode'><arg type='s' direction='in'/></method>"
  "<method name='GetLastPid'><arg type='u' direction='out'/></method>"
+ "<method name='EmitPause'><arg type='u' direction='in'/><arg type='u' direction='in'/><arg type='s' direction='in'/></method>"
+ "<method name='EmitResume'><arg type='u' direction='in'/><arg type='u' direction='in'/></method>"
+ "<method name='EmitActive'><arg type='b' direction='in'/></method>"
+ "<method name='GetDeviceCounters'><arg type='u' direction='out'/><arg type='u' direction='out'/></method>"
  "<method name='GetCounters'><arg type='u' direction='out'/><arg type='u' direction='out'/><arg type='u' direction='out'/></method>"
  "</interface></node>";
+
+static void
+free_device(gpointer data)
+{
+	struct fake_device *device = data;
+	g_free(device->owner);
+	g_free(device);
+}
+
+static void
+clear_devices(const char *owner)
+{
+	GHashTableIter iter;
+	gpointer value;
+	g_hash_table_iter_init(&iter, devices);
+	while (g_hash_table_iter_next(&iter, NULL, &value)) {
+		struct fake_device *device = value;
+		if (strcmp(device->owner, owner) == 0)
+			g_hash_table_iter_remove(&iter);
+	}
+}
+
+static GUnixFDList *
+pipe_bundle(char marker, gboolean extra)
+{
+	GError *error = NULL;
+	GUnixFDList *fds = g_unix_fd_list_new();
+	int ends[2];
+	g_assert_cmpint(pipe(ends), ==, 0);
+	g_assert_cmpint(write(ends[1], &marker, 1), ==, 1);
+	close(ends[1]);
+	g_assert_cmpint(g_unix_fd_list_append(fds, ends[0], &error), ==, 0);
+	g_assert_no_error(error);
+	if (extra) {
+		g_assert_cmpint(g_unix_fd_list_append(fds, ends[0], &error), ==, 1);
+		g_assert_no_error(error);
+	}
+	close(ends[0]);
+	return (fds);
+}
+
+static void
+emit_device(GDBusConnection *bus, const char *name, GVariant *args)
+{
+	guint32 major, minor;
+	const char *kind = NULL;
+	char *key;
+	struct fake_device *device;
+	GError *error = NULL;
+	if (strcmp(name, "EmitPause") == 0)
+		g_variant_get(args, "(uu&s)", &major, &minor, &kind);
+	else
+		g_variant_get(args, "(uu)", &major, &minor);
+	key = g_strdup_printf(ROOT "/Session6:%u:%u", major, minor);
+	device = g_hash_table_lookup(devices, key);
+	g_assert_nonnull(device);
+	if (kind != NULL) {
+		device->paused = TRUE;
+		device->awaiting_ack = strcmp(kind, "pause") == 0;
+		g_dbus_connection_emit_signal(bus, device->owner, ROOT "/Session6",
+		    CK ".Session", "PauseDevice", args, &error);
+		g_assert_no_error(error);
+		if (strcmp(kind, "gone") == 0)
+			g_hash_table_remove(devices, key);
+	} else {
+		GUnixFDList *fds = pipe_bundle('R', strcmp(mode, "extra-resume-fd") == 0);
+		GDBusMessage *message = g_dbus_message_new_signal(ROOT "/Session6",
+		    CK ".Session", "ResumeDevice");
+		g_assert_true(device->paused);
+		g_assert_false(device->awaiting_ack);
+		device->paused = FALSE;
+		g_dbus_message_set_destination(message, device->owner);
+		g_dbus_message_set_body(message, g_variant_new("(uuh)", major, minor, 0));
+		g_dbus_message_set_unix_fd_list(message, fds);
+		g_assert_true(g_dbus_connection_send_message(bus, message, 0, NULL, &error));
+		g_assert_no_error(error);
+		g_object_unref(message);
+		g_object_unref(fds);
+	}
+	g_free(key);
+}
 
 static void
 method(GDBusConnection *bus, const char *sender, const char *path,
@@ -62,7 +157,19 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 				g_assert_no_error(error); g_variant_unref(r);
 			}
 			reply = g_variant_new("()");
-		} else if (strcmp(name, "GetCounters") == 0)
+		} else if (strcmp(name, "EmitPause") == 0 || strcmp(name, "EmitResume") == 0) {
+			emit_device(bus, name, args);
+			reply = g_variant_new("()");
+		} else if (strcmp(name, "EmitActive") == 0) {
+			GError *error = NULL;
+			g_variant_get(args, "(b)", &session6_active);
+			g_dbus_connection_emit_signal(bus, NULL, ROOT "/Session6",
+			    CK ".Session", "ActiveChanged", args, &error);
+			g_assert_no_error(error);
+			reply = g_variant_new("()");
+		} else if (strcmp(name, "GetDeviceCounters") == 0)
+			reply = g_variant_new("(uu)", g_hash_table_size(devices), acknowledgements);
+		else if (strcmp(name, "GetCounters") == 0)
 			reply = g_variant_new("(uuu)", takes, releases, g_hash_table_size(owners));
 		else
 			reply = g_variant_new("(u)", last_pid);
@@ -112,7 +219,7 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 			(void)sscanf(component, "/Session%d", &id);
 		type = id == 1 ? "tty" : "wayland";
 		class_name = id == 4 ? "greeter" : "user";
-		state = id == 5 ? "closing" : id == 2 ? "online" : "active";
+		state = id == 5 ? "closing" : id == 2 || (id == 6 && !session6_active) ? "online" : "active";
 		created = id == 2 ? "2026-11-04T02:00:00Z" : "2026-11-04T03:00:00Z";
 		if (strcmp(name, "GetSessionType") == 0)
 			reply = g_variant_new("(s)", type);
@@ -151,7 +258,45 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 				return;
 			}
 			g_hash_table_remove(owners, path);
+			clear_devices(sender);
 			releases++;
+			reply = g_variant_new("()");
+		} else if (strcmp(name, "TakeDevice") == 0 || strcmp(name, "ReleaseDevice") == 0 ||
+		    strcmp(name, "PauseDeviceComplete") == 0) {
+			guint32 major, minor;
+			char *key;
+			struct fake_device *device;
+			g_variant_get(args, "(uu)", &major, &minor);
+			key = g_strdup_printf("%s:%u:%u", path, major, minor);
+			device = g_hash_table_lookup(devices, key);
+			if (g_strcmp0(g_hash_table_lookup(owners, path), sender) != 0 ||
+			    (strcmp(name, "TakeDevice") == 0 && device != NULL) ||
+			    (strcmp(name, "TakeDevice") != 0 && device == NULL) ||
+			    strcmp(mode, "device-release-fail") == 0) {
+				g_free(key);
+				g_dbus_method_invocation_return_dbus_error(invocation,
+				    CK ".Session.Error.Failed", "Fixture rejected device operation");
+				return;
+			}
+			if (strcmp(name, "TakeDevice") == 0) {
+				GUnixFDList *fds = pipe_bundle('T', strcmp(mode, "extra-fd") == 0);
+				device = g_new0(struct fake_device, 1);
+				device->owner = g_strdup(sender);
+				device->paused = strcmp(mode, "paused") == 0 || !session6_active;
+				g_hash_table_insert(devices, key, device);
+				g_dbus_method_invocation_return_value_with_unix_fd_list(invocation,
+				    g_variant_new("(hb)", 0, device->paused), fds);
+				g_object_unref(fds);
+				return;
+			}
+			if (strcmp(name, "ReleaseDevice") == 0)
+				g_hash_table_remove(devices, key);
+			else {
+				g_assert_true(device->awaiting_ack);
+				device->awaiting_ack = FALSE;
+				acknowledgements++;
+			}
+			g_free(key);
 			reply = g_variant_new("()");
 		}
 	}
@@ -174,6 +319,7 @@ owner_changed(GDBusConnection *bus, const char *sender, const char *path,
 	(void)old_owner;
 	if (new_owner[0] != '\0')
 		return;
+	clear_devices(name);
 	g_hash_table_iter_init(&iter, owners);
 	while (g_hash_table_iter_next(&iter, NULL, &value)) {
 		if (strcmp(value, name) == 0) {
@@ -198,6 +344,7 @@ main(void)
 	g_assert_no_error(error);
 	mode = g_strdup("normal");
 	owners = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+	devices = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_device);
 	g_dbus_connection_signal_subscribe(bus, "org.freedesktop.DBus",
 	    "org.freedesktop.DBus", "NameOwnerChanged", "/org/freedesktop/DBus",
 	    NULL, G_DBUS_SIGNAL_FLAGS_NONE, owner_changed, NULL, NULL);
@@ -231,5 +378,6 @@ main(void)
 	g_object_unref(bus);
 	g_free(mode);
 	g_hash_table_unref(owners);
+	g_hash_table_unref(devices);
 	return (0);
 }

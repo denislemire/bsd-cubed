@@ -1,12 +1,14 @@
 /* SPDX-License-Identifier: BSD-2-Clause
  * Copyright (c) 2026 Denis Lemire <denis@lemire.name>
- * Session-controller ownership only. Device access is deliberately absent.
+ * Authenticated controller and device-descriptor protocol lifecycle.
+ * Kernel device revocation/VT behavior requires separate integration validation.
  */
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <gio/gio.h>
+#include <gio/gunixfdlist.h>
 #include "bsd3/sd-login.h"
 #include "control.h"
 
@@ -14,7 +16,17 @@
 #define CK_SESSION CK ".Session"
 #define LOGIN "org.freedesktop.login1"
 
+struct device {
+	gboolean paused;
+	gboolean awaiting_ack;
+};
+
 struct controller {
+	gatomicrefcount refs;
+	gboolean closing;
+	GHashTable *devices;
+	guint filter;
+	guint signal_match;
 	char *id;
 	char *sender;
 	char *path;
@@ -32,23 +44,45 @@ failure(GDBusMethodInvocation *call, const char *name, const char *message)
 	g_dbus_method_invocation_return_dbus_error(call, name, message);
 }
 
+static struct controller *
+controller_ref(struct controller *c)
+{
+	g_atomic_ref_count_inc(&c->refs);
+	return (c);
+}
+
 static void
-destroy_controller(gpointer data)
+controller_unref(gpointer data)
 {
 	struct controller *c = data;
-	if (c->watch != 0)
-		g_bus_unwatch_name(c->watch);
-	/* Closing this unique backend connection releases only this controller.
-	 * ConsoleKit owns device revocation and implicit ReleaseControl on death. */
-	if (c->backend != NULL) {
-		g_dbus_connection_close_sync(c->backend, NULL, NULL);
-		g_object_unref(c->backend);
-	}
+	if (!g_atomic_ref_count_dec(&c->refs))
+		return;
+	g_hash_table_unref(c->devices);
 	g_free(c->id);
 	g_free(c->sender);
 	g_free(c->path);
 	g_free(c->backend_owner);
 	g_free(c);
+}
+
+static void
+destroy_controller(gpointer data)
+{
+	struct controller *c = data;
+	c->closing = TRUE;
+	if (c->watch != 0)
+		g_bus_unwatch_name(c->watch);
+	if (c->backend != NULL) {
+		if (c->signal_match != 0)
+			g_dbus_connection_signal_unsubscribe(c->backend, c->signal_match);
+		if (c->filter != 0)
+			g_dbus_connection_remove_filter(c->backend, c->filter);
+		/* ConsoleKit sees a distinct controller connection close and revokes
+		 * only its leases. The proxy never retains a device descriptor. */
+		g_dbus_connection_close_sync(c->backend, NULL, NULL);
+		g_clear_object(&c->backend);
+	}
+	controller_unref(c);
 }
 
 static void
@@ -158,6 +192,241 @@ backend_call(struct controller *c, const char *method, GVariant *args,
 	    3000, NULL, error));
 }
 
+static guint64
+device_key(guint32 major, guint32 minor)
+{
+	return (((guint64)major << 32) | minor);
+}
+
+struct queued_signal {
+	struct controller *controller;
+	GDBusMessage *message;
+};
+
+static void
+free_queued_signal(gpointer data)
+{
+	struct queued_signal *queued = data;
+	g_object_unref(queued->message);
+	controller_unref(queued->controller);
+	g_free(queued);
+}
+
+static gboolean
+relay_signal(gpointer data)
+{
+	struct queued_signal *queued = data;
+	struct controller *c = queued->controller;
+	GDBusMessage *message = queued->message, *forward;
+	GVariant *body = g_dbus_message_get_body(message);
+	GUnixFDList *fds = g_dbus_message_get_unix_fd_list(message);
+	const char *member = g_dbus_message_get_member(message);
+	char *path;
+	guint32 major, minor;
+	guint64 key;
+	struct device *device;
+	gint handle;
+	if (c->closing || g_hash_table_lookup(controllers, c->id) != c)
+		return (G_SOURCE_REMOVE);
+	path = g_strconcat("/org/freedesktop/login1/session/", c->id, NULL);
+	if (body == NULL)
+		goto invalid;
+	if (strcmp(member, "ActiveChanged") == 0) {
+		GVariantBuilder changed;
+		gboolean active;
+		if (!g_variant_is_of_type(body, G_VARIANT_TYPE("(b)")) ||
+		    (fds != NULL && g_unix_fd_list_get_length(fds) != 0))
+			goto invalid;
+		g_variant_get(body, "(b)", &active);
+		g_variant_builder_init(&changed, G_VARIANT_TYPE("a{sv}"));
+		g_variant_builder_add(&changed, "{sv}", "Active", g_variant_new_boolean(active));
+		g_dbus_connection_emit_signal(front_bus, NULL, path,
+		    "org.freedesktop.DBus.Properties", "PropertiesChanged",
+		    g_variant_new("(sa{sv}as)", LOGIN ".Session", &changed, NULL), NULL);
+		g_free(path);
+		return (G_SOURCE_REMOVE);
+	}
+	if (strcmp(member, "PauseDevice") == 0) {
+		const char *kind;
+		if (!g_variant_is_of_type(body, G_VARIANT_TYPE("(uus)")) ||
+		    (fds != NULL && g_unix_fd_list_get_length(fds) != 0))
+			goto invalid;
+		g_variant_get(body, "(uu&s)", &major, &minor, &kind);
+		if (strcmp(kind, "pause") != 0 && strcmp(kind, "force") != 0 &&
+		    strcmp(kind, "gone") != 0)
+			goto invalid;
+		key = device_key(major, minor);
+		device = g_hash_table_lookup(c->devices, &key);
+		if (device == NULL)
+			goto done;
+		device->paused = TRUE;
+		device->awaiting_ack = strcmp(kind, "pause") == 0;
+		if (strcmp(kind, "gone") == 0)
+			g_hash_table_remove(c->devices, &key);
+	} else {
+		if (!g_variant_is_of_type(body, G_VARIANT_TYPE("(uuh)")) ||
+		    fds == NULL || g_unix_fd_list_get_length(fds) != 1)
+			goto invalid;
+		g_variant_get(body, "(uuh)", &major, &minor, &handle);
+		if (handle != 0)
+			goto invalid;
+		key = device_key(major, minor);
+		device = g_hash_table_lookup(c->devices, &key);
+		if (device == NULL)
+			goto done;
+		if (!device->paused || device->awaiting_ack)
+			goto invalid;
+		device->paused = FALSE;
+	}
+	/* Resume descriptors are unicast only to the authenticated controller.
+	 * Copy the ancillary list with the body, never just the integer handle. */
+	forward = g_dbus_message_new_signal(path, LOGIN ".Session", member);
+	g_dbus_message_set_destination(forward, c->sender);
+	g_dbus_message_set_body(forward, body);
+	if (fds != NULL)
+		g_dbus_message_set_unix_fd_list(forward, fds);
+	if (!g_dbus_connection_send_message(front_bus, forward,
+	    G_DBUS_SEND_MESSAGE_FLAGS_NONE, NULL, NULL)) {
+		g_object_unref(forward);
+		goto invalid;
+	}
+	g_object_unref(forward);
+done:
+	g_free(path);
+	return (G_SOURCE_REMOVE);
+invalid:
+	g_free(path);
+	/* A malformed descriptor bundle or ordering error cannot preserve a safe
+	 * ownership state. Closing this controller lets the backend revoke it. */
+	g_hash_table_remove(controllers, c->id);
+	return (G_SOURCE_REMOVE);
+}
+
+static GDBusMessage *
+filter_signal(GDBusConnection *bus, GDBusMessage *message, gboolean incoming,
+    gpointer data)
+{
+	struct controller *c = data;
+	const char *member = g_dbus_message_get_member(message);
+	struct queued_signal *queued;
+	GSource *source;
+	(void)bus;
+	if (!incoming || g_dbus_message_get_message_type(message) != G_DBUS_MESSAGE_TYPE_SIGNAL ||
+	    g_strcmp0(g_dbus_message_get_sender(message), c->backend_owner) != 0 ||
+	    g_strcmp0(g_dbus_message_get_path(message), c->path) != 0 ||
+	    g_strcmp0(g_dbus_message_get_interface(message), CK_SESSION) != 0 ||
+	    (g_strcmp0(member, "PauseDevice") != 0 && g_strcmp0(member, "ResumeDevice") != 0 &&
+	    g_strcmp0(member, "ActiveChanged") != 0))
+		return (message);
+	/* Filters run in GDBus's worker thread. State and map mutations must run
+	 * on the daemon main loop; queued work holds both controller and message. */
+	queued = g_new0(struct queued_signal, 1);
+	queued->controller = controller_ref(c);
+	queued->message = g_object_ref(message);
+	source = g_idle_source_new();
+	g_source_set_priority(source, G_PRIORITY_DEFAULT);
+	g_source_set_callback(source, relay_signal, queued, free_queued_signal);
+	g_source_attach(source, NULL);
+	g_source_unref(source);
+	return (message);
+}
+
+static void
+matched_signal(GDBusConnection *bus, const char *sender, const char *path,
+    const char *iface, const char *member, GVariant *parameters, gpointer data)
+{
+	/* The subscription installs the match rule. The message filter retains
+	 * SCM_RIGHTS data, which a normal GVariant-only signal callback cannot. */
+	(void)bus; (void)sender; (void)path; (void)iface;
+	(void)member; (void)parameters; (void)data;
+}
+
+static void
+device_call(struct controller *c, const char *method, GVariant *args,
+    GDBusMethodInvocation *invocation)
+{
+	guint32 major, minor;
+	guint64 key;
+	struct device *device;
+	GVariant *reply = NULL;
+	GError *error = NULL;
+	g_variant_get(args, "(uu)", &major, &minor);
+	key = device_key(major, minor);
+	device = g_hash_table_lookup(c->devices, &key);
+	if (strcmp(method, "TakeDevice") == 0) {
+		GUnixFDList *fds = NULL;
+		gboolean paused;
+		gint handle;
+		guint64 *stored_key;
+		if (device != NULL) {
+			failure(invocation, "org.freedesktop.DBus.Error.InvalidArgs", "Device already taken");
+			return;
+		}
+		if (g_hash_table_size(c->devices) >= 256) {
+			failure(invocation, "org.freedesktop.DBus.Error.LimitsExceeded", "Device limit reached");
+			return;
+		}
+		reply = g_dbus_connection_call_with_unix_fd_list_sync(c->backend,
+		    c->backend_owner, c->path, CK_SESSION, method, args,
+		    G_VARIANT_TYPE("(hb)"), G_DBUS_CALL_FLAGS_NO_AUTO_START, 3000,
+		    NULL, &fds, NULL, &error);
+		if (reply == NULL) {
+			/* A timeout may have granted a lease without returning it. Close
+			 * the controller rather than retain untracked backend authority. */
+			if (g_error_matches(error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT) ||
+			    g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CLOSED) ||
+			    g_error_matches(error, G_DBUS_ERROR, G_DBUS_ERROR_NO_REPLY) ||
+			    g_error_matches(error, G_DBUS_ERROR, G_DBUS_ERROR_DISCONNECTED) ||
+			    g_error_matches(error, G_DBUS_ERROR, G_DBUS_ERROR_NAME_HAS_NO_OWNER) ||
+			    g_error_matches(error, G_DBUS_ERROR, G_DBUS_ERROR_SERVICE_UNKNOWN))
+				g_hash_table_remove(controllers, c->id);
+			failure(invocation, "org.freedesktop.DBus.Error.Failed", error->message);
+			g_clear_object(&fds);
+			g_error_free(error);
+			return;
+		}
+		g_variant_get(reply, "(hb)", &handle, &paused);
+		if (fds == NULL || g_unix_fd_list_get_length(fds) != 1 || handle != 0) {
+			GVariant *released = backend_call(c, "ReleaseDevice", args, "()", &error);
+			if (released == NULL) {
+				g_clear_error(&error);
+				g_hash_table_remove(controllers, c->id);
+			} else
+				g_variant_unref(released);
+			failure(invocation, "org.freedesktop.DBus.Error.Failed", "Invalid backend descriptor bundle");
+			g_clear_object(&fds);
+			g_variant_unref(reply);
+			return;
+		}
+		stored_key = g_new(guint64, 1);
+		*stored_key = key;
+		device = g_new0(struct device, 1);
+		device->paused = paused;
+		g_hash_table_insert(c->devices, stored_key, device);
+		g_dbus_method_invocation_return_value_with_unix_fd_list(invocation, reply, fds);
+		g_variant_unref(reply);
+		g_object_unref(fds);
+		return;
+	}
+	if (device == NULL || (strcmp(method, "PauseDeviceComplete") == 0 && !device->awaiting_ack)) {
+		failure(invocation, "org.freedesktop.DBus.Error.InvalidArgs", "No matching device or pending pause");
+		return;
+	}
+	reply = backend_call(c, method, args, "()", &error);
+	if (reply == NULL) {
+		g_hash_table_remove(controllers, c->id);
+		failure(invocation, "org.freedesktop.DBus.Error.Failed", error->message);
+		g_error_free(error);
+		return;
+	}
+	g_variant_unref(reply);
+	if (strcmp(method, "ReleaseDevice") == 0)
+		g_hash_table_remove(c->devices, &key);
+	else
+		device->awaiting_ack = FALSE;
+	g_dbus_method_invocation_return_value(invocation, NULL);
+}
+
 static struct controller *
 new_controller(const char *id, const char *sender, const char *owner, GError **error)
 {
@@ -165,6 +434,8 @@ new_controller(const char *id, const char *sender, const char *owner, GError **e
 	char *address;
 	GVariant *reply;
 	gboolean capable;
+	g_atomic_ref_count_init(&c->refs);
+	c->devices = g_hash_table_new_full(g_int64_hash, g_int64_equal, g_free, g_free);
 	c->id = g_strdup(id);
 	c->sender = g_strdup(sender);
 	c->backend_owner = g_strdup(owner);
@@ -191,6 +462,11 @@ new_controller(const char *id, const char *sender, const char *owner, GError **e
 		    "ConsoleKit session controller is unavailable");
 		goto fail;
 	}
+	c->filter = g_dbus_connection_add_filter(c->backend, filter_signal,
+	    controller_ref(c), controller_unref);
+	c->signal_match = g_dbus_connection_signal_subscribe(c->backend,
+	    c->backend_owner, CK_SESSION, NULL, c->path, NULL, G_DBUS_SIGNAL_FLAGS_NONE,
+	    matched_signal, NULL, NULL);
 	reply = backend_call(c, "TakeControl", g_variant_new("(b)", FALSE),
 	    "()", error);
 	if (reply == NULL)
@@ -256,7 +532,8 @@ bsd3_control_call(const char *id, const char *method, GVariant *args,
 		g_dbus_method_invocation_return_value(invocation, NULL);
 		return;
 	}
-	if (strcmp(method, "ReleaseControl") != 0) {
+	if (strcmp(method, "ReleaseControl") != 0 && strcmp(method, "TakeDevice") != 0 &&
+	    strcmp(method, "ReleaseDevice") != 0 && strcmp(method, "PauseDeviceComplete") != 0) {
 		failure(invocation, "org.freedesktop.DBus.Error.UnknownMethod",
 		    "Controller method is not implemented");
 		return;
@@ -264,6 +541,10 @@ bsd3_control_call(const char *id, const char *method, GVariant *args,
 	if (c == NULL || strcmp(c->sender, sender) != 0) {
 		failure(invocation, "org.freedesktop.DBus.Error.AccessDenied",
 		    "Only the controlling connection may release control");
+		return;
+	}
+	if (strcmp(method, "ReleaseControl") != 0) {
+		device_call(c, method, args, invocation);
 		return;
 	}
 	reply = backend_call(c, "ReleaseControl", NULL, "()", &error);
