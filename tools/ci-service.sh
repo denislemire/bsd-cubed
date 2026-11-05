@@ -4,7 +4,12 @@
 set -eu
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 [ "$(uname -s)" = FreeBSD ] && [ "${CIRCLECI:-}" = true ] || exit 1
+unset DBUS_SYSTEM_BUS_ADDRESS DBUS_SESSION_BUS_ADDRESS
 mkdir -p dist/service
+id -u | tee dist/service/build-uid.txt
+set -- dist/packages/All/bsd-cubed-*.pkg
+[ "$#" -eq 1 ] && [ -f "$1" ]
+sudo pkg add -f "$1"
 service_started=no
 foreign_pid=
 guard_root=
@@ -31,12 +36,16 @@ sudo service dbus onestatus >/dev/null 2>&1 || sudo service dbus onestart
 owner=$(gdbus call --system --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
     --method org.freedesktop.DBus.NameHasOwner org.freedesktop.login1)
 [ "$owner" = '(false,)' ] || { echo 'Unexpected login1 owner; leaving it untouched' >&2; exit 1; }
-# The ordinary build account must not acquire the privileged bus name.
+# Explicitly drop identity: the CI runner may itself execute as root.
+# No account or additional administrative grant is created.
+probe_uid=$(sudo -u nobody id -u)
+[ "$probe_uid" -gt 0 ]
+printf '%s\n' "$probe_uid" >dist/service/probe-uid.txt
 set +e
-timeout -k 1 5 /usr/local/sbin/bsddd --foreground >dist/service/unprivileged-owner.log 2>&1
+sudo -u nobody timeout -k 1 5 /usr/local/sbin/bsddd --foreground >dist/service/unprivileged-owner.log 2>&1
 result=$?
 set -e
-[ "$result" -eq 1 ] || { echo 'Root-only bus ownership policy failed' >&2; exit 1; }
+[ "$result" -eq 1 ] || { echo "Root-only bus ownership policy failed (exit $result, probe UID $probe_uid)" >&2; exit 1; }
 for invocation in onestart quietstart faststart; do
     service_started=yes
     if [ "$invocation" = onestart ]; then

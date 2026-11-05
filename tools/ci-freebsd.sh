@@ -9,6 +9,7 @@ cd "$repo_root"
 mkdir -p dist
 # Artifacts describe the exact tested checkout, including whether it was dirty.
 {
+    id -u
     freebsd-version -kru
     uname -v
     cc --version
