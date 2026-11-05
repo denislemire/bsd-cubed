@@ -3,14 +3,17 @@
 set -eu
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 [ "$(uname -s)" = FreeBSD ] && [ "${CIRCLECI:-}" = true ] || exit 1
+# This executor already runs as root; never add an administrative account grant.
+[ "$(id -u)" -eq 0 ] || exit 1
 unset DBUS_SYSTEM_BUS_ADDRESS DBUS_SESSION_BUS_ADDRESS XDG_SESSION_COOKIE XDG_RUNTIME_DIR
 work_root=$(mktemp -d)
+fixture_root=$(mktemp -d)
 service_started=no
 finish() {
     result=$?
     trap - EXIT HUP INT TERM
     [ "$service_started" = no ] || sudo service bsddd onestop || :
-    rm -rf "$work_root"
+    rm -rf "$work_root" "$fixture_root"
     exit "$result"
 }
 trap finish EXIT
@@ -39,3 +42,17 @@ if ! sudo -H -u circleci timeout -k 2 30 "$work_root/test-native-session" \
     exit 1
 fi
 cat dist/consolekit/device-regression.txt
+# Keep the privileged launcher in a separate root-owned directory. Session and
+# device requests still run after an irreversible drop to the existing test UID.
+cc -std=c11 -Wall -Wextra -Werror -o "$fixture_root/test-native-vt-launch" \
+    tests/native-vt-launch.c
+cc -std=c11 -Wall -Wextra -Werror $(pkg-config --cflags bsd3-login) \
+    -o "$work_root/test-native-vt-client" tests/native-vt-client.c $(pkg-config --libs bsd3-login)
+sudo chown circleci "$work_root/test-native-vt-client"
+if ! sudo env BSD3_DISPOSABLE_VM_TEST=yes "$fixture_root/test-native-vt-launch" \
+    circleci "$work_root/test-native-session" "$work_root/test-native-vt-client" \
+    >dist/consolekit/vt-regression.txt 2>&1; then
+    cat dist/consolekit/vt-regression.txt
+    exit 1
+fi
+cat dist/consolekit/vt-regression.txt

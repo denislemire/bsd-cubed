@@ -11,7 +11,7 @@ LICENSE=	BSD2CLAUSE
 LICENSE_FILE=	${WRKSRC}/LICENSE
 
 BUILD_DEPENDS=	dbus-run-session:devel/dbus
-RUN_DEPENDS=	consolekit2>=2.0.0_4:sysutils/consolekit2 \
+RUN_DEPENDS=	consolekit2>=2.0.0_5:sysutils/consolekit2 \
 		dbus-daemon:devel/dbus
 
 USES=		gnome pkgconfig

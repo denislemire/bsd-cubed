@@ -70,7 +70,7 @@ case "$source_name" in ConsoleKit2-[0-9]*) ;; *) exit 1 ;; esac
 tar -C "${wrksrc%/*}" -czf "$repo_root/dist/consolekit/consolekit2-bsd3-source.tar.gz" "$source_name"
 tar -C "$work_root/overlay" -czf "$repo_root/dist/consolekit/consolekit2-bsd3-port.tar.gz" \
     sysutils/consolekit2 -C "$repo_root" packaging/freebsd/consolekit2 \
-    packaging/freebsd/mutter/PORTS_REVISION tools/ci-consolekit.sh tools/test-native-consolekit.sh tests/native-session.c tests/native-device.c
+    packaging/freebsd/mutter/PORTS_REVISION tools/ci-consolekit.sh tools/test-native-consolekit.sh tests/native-session.c tests/native-device.c tests/native-vt-launch.c tests/native-vt-client.c
 if ! make -C "$port" PORTSDIR="$ports_root" BATCH=yes DEVELOPER=yes \
     WRKDIRPREFIX="$work_root/work" PACKAGES="$repo_root/dist/consolekit/packages" \
     stage check-plist stage-qa package >dist/consolekit/build.log 2>&1; then

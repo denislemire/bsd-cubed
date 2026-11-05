@@ -40,3 +40,12 @@ version, and CI builds it before checking the BSD3 port so package dependency
 metadata cannot silently select the known-broken backend. Real service/session
 and kernel-device regressions run before the longer Mutter/GNOME stages.
 Complete modified dependency source and the exact port recipe accompany packages.
+
+## November 5 verified follow-up
+
+PR9 native CI31 passed the corrected backend's strict locality and actual kernel
+inactive-input regression, then full GNOME47 session/window/logout. PR8 CI30
+also passed strict full GNOME. These are headless session results. The subsequent
+[real VT/device regression](native-vt-regression-2026-11-05.md) verifies active
+input, pause/revoke and fresh-FD resume on stable/15 KVM with ConsoleKit revision5.
+Physical DRM/input and laptop login remain unverified.

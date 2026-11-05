@@ -1,8 +1,9 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
-/* Test harness: hold a real non-local CK session while its child runs. */
+/* Hold a real CK session while its child runs; console mode requires a VT. */
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <termios.h>
 #include <stdlib.h>
 #include <string.h>
 #include <gio/gio.h>
@@ -76,14 +77,22 @@ main(int argc, char **argv)
 	GError *error = NULL;
 	char *cookie, *path, *runtime;
 	struct stat st;
-	gboolean closed, local;
+	gboolean closed, local, console;
 	guint32 vt;
-	int status;
+	int status, first = 1;
 
 	if (argc == 2 && strcmp(argv[1], "--verify") == 0)
 		return (verify_session());
-	if (argc < 2 || getuid() == 0)
+	console = argc > 1 && strcmp(argv[1], "--console") == 0;
+	if (console)
+		first++;
+	if (argc <= first || getuid() == 0)
 		return (64);
+	if (console) {
+		g_assert_true(isatty(STDIN_FILENO));
+		g_assert_cmpstr(ttyname(STDIN_FILENO), ==, "/dev/ttyv8");
+		g_assert_cmpint(tcgetsid(STDIN_FILENO), ==, getsid(0));
+	}
 	bus = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
 	if (bus == NULL)
 		g_error("Cannot connect real system bus: %s", error->message);
@@ -91,8 +100,8 @@ main(int argc, char **argv)
 	g_variant_builder_add(&params, "(sv)", "session-type", g_variant_new_string("wayland"));
 	g_variant_builder_add(&params, "(sv)", "session-class", g_variant_new_string("user"));
 	g_variant_builder_add(&params, "(sv)", "session-service", g_variant_new_string("bsd3-ci"));
-	/* Request a non-local session and verify the backend honors the boolean. */
-	g_variant_builder_add(&params, "(sv)", "is-local", g_variant_new_boolean(FALSE));
+	/* Verify the actual backend honors the requested locality in both modes. */
+	g_variant_builder_add(&params, "(sv)", "is-local", g_variant_new_boolean(console));
 	reply = request(bus, MANAGER, MANAGER_IF, "OpenSessionWithParameters",
 	    g_variant_new("(a(sv))", &params), "(s)");
 	g_variant_get(reply, "(s)", &cookie);
@@ -104,12 +113,12 @@ main(int argc, char **argv)
 	reply = request(bus, path, SESSION_IF, "IsLocal", NULL, "(b)");
 	g_variant_get(reply, "(b)", &local);
 	g_variant_unref(reply);
-	g_assert_false(local);
+	g_assert_cmpint(local, ==, console);
 	reply = request(bus, path, SESSION_IF, "GetVTNr", NULL, "(u)");
 	g_variant_get(reply, "(u)", &vt);
 	g_variant_unref(reply);
-	g_assert_cmpuint(vt, ==, 0);
-	g_print("PASS: actual CK registration is non-local with VT zero\n");
+	g_assert_cmpuint(vt, ==, console ? 9 : 0);
+	g_print("PASS: actual CK registration locality=%d VT=%u\n", local, vt);
 	reply = request(bus, path, SESSION_IF, "GetXDGRuntimeDir", NULL, "(s)");
 	g_variant_get(reply, "(s)", &runtime);
 	g_variant_unref(reply);
@@ -122,7 +131,7 @@ main(int argc, char **argv)
 	g_setenv("XDG_SESSION_TYPE", "wayland", TRUE);
 	g_setenv("XDG_SESSION_CLASS", "user", TRUE);
 	/* Cookie stays in child environment: never print it into artifacts. */
-	if (!g_spawn_sync(NULL, argv + 1, NULL, G_SPAWN_SEARCH_PATH, NULL,
+	if (!g_spawn_sync(NULL, argv + first, NULL, G_SPAWN_SEARCH_PATH, NULL,
 	    NULL, NULL, NULL, &status, &error))
 		g_error("Session child failed to launch: %s", error->message);
 	reply = request(bus, MANAGER, MANAGER_IF, "CloseSession",

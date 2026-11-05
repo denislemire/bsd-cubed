@@ -101,3 +101,14 @@ checks property presence. The harness now omits that override, queries IsLocal
 and GetVTNr afterward, and refuses to launch unless the actual session is
 non-local with VT zero. This keeps headless startup distinct from console/device
 authority. Real-backend retest is pending; no desktop or laptop success is claimed.
+
+## Verified service and session follow-up
+
+Native CI25 passed the installed rc service lifecycle, explicit ordinary-user
+ownership denial, and foreign-owner refusal. The default rc.conf knob is
+bsddd_enable=NO; the package does not enable itself. Native CI30/31 subsequently
+passed strict real ConsoleKit registration, full GNOME47 RequiredComponents, a
+Wayland application window and clean logout. CI31 also passed actual kernel
+inactive-input revocation. Later stable/15 VT results are recorded in the
+[VT investigation](native-vt-regression-2026-11-05.md). Hardware readiness and
+the exact successful-CI beta delivery path remain open.
