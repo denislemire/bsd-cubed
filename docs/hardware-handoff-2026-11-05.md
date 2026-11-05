@@ -1,7 +1,8 @@
 # GNOME Wayland hardware handoff — November 5, 2026
 
-State: preparation only; **not cleared for installation or login**. The matched
-Wi-Fi VHT/HE pilot and subsequent IPv6 acceptance have priority. No laptop
+State: preparation only; **not cleared for installation or login**. The Wi-Fi coordinator reports complete CURRENT IPv4/IPv6 VHT/HE cohorts
+passed, evidence preservation is in progress, and a STABLE validation reboot
+is next. No desktop window is open. No laptop
 connection, installation, reboot, service change or desktop workload was performed
 while preparing this document. Keep implementation and GNOME evidence here.
 
@@ -10,33 +11,59 @@ while preparing this document. Keep implementation and GNOME evidence here.
 Source: `dcf974485696e40381fa23a44db5a5d47d83ae3a`, signed/DCO,
 [PR10](https://github.com/denislemire/bsd-cubed/pull/10), stacked on PR9.
 
-[CI32](https://circle.ehws.generic.business/gh/denislemire/bsd-cubed/32) passed all
-build/test/upload actions, including actual kernel input revocation, real VT
-switch/pause/fresh-FD resume, full GNOME47 RequiredComponents, a mapped Wayland
-window and clean logout. Overall status is **infrastructure_fail**, with a
-terminal task-agent failure. Do not call this run green or release its packages.
-[CI33](https://circle.ehws.generic.business/gh/denislemire/bsd-cubed/33) reruns the
-same exact commit from the beginning. The unsupported legacy retry endpoint
-returned404; the workflow v2 rerun endpoint accepted the rerun.
+[CI33](https://circle.ehws.generic.business/gh/denislemire/bsd-cubed/33) is
+**overall success** at that exact commit. Every build/test/upload step passed,
+including real VT switching, input revoke/fresh-FD resume, full GNOME47
+RequiredComponents, a mapped Wayland window and clean logout.
+[CI32](https://circle.ehws.generic.business/gh/denislemire/bsd-cubed/32) passed its
+individual actions but ended infrastructure_fail with a task-agent error. Its
+artifacts remain quarantined; the table below supersedes the earlier CI32 table.
+The v1 retry endpoint returned404; the v2 workflow rerun succeeded as CI33.
 
-The quarantined CI32 binaries were downloaded and verified against all three
-CI checksum manifests and exact-source provenance. This table identifies those
-bytes for investigation, **not a permitted installation payload**. Successful
-rerun hashes may differ and must replace this candidate identity before release.
+The CI33 binaries and complete corresponding sources/recipes were downloaded,
+verified against all three CI manifests, and checked against exact-source
+provenance. These are authenticated **CI assets**, not yet GitHub release assets.
+There is no beta3 release URL to install from yet.
 
-| Artifact | Version | CI32 SHA256 |
+| CI33 artifact | Version | SHA256 |
 | --- | --- | --- |
-| bsd-cubed-0.1.0.b3.pkg | 0.1.0.b3 | edc52ee947e65da7c1e6213012535cf56ed869e96b39487d8d23fe3da90dea0f |
-| consolekit2-2.0.0_5.pkg | 2.0.0_5 | 5f0824647018522aaaec1048e3689861e52c4e4eacf04faf6fb5d2b51b7d6ab0 |
-| mutter-47.10_3.pkg | 47.10_3 | 3e109148330ceebb07dc8cb2e514ba023eaaa9363563e4db10eeed5ba26bef6b |
+| bsd-cubed-0.1.0.b3.pkg | 0.1.0.b3 | 0dd5a5439adb901aa345f2732d7fbf675623ba849f6465e884d1cf53b0a86b80 |
+| consolekit2-2.0.0_5.pkg | 2.0.0_5 | 5c907f809ec3eae7bc030b660b79a1d9719126ebe0b81912d49a78755caf29d5 |
+| mutter-47.10_3.pkg | 47.10_3 | b63b4c436f8d8866437c1abdaf9cd4ac636d9c0265bd2b2e546579a3ebd1f4aa |
+
+Within CI33's `freebsd` artifact directory, the binary paths are
+`packages/All/bsd-cubed-0.1.0.b3.pkg`,
+`consolekit/packages/All/consolekit2-2.0.0_5.pkg`, and
+`mutter/packages/All/mutter-47.10_3.pkg`. The authenticated
+[artifact inventory](https://circle.ehws.generic.business/api/v1.1/project/github/denislemire/bsd-cubed/33/artifacts)
+provides their actual download locations. No credential-bearing URL is saved here.
+
+Corresponding source/recipe SHA256 identities, using flattened filenames:
+
+```text
+f80f692a11beaa0a554be1547e582249458a54874f35faa105bb5c2e53153e31  bsd-cubed-0.1.0-beta3.tar.gz
+a7bf264a8d026f3db37c5967d33246cdafda8abe054e0223425167b03f05beee  consolekit2-bsd3-source.tar.gz
+ba232187ae5b3e5c7c43ac3b21101a98d78b4788fccc1c83ea6cd678e6569cc0  consolekit2-bsd3-port.tar.gz
+4fae499b8897901ae6b0489fbddec8042cf2d701e64f15811688b24a04ecbf9f  mutter-47.10-bsd3-source.tar.gz
+829e26ce2be5b16d49d15b51324a9eb6be1b257dee91bce976a344da150448c9  mutter-47.10-bsd3-port.tar.gz
+```
 
 All three package manifests declare ABI **FreeBSD:15:amd64**
 (arch freebsd:15:x86:64). CI ran kernel/installed/userland15.1-RELEASE-p6,
-clang19.1.7. Separate stable/15 testing at84aa3cb3204d verified the production
-bridge plus the corrected locally built CK5, actual VT lifecycle and full strict
-headless GNOME47. That is not yet an exact-CI33-binary stable test, nor a physical
-GPU test. Do not force this ABI onto the Wi-Fi trial's CURRENT kernel/STABLE
-userland combination; boot a matching known STABLE kernel/module/userland set.
+clang19.1.7. The exact CI33 packages were subsequently installed from protected,
+hash-checked copies in the isolated stable/15 KVM at84aa3cb3204d,
+FreeBSD15.2-PRERELEASE for kernel/installed/userland. Strict real-session/control,
+actual kernel inactive-input revocation, and the real active VT9 switch/pause/
+fresh-FD resume/release test passed; VT1 restoration passed and launcher exit0
+was captured. The strict full GNOME47 session/window/logout test then passed
+with these same installed packages, including five mapped GTK frame ticks.
+No laptop or physical GPU acceptance is established by those tests.
+
+The Wi-Fi coordinator's fresh live check reports16.0-CURRENT for **all**
+`freebsd-version -kru` entries in its current-16-he-lock-20261105 environment,
+including userland. The earlier mixed CURRENT/STABLE description was incorrect.
+Do not force ABI15 packages onto that CURRENT environment; use a matching known
+STABLE kernel/module/userland set.
 
 Dependency changes are narrowly scoped:
 
@@ -77,7 +104,7 @@ names are not authoritative. Recheck `bectl list` immediately before changes.
 
 1. Preserve the normal fallback and record its R flag. Clone the coordinator's
    verified STABLE BE into a distinct `stable-15-bsd3-beta3-20261105` trial BE.
-   Do not clone the mixed CURRENT pilot or copy its kernel/modules. Use
+   Do not clone the CURRENT pilot or copy its kernel/modules. Use
    `bectl create -e VERIFIED_STABLE_BASE stable-15-bsd3-beta3-20261105` only after
    replacing the symbolic base with the verified actual name.
 2. Mount only the new clone at a private mountpoint. Verify /etc, /usr/local,

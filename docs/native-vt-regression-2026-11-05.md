@@ -83,3 +83,15 @@ This verifies actual kernel VT/input behavior in KVM. DRM leases, physical
 keyboard/mouse behavior, visible GPU presentation, display-manager login and
 laptop recovery remain acceptance work. GNOME47 is the baseline; newer GNOME
 session startup remains separate work.
+
+## CI33 exact-artifact follow-up
+
+CI33 at dcf974485696e40381fa23a44db5a5d47d83ae3a completed overall-success,
+including this actual VT/kernel regression, full GNOME47 startup/window/logout
+and artifact upload. CI32 had passed its individual actions but ended with a
+task-agent infrastructure failure; it is not the release source. All three CI33
+packages and five matching source/port archives passed manifest verification.
+The exact downloaded CI33 packages subsequently passed strict session/control,
+inactive input, real active VT/fresh-FD resume/recovery and full GNOME window/logout
+on the isolated stable/15 VM. Hardware and SDDM registration remain unverified;
+see the [gated hardware handoff](hardware-handoff-2026-11-05.md).
