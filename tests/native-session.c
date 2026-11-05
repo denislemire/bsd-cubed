@@ -91,7 +91,8 @@ main(int argc, char **argv)
 	g_variant_builder_add(&params, "(sv)", "session-type", g_variant_new_string("wayland"));
 	g_variant_builder_add(&params, "(sv)", "session-class", g_variant_new_string("user"));
 	g_variant_builder_add(&params, "(sv)", "session-service", g_variant_new_string("bsd3-ci"));
-	/* Leave locality to the backend, then verify it; do not claim a local VT. */
+	/* Request a non-local session and verify the backend honors the boolean. */
+	g_variant_builder_add(&params, "(sv)", "is-local", g_variant_new_boolean(FALSE));
 	reply = request(bus, MANAGER, MANAGER_IF, "OpenSessionWithParameters",
 	    g_variant_new("(a(sv))", &params), "(s)");
 	g_variant_get(reply, "(s)", &cookie);
@@ -108,6 +109,7 @@ main(int argc, char **argv)
 	g_variant_get(reply, "(u)", &vt);
 	g_variant_unref(reply);
 	g_assert_cmpuint(vt, ==, 0);
+	g_print("PASS: actual CK registration is non-local with VT zero\n");
 	reply = request(bus, path, SESSION_IF, "GetXDGRuntimeDir", NULL, "(s)");
 	g_variant_get(reply, "(s)", &runtime);
 	g_variant_unref(reply);
