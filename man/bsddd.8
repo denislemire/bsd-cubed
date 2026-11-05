@@ -1,5 +1,5 @@
 .\" SPDX-License-Identifier: BSD-2-Clause
-.Dd November 4, 2026
+.Dd November 5, 2026
 .Dt BSDDD 8
 .Os
 .Sh NAME
@@ -10,6 +10,8 @@
 .Fl Fl probe
 .Nm
 .Fl Fl foreground
+.Nm
+.Fl Fl check-owner Ar pid
 .Sh DESCRIPTION
 BSD cubed is a BSD-licensed desktop compatibility project for
 .Fx .
@@ -29,7 +31,16 @@ option runs a partial
 service on the system bus.
 It does not replace or queue behind an existing owner.
 Bus policy must explicitly permit the caller to own that name.
-No D-Bus policy or boot service is installed by this version.
+The FreeBSD port installs a disabled-by-default rc.d service and a policy
+permitting only root to own the name.
+The service uses daemon(8) and rc.subr.
+Enable it only for controlled integration until device/VT behavior is verified.
+.Pp
+The
+.Fl Fl check-owner
+option checks that the bus name belongs to the specified positive process ID.
+It is read-only and fails if identity cannot be verified.
+Service readiness does not assert that a session or desktop is usable.
 .Pp
 The service implements GetSession, GetSessionByPID, ListSessions,
 and the read-only session properties Id, Active, Type, Class and State.

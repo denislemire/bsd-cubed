@@ -15,7 +15,7 @@ if [ ! -f "$ports_root/Mk/bsd.port.mk" ]; then
 fi
 port="$work_root/overlay/sysutils/bsd-cubed"
 mkdir -p "$port" "$work_root/distfiles" "$repo_root/dist/packages"
-cp packaging/freebsd/bsd-cubed/* "$port/"
+cp -R packaging/freebsd/bsd-cubed/. "$port/"
 distname=$(make -C "$port" PORTSDIR="$ports_root" -V DISTNAME)
 pkgname=$(make -C "$port" PORTSDIR="$ports_root" -V PKGNAME)
 # Limit framework-derived names before using them as filesystem components.

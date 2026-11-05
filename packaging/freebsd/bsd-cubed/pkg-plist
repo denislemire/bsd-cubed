@@ -1,3 +1,4 @@
+etc/dbus-1/system.d/org.bsd3.login1.conf
 include/bsd3/sd-login.h
 lib/libbsd3-login.a
 libdata/pkgconfig/bsd3-login.pc

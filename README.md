@@ -35,7 +35,11 @@ BSD³'s license does not relicense those projects.
 
 The install obeys `DESTDIR`, `PREFIX`, `CC`, `AR`, `CPPFLAGS`, `CFLAGS`, `LDFLAGS`,
 and `PKG_CONFIG`. It supplies a binary, static development library, namespaced
-header, explicit bsd3-login pkg-config metadata and manual page. No boot service, D-Bus activation or policy is installed.
+header, explicit bsd3-login pkg-config metadata and manual page. The FreeBSD port
+also installs a disabled rc.d service and a root-only login1 ownership policy;
+there is no D-Bus activation. Keep the service disabled outside isolated testing.
+`bsddd --check-owner PID` verifies that the bus name belongs to that exact process;
+it does not establish desktop readiness.
 
 ## First implemented boundary
 
