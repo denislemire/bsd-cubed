@@ -86,3 +86,18 @@ to the existing nobody account for the denial check and clears bus-address
 overrides. It creates no account or new administrative grant. The installed
 service check now runs immediately after the small bridge package, before the
 Mutter rebuild, so failures are resolved earlier. Retest pending.
+
+## CI26 correction
+
+All package, service and compositor gates passed. The first genuine GNOME attempt
+stopped before launching its session harness: ConsoleKit's typed NoSessions error
+from GetSessions is a valid initial state, not a failed activation. The corrected
+wrapper uses the bus's StartServiceByName and reloads policies installed with the
+GNOME packages. The session harness then has to create/verify a real session.
+
+Source review also showed that passing is-local=false is insufficient evidence
+of non-local registration in this CK release: the final locality calculation
+checks property presence. The harness now omits that override, queries IsLocal
+and GetVTNr afterward, and refuses to launch unless the actual session is
+non-local with VT zero. This keeps headless startup distinct from console/device
+authority. Real-backend retest is pending; no desktop or laptop success is claimed.
