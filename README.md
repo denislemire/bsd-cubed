@@ -69,7 +69,8 @@ release; never replace the existing beta assets.
 
 ## What a working desktop still requires
 
-See the [real VT/device regression](docs/native-vt-regression-2026-11-05.md),
+See the [gated hardware handoff](docs/hardware-handoff-2026-11-05.md),
+[real VT/device regression](docs/native-vt-regression-2026-11-05.md),
 [native Wayland startup milestone](docs/native-wayland-2026-11-05.md),
 [native Mutter port experiment](docs/native-mutter-port.md),
 [architecture and milestones](docs/architecture.md),
