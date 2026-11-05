@@ -39,3 +39,14 @@ EhWS package catalogue as well as GitHub beta assets. Verify actual ABI, depende
 closure and appropriate native runtime results first. Do not publish failed or
 untested candidates, overwrite unrelated catalogue entries, or call a CURRENT
 build proof of 15-STABLE runtime compatibility. Package publication remains pending.
+
+Pre-build native source review also found Linux-only header includes in the device
+pool/launcher and an unused dma-buf header in the KMS implementation. The overlay
+guards those includes on FreeBSD. The native thread code uses FreeBSD's documented
+[pthread_getthreadid_np](https://man.freebsd.org/cgi/man.cgi?query=pthread_getthreadid_np)
+in place of Linux gettid; this is a real kernel thread ID, not an opaque pthread
+handle. These adaptations still require the native compile/runtime trial.
+
+Patch containers retain required context whitespace. `.gitattributes` excludes
+those containers from generic whitespace checks; the complete applied source
+patch stack was checked separately without whitespace findings.
