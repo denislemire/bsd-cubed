@@ -52,3 +52,27 @@ DRM master revocation, input permissions or a native GNOME login.
 
 [FreeBSD Porter's Handbook](https://docs.freebsd.org/en/books/porters-handbook/)
 is the upstream authority; the overlay is a candidate, not an accepted port.
+
+## Beta-to-laptop delivery policy
+
+Denis requested this iteration path on November 4, 2026:
+
+1. Set the candidate port's DISTVERSION to the intended beta version (for example,
+   `0.1.0-beta1`) before the release build. The ports framework supplies the
+   corresponding package version; CI derives archive/package names from it.
+2. Require a successful native FreeBSD VM build at the exact candidate commit.
+   CI preserves the actual source tarball it packaged, the `.pkg`, snapshot
+   distinfo, `SHA256SUMS`, build provenance and ports revision.
+3. Publish a GitHub prerelease with a signed version tag and explicit implemented
+   scope/limits. Upload the CI-produced `.pkg`, matching source archive, checksums
+   and provenance. Verify the uploaded assets by downloading them again.
+4. Only then download the package from that GitHub release on the laptop,
+   verify its checksum against the release manifest, inspect ABI and dependencies,
+   and install the downloaded `.pkg`. Use that same release URL for reproduction.
+5. Coordinate final native VT/device testing with the parallel kernel work;
+   preserve a working boot/session recovery path and distinguish package rollback
+   from rollback of any future configuration changes.
+
+No initial discovery-only beta was published or installed. A release must state
+what can actually be tested; the first package is not a working GNOME desktop.
+Do not publish the laptop-built exploratory artifact as the CI beta artifact.

@@ -40,7 +40,8 @@ graphical user-session selection with deliberately out-of-order sessions.
 
 On FreeBSD, the candidate port was built against the pinned ports framework
 `2072800715389ae49066946c960e6521bac37e6a` in a temporary root with installed
-dependencies. Local source archive was supplied through DISTDIR, then:
+dependencies. This was a sparse framework copy, not a complete ports checkout.
+Local source archive was supplied through DISTDIR, then:
 
 ```sh
 make makesum
@@ -50,12 +51,24 @@ make DEVELOPER=yes stage test check-plist stage-qa package
 Observation: checksum verification, build, stage QA, the same five protocol test
 groups, plist validation and package creation passed. The framework warned that
 category validation is skipped outside PORTSDIR. The port's intended category is
-sysutils; an eventual in-tree/poudriere check is still required. No package was
+sysutils; an eventual in-tree/poudriere check is still required. Recursive clean
+also warned about omitted dependency directories in that sparse copy; actual
+installed runtime dependencies were independently checked in the package manifest
+(ConsoleKit2, GLib and gettext-runtime). A full-tree CI build is still needed.
+No package was
 installed. Local snapshot distinfo is not a release distinfo.
 
 The CircleCI configuration validated successfully against the configured EhWS
 server. Configuration validation does not establish a completed pipeline run.
-The native FreeBSD CI job must still be followed/enabled and run on that server.
+The project was then enabled on that server. Automatic build #1 succeeded:
+https://circle.ehws.generic.business/gh/denislemire/bsd-cubed/1
+
+It tested commit ff84228be649b018e4259f4e6400bafeca26d223 in a generic
+FreeBSD KubeVirt VM, including the full-tree ports path, stage/test/check-plist/QA,
+package creation and artifact upload. An explicitly triggered duplicate pipeline
+#2 was canceled while queued; it is not a failed test. The current CLI watch
+command could not read the legacy server response; direct server-compatible API
+monitoring confirmed job success. No CI credentials were added to this project.
 
 ## Failed paths and corrections
 
@@ -70,8 +83,13 @@ The native FreeBSD CI job must still be followed/enabled and run on that server.
    package in WRKDIR/pkg because the specified PACKAGES directory did not yet
    exist. CI now creates that directory before invoking make and requires the
    expected artifact to exist, preventing a false successful artifact collection.
-5. Manual lint identified two style issues; adjusted the FreeBSD OS macro and
-   wrapped the long line.
+5. The clean rebuilt package was verified at PACKAGES/All with SHA256
+   `7056a25ec4800584db0cf65d9c7829ac5f8d338042fdbbce19608b5e794ee996`.
+   Its file list has the intended binary, static library, header, manpage and
+   framework-generated license/SBOM entries. The package was copied locally
+   and its checksum matched.
+6. Manual lint identified two style issues; adjusted the FreeBSD OS macro and
+   wrapped the long line. Final mandoc lint passed.
 
 ## Limits
 
@@ -80,3 +98,11 @@ controller authorization, descriptor handoff, signals, suspend, power action,
 GDM/userdb or GNOME49 user-service startup is implemented or verified. The current
 port disables native Mutter. No public release, upstream port submission, release
 fetch test, poudriere build or installed-package runtime trial is claimed.
+
+## Repository checkpoint
+
+Initial commit `ff84228be649b018e4259f4e6400bafeca26d223` was pushed to the
+private `denislemire/bsd-cubed` repository. GitHub reports its SSH signature valid;
+author and committer are Denis Lemire <denis@lemire.name>, with DCO sign-off.
+Local verification initially lacked an allowed-signers trust file; this was not
+an unsigned commit. No signing configuration was disabled.

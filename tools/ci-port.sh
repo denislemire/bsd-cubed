@@ -13,14 +13,20 @@ if [ ! -f "$ports_root/Mk/bsd.port.mk" ]; then
     ports_root="$work_root/ports"
     git clone --depth 1 https://git.freebsd.org/ports.git "$ports_root"
 fi
-mkdir -p "$work_root/overlay/sysutils/bsd-cubed" "$work_root/source/bsd-cubed-0.1.0" "$work_root/distfiles" "$repo_root/dist/packages"
-cp packaging/freebsd/bsd-cubed/* "$work_root/overlay/sysutils/bsd-cubed/"
+port="$work_root/overlay/sysutils/bsd-cubed"
+mkdir -p "$port" "$work_root/distfiles" "$repo_root/dist/packages"
+cp packaging/freebsd/bsd-cubed/* "$port/"
+distname=$(make -C "$port" PORTSDIR="$ports_root" -V DISTNAME)
+pkgname=$(make -C "$port" PORTSDIR="$ports_root" -V PKGNAME)
+# Limit framework-derived names before using them as filesystem components.
+case "$distname:$pkgname" in *[!A-Za-z0-9_.:+-]*|:*|*:) exit 1 ;; esac
+source_root="$work_root/source/$distname"
+mkdir -p "$source_root"
 # Explicit source inputs: no .git, private captures, generated binaries or secrets.
 for input in Makefile LICENSE README.md src include man tests; do
-    cp -R "$input" "$work_root/source/bsd-cubed-0.1.0/"
+    cp -R "$input" "$source_root/"
 done
-tar -C "$work_root/source" -czf "$work_root/distfiles/bsd-cubed-0.1.0.tar.gz" bsd-cubed-0.1.0
-port="$work_root/overlay/sysutils/bsd-cubed"
+tar -C "$work_root/source" -czf "$work_root/distfiles/$distname.tar.gz" "$distname"
 # This checksum identifies the CI snapshot, not an unpublished upstream release.
 make -C "$port" PORTSDIR="$ports_root" DISTDIR="$work_root/distfiles" \
     WRKDIRPREFIX="$work_root/work" PACKAGES="$repo_root/dist/packages" \
@@ -29,7 +35,10 @@ make -C "$port" PORTSDIR="$ports_root" DISTDIR="$work_root/distfiles" \
     WRKDIRPREFIX="$work_root/work" PACKAGES="$repo_root/dist/packages" \
     MASTER_SITES="file://$work_root/distfiles/" DEVELOPER=yes \
     stage test check-plist stage-qa package
-test -f "$repo_root/dist/packages/All/bsd-cubed-0.1.0.pkg"
+test -f "$repo_root/dist/packages/All/$pkgname.pkg"
 cp "$port/distinfo" "$repo_root/dist/snapshot.distinfo"
+cp "$work_root/distfiles/$distname.tar.gz" "$repo_root/dist/"
 git -C "$ports_root" rev-parse HEAD >"$repo_root/dist/ports-revision.txt"
-find "$repo_root/dist/packages" -name '*.pkg' -exec sha256 {} \; >"$repo_root/dist/package-sha256.txt"
+# Names match flattened GitHub release assets, without machine-specific paths.
+(cd "$repo_root/dist/packages/All" && sha256 -r "$pkgname.pkg") >"$repo_root/dist/SHA256SUMS"
+(cd "$repo_root/dist" && sha256 -r "$distname.tar.gz") >>"$repo_root/dist/SHA256SUMS"
