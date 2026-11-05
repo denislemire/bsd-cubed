@@ -198,8 +198,9 @@ sd_session_is_active(const char *session)
 int
 sd_session_get_seat(const char *session, char **ret)
 {
-	GVariant *reply;
-	const char *path, *id;
+	GVariant *reply, *name_reply;
+	const char *path, *name, *component;
+	const unsigned char *p;
 	int rc;
 	if (ret == NULL)
 		return (-EINVAL);
@@ -207,13 +208,38 @@ sd_session_get_seat(const char *session, char **ret)
 	if (rc < 0)
 		return (rc);
 	g_variant_get(reply, "(&o)", &path);
-	id = strrchr(path, '/');
-	if (!g_str_has_prefix(path, "/org/freedesktop/ConsoleKit/Seat") ||
-	    id == NULL || id[1] == '\0')
-		rc = -ENODATA;
-	else
-		rc = copy_string(id + 1, ret);
+	if (strcmp(path, "/") == 0) {
+		g_variant_unref(reply);
+		return (-ENODATA);
+	}
+	/* ConsoleKit object labels changed from SeatN to seatN. The canonical
+	 * name is a separate typed API and is what libinput's seat assignment uses. */
+	if (!g_str_has_prefix(path, "/org/freedesktop/ConsoleKit/")) {
+		g_variant_unref(reply);
+		return (-EPROTO);
+	}
+	component = path + strlen("/org/freedesktop/ConsoleKit/");
+	if (component[0] == '\0' || strchr(component, '/') != NULL) {
+		g_variant_unref(reply);
+		return (-EPROTO);
+	}
+	rc = call(path, CK ".Seat", "GetName", NULL, "(s)", &name_reply);
 	g_variant_unref(reply);
+	if (rc < 0)
+		return (rc);
+	g_variant_get(name_reply, "(&s)", &name);
+	if (name[0] == '\0')
+		rc = -ENODATA;
+	else if (strlen(name) > 255)
+		rc = -EPROTO;
+	else {
+		for (p = (const unsigned char *)name; *p != '\0'; p++) {
+			if (!g_ascii_isalnum(*p) && *p != '_' && *p != '-')
+				break;
+		}
+		rc = *p == '\0' ? copy_string(name, ret) : -EPROTO;
+	}
+	g_variant_unref(name_reply);
 	return (rc);
 }
 

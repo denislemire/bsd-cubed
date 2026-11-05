@@ -48,7 +48,7 @@ test_discovery(void)
 	g_assert_cmpint(sd_session_get_uid("Session1", &uid), ==, 0);
 	g_assert_cmpuint(uid, ==, 1000);
 	g_assert_cmpint(sd_session_get_seat("Session2", &seat), ==, 0);
-	g_assert_cmpstr(seat, ==, "Seat1"); free(seat);
+	g_assert_cmpstr(seat, ==, "seat0"); free(seat);
 	g_assert_cmpint(sd_session_is_active("Session2"), ==, 0);
 	g_assert_cmpint(sd_session_is_active("Session3"), ==, 1);
 }
@@ -307,6 +307,37 @@ test_missing_credentials(void)
 	mode("normal");
 }
 
+static void
+test_seat_names(void)
+{
+	char *seat = NULL;
+	mode("normal");
+	g_assert_cmpint(sd_session_get_seat("Session1", &seat), ==, 0);
+	g_assert_cmpstr(seat, ==, "seat0"); free(seat); seat = NULL;
+	mode("legacy-seat");
+	g_assert_cmpint(sd_session_get_seat("Session1", &seat), ==, 0);
+	g_assert_cmpstr(seat, ==, "seat0"); free(seat); seat = NULL;
+	mode("custom-seat-name");
+	g_assert_cmpint(sd_session_get_seat("Session1", &seat), ==, 0);
+	g_assert_cmpstr(seat, ==, "seat-lab"); free(seat); seat = NULL;
+	mode("no-seat");
+	g_assert_cmpint(sd_session_get_seat("Session1", &seat), ==, -ENODATA);
+	g_assert_null(seat);
+	mode("empty-seat-name");
+	g_assert_cmpint(sd_session_get_seat("Session1", &seat), ==, -ENODATA);
+	g_assert_null(seat);
+	mode("bad-seat-path");
+	g_assert_cmpint(sd_session_get_seat("Session1", &seat), ==, -EPROTO);
+	g_assert_null(seat);
+	mode("unsafe-seat-name");
+	g_assert_cmpint(sd_session_get_seat("Session1", &seat), ==, -EPROTO);
+	g_assert_null(seat);
+	mode("seat-name-error");
+	g_assert_cmpint(sd_session_get_seat("Session1", &seat), ==, -EACCES);
+	g_assert_null(seat);
+	mode("normal");
+}
+
 int
 main(int argc, char **argv)
 {
@@ -333,6 +364,7 @@ main(int argc, char **argv)
 	}
 #endif
 	g_test_add_func("/bsd3/discovery", test_discovery);
+	g_test_add_func("/bsd3/seat-names", test_seat_names);
 	g_test_add_func("/bsd3/enumeration", test_enumeration);
 	g_test_add_func("/bsd3/display", test_display);
 	g_test_add_func("/bsd3/errors", test_errors);
