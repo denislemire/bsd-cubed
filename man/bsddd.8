@@ -39,7 +39,11 @@ Each controller uses a separate backend connection, which is closed on client
 disconnect, backend restart, release failure or daemon shutdown.
 Forced takeover is unsupported.
 .Pp
-It does not implement session creation, seats, device access, inhibitors,
+Experimental TakeDevice, ReleaseDevice, PauseDeviceComplete and unicast
+pause/resume notifications preserve backend device descriptors.
+Their protocol tests do not prove real DRM/input revocation or VT switching.
+.Pp
+It does not implement session creation, seats, inhibitors,
 power management, notifications, or a user service manager.
 Consumers must not interpret the presence of the bus name
 as full logind support.
