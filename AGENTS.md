@@ -35,3 +35,8 @@
   archive, SHA256SUMS and provenance. Then download that exact release asset,
   verify it and install it on the laptop. Do not install an ad hoc build or a
   source-tree binary instead. A diagnostics-only prototype is not desktop-ready.
+- Denis subsequently explicitly authorized installing the published beta package
+  and preparing a GNOME Wayland option on the laptop. This authorizes desktop
+  integration work but does not authorize claiming readiness for an unsupported
+  compositor. Existing GNOME Wayland entries already exist; do not add a misleading
+  duplicate or start a disruptive login test before the native backend is ready.

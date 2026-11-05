@@ -54,3 +54,19 @@ A shim is a useful component, but it cannot alone enable native GNOME. The curre
 port excludes the native backend, and GNOME49 startup is another compatibility
 surface. Keep these falsifiable milestones separate. Do not describe a successful
 private-bus test as hardware or desktop validation.
+
+## Current stable target and laptop login check
+
+[GNOME's stable release notes](https://release.gnome.org/stable/) identify GNOME51;
+49 is the historical startup-boundary audit, not the eventual current desktop
+target. Mutter51.1 was fetched at
+`9134e3a5869ce232bf95b77519005865747ba603` for follow-up. Its Meson setup requires
+a logind provider, and native backend files use DRM/input/udev and Linux-adjacent
+interfaces. This is a real compositor port in addition to the bridge, not a missing
+session-menu entry. The attempted gnome-session51.1 tag did not exist; do not claim
+that source revision was inspected or built.
+
+The laptop's GNOME Shell47.10 help includes `--wayland` and `--nested`, but not the
+native-only display-server/headless options. Its SDDM wayland-sessions directory
+already contains gnome-wayland.desktop, gnome.desktop and classic variants.
+Adding another .desktop file cannot enable the compiled-out native backend.
