@@ -33,6 +33,8 @@ static const char xml[] =
  "<method name='SetMode'><arg type='s' direction='in'/></method>"
  "<method name='GetLastPid'><arg type='u' direction='out'/></method>"
  "<method name='GetCounters'><arg type='u' direction='out'/><arg type='u' direction='out'/><arg type='u' direction='out'/></method>"
+ "</interface><interface name='org.freedesktop.ConsoleKit.Seat'>"
+ "<method name='GetName'><arg type='s' direction='out'/></method>"
  "</interface></node>";
 
 static void
@@ -105,6 +107,15 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 			}
 			reply = g_variant_new("(ao)", &builder);
 		}
+	} else if (strcmp(iface, CK ".Seat") == 0) {
+		if (strcmp(mode, "seat-name-error") == 0) {
+			g_dbus_method_invocation_return_dbus_error(invocation,
+			    "org.freedesktop.DBus.Error.AccessDenied", "Fixture seat denial");
+			return;
+		}
+		reply = g_variant_new("(s)", strcmp(mode, "empty-seat-name") == 0 ? "" :
+		    strcmp(mode, "unsafe-seat-name") == 0 ? "seat/unsafe" :
+		    strcmp(mode, "custom-seat-name") == 0 ? "seat-lab" : "seat0");
 	} else {
 		const char *type, *class_name, *state, *created;
 		const char *component = strrchr(path, '/');
@@ -128,7 +139,9 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 		else if (strcmp(name, "IsActive") == 0)
 			reply = g_variant_new("(b)", strcmp(state, "active") == 0);
 		else if (strcmp(name, "GetSeatId") == 0)
-			reply = g_variant_new("(o)", ROOT "/Seat1");
+			reply = g_variant_new("(o)", strcmp(mode, "no-seat") == 0 ? "/" :
+			    strcmp(mode, "bad-seat-path") == 0 ? "/unrelated/seat0" :
+			    strcmp(mode, "legacy-seat") == 0 ? ROOT "/Seat1" : ROOT "/seat0");
 		else if (strcmp(name, "CanControlSession") == 0)
 			reply = g_variant_new("(b)", strcmp(mode, "unsupported") != 0);
 		else if (strcmp(name, "TakeControl") == 0) {
@@ -216,6 +229,12 @@ main(void)
 		g_assert_no_error(error);
 		g_free(path);
 	}
+	g_assert_cmpuint(g_dbus_connection_register_object(bus, ROOT "/seat0",
+	    schema->interfaces[3], &vtable, NULL, NULL, &error), >, 0);
+	g_assert_no_error(error);
+	g_assert_cmpuint(g_dbus_connection_register_object(bus, ROOT "/Seat1",
+	    schema->interfaces[3], &vtable, NULL, NULL, &error), >, 0);
+	g_assert_no_error(error);
 	reply = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus",
 	    "/org/freedesktop/DBus", "org.freedesktop.DBus", "RequestName",
 	    g_variant_new("(su)", CK, 4U), G_VARIANT_TYPE("(u)"), 0, 3000,
