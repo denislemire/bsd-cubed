@@ -7,8 +7,10 @@ GNOME expects to native FreeBSD services. Original project code is C11 under
 the BSD-2-Clause license. FreeBSD keeps rc, PAM, devfs and its own kernel.
 
 **Status: experimental session/device bridge. A patched Mutter47.10 has served
-a Wayland client from its native headless backend on FreeBSD. A full native
-GNOME session and hardware device/VT behavior remain unverified.** No systemd implementation or source is bundled.
+a Wayland client from its native headless backend on FreeBSD. Full GNOME47
+headless session/window/logout passes native CI; real input revocation and VT
+switching pass on a stable/15 KVM. Physical GPU presentation and laptop login
+remain unverified.** No systemd implementation or source is bundled.
 The daemon is not a complete logind replacement. Do not enable it as the machine's
 login service or use its presence as proof of native compositor readiness.
 
@@ -49,7 +51,8 @@ it does not establish desktop readiness.
   authenticated TakeControl/ReleaseControl, and isolated controller lifetimes.
   Experimental descriptor handoff and pause/resume protocol are implemented;
   Seat.SwitchTo requires the active original controller on the matching seat;
-  real DRM/input revocation and console switching remain unverified. Existing bus
+  real input revocation and console switching pass in KVM; DRM and physical
+  hardware behavior remain unverified. Existing bus
   owners are never replaced.
 - Tests for session selection/filtering, PID-zero caller identity, properties,
   backend failure, invalid identifiers, duplicate ownership and shutdown.
@@ -66,7 +69,8 @@ release; never replace the existing beta assets.
 
 ## What a working desktop still requires
 
-See the [native Wayland startup milestone](docs/native-wayland-2026-11-05.md),
+See the [real VT/device regression](docs/native-vt-regression-2026-11-05.md),
+[native Wayland startup milestone](docs/native-wayland-2026-11-05.md),
 [native Mutter port experiment](docs/native-mutter-port.md),
 [architecture and milestones](docs/architecture.md),
 [source audit](docs/source-audit-2026-11-04.md), and

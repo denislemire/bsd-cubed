@@ -1,0 +1,22 @@
+--- src/ck-sysdeps-unix.c.orig
++++ src/ck-sysdeps-unix.c
+@@ -354,11 +354,19 @@
+                 goto done;
+         }
+ 
++#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
++        fd = ck_open_a_console ("/dev/ttyv0");
++        if (fd >= 0) {
++                goto done;
++        }
++#endif
++
+         for (fd = 0; fd < 3; fd++) {
+                 if (ck_fd_is_a_console (fd, "")) {
+                         goto done;
+                 }
+         }
++        fd = -1;
+  done:
+         return fd;
+ }

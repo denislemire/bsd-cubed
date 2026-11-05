@@ -1,3 +1,5 @@
 # Patch containers need their original diff markers and context whitespace.
 packaging/freebsd/mutter/*.patch -whitespace
 packaging/freebsd/mutter/patch-* -whitespace
+packaging/freebsd/consolekit2/*.patch -whitespace
+packaging/freebsd/consolekit2/patch-* -whitespace

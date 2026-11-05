@@ -27,7 +27,7 @@ jobs:
           name: Native service lifecycle and root-only system-bus policy
           command: sh tools/ci-service.sh
       - run:
-          name: Real ConsoleKit session and kernel input-revocation regression
+          name: Real ConsoleKit session, kernel revocation and VT switch regression
           command: sh tools/test-native-consolekit.sh
       - run:
           name: Rebuild Mutter port with native backend and BSD3 provider
