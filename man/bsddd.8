@@ -1,0 +1,51 @@
+.\" SPDX-License-Identifier: BSD-2-Clause
+.Dd November 4, 2026
+.Dt BSDDD 8
+.Os
+.Sh NAME
+.Nm bsddd
+.Nd experimental BSD desktop session compatibility daemon
+.Sh SYNOPSIS
+.Nm
+.Fl Fl probe
+.Nm
+.Fl Fl foreground
+.Sh DESCRIPTION
+BSD cubed is a BSD-licensed desktop compatibility project for
+.Fx .
+This version supplies read-only session discovery through ConsoleKit2.
+It does not yet enable a native GNOME Wayland login.
+.Pp
+The
+.Fl Fl probe
+option queries the existing ConsoleKit service without acquiring a bus name.
+It requires neither root nor a desktop session.
+.Pp
+The
+.Fl Fl foreground
+option runs a partial
+.Dq org.freedesktop.login1
+service on the system bus.
+It does not replace or queue behind an existing owner.
+Bus policy must explicitly permit the caller to own that name.
+No D-Bus policy or boot service is installed by this version.
+.Pp
+The service implements GetSession, GetSessionByPID, ListSessions,
+and the read-only session properties Id, Active, Type, Class and State.
+It does not implement session creation, seats, device access, inhibitors,
+power management, notifications, or a user service manager.
+Consumers must not interpret the presence of the bus name
+as full logind support.
+.Sh ENVIRONMENT
+.Bl -tag -width DBUS_SYSTEM_BUS_ADDRESS
+.It Ev DBUS_SYSTEM_BUS_ADDRESS
+Overrides the system bus address as provided by GLib.
+The tests direct this to a private bus; do not set it for privileged deployment.
+.El
+.Sh EXIT STATUS
+.Ex -std
+A usage error returns 64.
+.Sh SEE ALSO
+.Xr daemon 8
+.Sh AUTHORS
+.An Denis Lemire Aq Mt denis@lemire.name

@@ -1,0 +1,4 @@
+include/bsd3/sd-login.h
+lib/libbsd3-login.a
+sbin/bsddd
+share/man/man8/bsddd.8.gz

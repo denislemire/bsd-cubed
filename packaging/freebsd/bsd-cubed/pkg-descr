@@ -1,0 +1,8 @@
+BSD cubed (BSD Desktop Daemon, bsddd) is an experimental C compatibility
+bridge between desktop session interfaces and native FreeBSD services.
+This initial version provides read-only ConsoleKit session discovery,
+a selected sd-login interface, and partial login1 D-Bus objects.
+
+It does not yet enable a native GNOME Wayland session. Device handoff,
+seat lifecycle and modern GNOME session startup remain in development.
+No systemd implementation, D-Bus policy or boot service is installed.
