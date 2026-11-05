@@ -54,7 +54,11 @@ Experimental TakeDevice, ReleaseDevice, PauseDeviceComplete and unicast
 pause/resume notifications preserve backend device descriptors.
 Their protocol tests do not prove real DRM/input revocation or VT switching.
 .Pp
-It does not implement session creation, seats, inhibitors,
+The partial Seat interface forwards SwitchTo only for the active controlling
+connection belonging to that seat. ConsoleKit and the kernel validate the target
+VT; physical console switching and recovery remain unverified.
+.Pp
+It does not implement session creation, a complete Seat/User model, inhibitors,
 power management, notifications, or a user service manager.
 Consumers must not interpret the presence of the bus name
 as full logind support.

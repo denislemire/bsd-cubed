@@ -48,7 +48,8 @@ it does not establish desktop readiness.
 - `bsddd --foreground`: partial `org.freedesktop.login1` Manager and Session objects,
   authenticated TakeControl/ReleaseControl, and isolated controller lifetimes.
   Experimental descriptor handoff and pause/resume protocol are implemented;
-  real DRM/input revocation and VT switching remain unverified. Existing bus
+  Seat.SwitchTo requires the active original controller on the matching seat;
+  real DRM/input revocation and console switching remain unverified. Existing bus
   owners are never replaced.
 - Tests for session selection/filtering, PID-zero caller identity, properties,
   backend failure, invalid identifiers, duplicate ownership and shutdown.

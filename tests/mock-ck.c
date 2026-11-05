@@ -13,7 +13,7 @@ static GMainLoop *loop;
 static guint32 last_pid;
 static char *mode;
 static GHashTable *owners;
-static guint takes, releases, acknowledgements;
+static guint takes, releases, acknowledgements, switches, last_vt;
 static GHashTable *devices;
 static gboolean session6_active = TRUE;
 struct fake_device { char *owner; gboolean paused; gboolean awaiting_ack; };
@@ -41,6 +41,7 @@ static const char xml[] =
  "<signal name='ActiveChanged'><arg type='b'/></signal>"
  "</interface><interface name='org.bsd3.Test'>"
  "<method name='SetMode'><arg type='s' direction='in'/></method>"
+ "<method name='GetSwitchCounters'><arg type='u' direction='out'/><arg type='u' direction='out'/></method>"
  "<method name='GetLastPid'><arg type='u' direction='out'/></method>"
  "<method name='EmitPause'><arg type='u' direction='in'/><arg type='u' direction='in'/><arg type='s' direction='in'/></method>"
  "<method name='EmitResume'><arg type='u' direction='in'/><arg type='u' direction='in'/></method>"
@@ -49,6 +50,7 @@ static const char xml[] =
  "<method name='GetCounters'><arg type='u' direction='out'/><arg type='u' direction='out'/><arg type='u' direction='out'/></method>"
  "</interface><interface name='org.freedesktop.ConsoleKit.Seat'>"
  "<method name='GetName'><arg type='s' direction='out'/></method>"
+ "<method name='SwitchTo'><arg type='u' direction='in'/></method>"
  "</interface></node>";
 
 static void
@@ -169,7 +171,9 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 			    CK ".Session", "ActiveChanged", args, &error);
 			g_assert_no_error(error);
 			reply = g_variant_new("()");
-		} else if (strcmp(name, "GetDeviceCounters") == 0)
+		} else if (strcmp(name, "GetSwitchCounters") == 0)
+			reply = g_variant_new("(uu)", switches, last_vt);
+		else if (strcmp(name, "GetDeviceCounters") == 0)
 			reply = g_variant_new("(uu)", g_hash_table_size(devices), acknowledgements);
 		else if (strcmp(name, "GetCounters") == 0)
 			reply = g_variant_new("(uuu)", takes, releases, g_hash_table_size(owners));
@@ -215,6 +219,17 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 			reply = g_variant_new("(ao)", &builder);
 		}
 	} else if (strcmp(iface, CK ".Seat") == 0) {
+		if (strcmp(name, "SwitchTo") == 0) {
+			g_assert_cmpstr(g_hash_table_lookup(owners, ROOT "/Session6"), ==, sender);
+			g_variant_get(args, "(u)", &last_vt);
+			switches++;
+			if (strcmp(mode, "switch-fail") == 0)
+				g_dbus_method_invocation_return_dbus_error(invocation,
+				    CK ".Seat.Error.Failed", "Fixture switch failure");
+			else
+				g_dbus_method_invocation_return_value(invocation, NULL);
+			return;
+		}
 		if (strcmp(mode, "seat-name-error") == 0) {
 			g_dbus_method_invocation_return_dbus_error(invocation,
 			    "org.freedesktop.DBus.Error.AccessDenied", "Fixture seat denial");
@@ -222,7 +237,9 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 		}
 		reply = g_variant_new("(s)", strcmp(mode, "empty-seat-name") == 0 ? "" :
 		    strcmp(mode, "unsafe-seat-name") == 0 ? "seat/unsafe" :
-		    strcmp(mode, "custom-seat-name") == 0 ? "seat-lab" : "seat0");
+		    strcmp(mode, "custom-seat-name") == 0 ? "seat-lab" :
+		    strcmp(mode, "underscore-seat-name") == 0 ? "seat_lab" :
+		    strcmp(mode, "numeric-seat-name") == 0 ? "1seat" : "seat0");
 	} else {
 		const char *type, *class_name, *state, *created;
 		const char *component = strrchr(path, '/');

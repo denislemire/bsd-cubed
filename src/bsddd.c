@@ -14,6 +14,7 @@
 
 #define ROOT "/org/freedesktop/login1"
 #define SESSION ROOT "/session"
+#define SEAT ROOT "/seat"
 #define LOGIN "org.freedesktop.login1"
 
 static GMainLoop *loop;
@@ -41,6 +42,8 @@ static const char xml[] =
     "<property name='Type' type='s' access='read'/>"
     "<property name='Class' type='s' access='read'/>"
     "<property name='State' type='s' access='read'/>"
+    "</interface><interface name='org.freedesktop.login1.Seat'>"
+    "<method name='SwitchTo'><arg type='u' direction='in'/></method>"
     "</interface></node>";
 
 static void
@@ -207,6 +210,19 @@ session_call(GDBusConnection *bus, const char *sender, const char *path,
 	bsd3_control_call(id + 1, method, args, invocation);
 }
 
+static void
+seat_call(GDBusConnection *bus, const char *sender, const char *path,
+    const char *iface, const char *method, GVariant *args,
+    GDBusMethodInvocation *invocation, gpointer data)
+{
+	(void)bus; (void)sender; (void)iface; (void)method; (void)data;
+	bsd3_seat_call(strrchr(path, '/') + 1, args, invocation);
+}
+
+static const GDBusInterfaceVTable seat_vtable = {
+	.method_call = seat_call
+};
+
 static const GDBusInterfaceVTable manager_vtable = {
 	.method_call = manager_call
 };
@@ -221,6 +237,26 @@ enumerate(GDBusConnection *bus, const gchar *sender, const gchar *path, gpointer
 	(void)bus; (void)sender; (void)path; (void)data;
 	if (sd_get_sessions(&sessions) < 0)
 		return (g_new0(gchar *, 1));
+	if (data != NULL) {
+		GHashTable *seen = g_hash_table_new(g_str_hash, g_str_equal);
+		GPtrArray *seats = g_ptr_array_new();
+		for (unsigned i = 0; sessions[i] != NULL; i++) {
+			char *name = NULL, *encoded;
+			if (sd_session_get_seat(sessions[i], &name) < 0)
+				continue;
+			encoded = bsd3_seat_component(name);
+			free(name);
+			if (!g_hash_table_contains(seen, encoded)) {
+				g_hash_table_add(seen, encoded);
+				g_ptr_array_add(seats, encoded);
+			} else
+				g_free(encoded);
+		}
+		g_hash_table_unref(seen);
+		g_strfreev(sessions);
+		g_ptr_array_add(seats, NULL);
+		return ((gchar **)g_ptr_array_free(seats, FALSE));
+	}
 	return (sessions);
 }
 
@@ -233,7 +269,8 @@ introspect(GDBusConnection *bus, const gchar *sender, const gchar *path,
 	if (node == NULL)
 		return (NULL);
 	info = g_new0(GDBusInterfaceInfo *, 2);
-	info[0] = g_dbus_interface_info_ref(schema->interfaces[1]);
+	info[0] = g_dbus_interface_info_ref(
+	    schema->interfaces[data != NULL ? 2 : 1]);
 	return (info);
 }
 
@@ -243,7 +280,10 @@ dispatch(GDBusConnection *bus, const gchar *sender, const gchar *path,
 {
 	(void)bus; (void)sender; (void)path; (void)node; (void)data;
 	*out_data = NULL;
-	return (strcmp(iface, LOGIN ".Session") == 0 ? &session_vtable : NULL);
+	if (data != NULL && strcmp(iface, LOGIN ".Seat") == 0)
+		return (&seat_vtable);
+	return (data == NULL && strcmp(iface, LOGIN ".Session") == 0 ?
+	    &session_vtable : NULL);
 }
 
 static const GDBusSubtreeVTable subtree = {
@@ -260,7 +300,10 @@ bus_ready(GDBusConnection *bus, const char *name, gpointer data)
 	    &manager_vtable, NULL, NULL, &error) == 0 ||
 	    g_dbus_connection_register_subtree(bus, SESSION, &subtree,
 	    G_DBUS_SUBTREE_FLAGS_DISPATCH_TO_UNENUMERATED_NODES,
-	    NULL, NULL, &error) == 0) {
+	    NULL, NULL, &error) == 0 ||
+	    g_dbus_connection_register_subtree(bus, SEAT, &subtree,
+	    G_DBUS_SUBTREE_FLAGS_DISPATCH_TO_UNENUMERATED_NODES,
+	    GINT_TO_POINTER(1), NULL, &error) == 0) {
 		g_printerr("bsddd: %s\n", error->message);
 		g_clear_error(&error);
 		exit_status = 1;

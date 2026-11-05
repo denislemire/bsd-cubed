@@ -713,6 +713,126 @@ test_owner_readiness(void)
 	g_free(text);
 }
 
+static void
+test_seat_objects(void)
+{
+	const char *modes[] = { "normal", "legacy-seat", "custom-seat-name",
+	    "underscore-seat-name", "numeric-seat-name", "no-seat", NULL };
+	const char *names[] = { "seat0", "seat0", "seat_2dlab", "seat_5flab", "_31seat", NULL };
+	for (unsigned i = 0; modes[i] != NULL; i++) {
+		GVariant *reply;
+		GDBusNodeInfo *info;
+		GError *error = NULL;
+		const char *xml;
+		mode(modes[i]);
+		reply = call("org.freedesktop.login1", "/org/freedesktop/login1/seat",
+		    "org.freedesktop.DBus.Introspectable", "Introspect", NULL, "(s)");
+		g_variant_get(reply, "(&s)", &xml);
+		info = g_dbus_node_info_new_for_xml(xml, &error);
+		g_assert_no_error(error);
+		if (names[i] == NULL)
+			g_assert_true(info->nodes == NULL || info->nodes[0] == NULL);
+		else {
+			g_assert_nonnull(info->nodes);
+			g_assert_nonnull(info->nodes[0]);
+			g_assert_cmpstr(info->nodes[0]->path, ==, names[i]);
+			g_assert_null(info->nodes[1]); /* De-duplicate seats shared by sessions. */
+		}
+		g_dbus_node_info_unref(info);
+		g_variant_unref(reply);
+	}
+	mode("normal");
+}
+
+static void
+switch_vt(GDBusConnection *client, const char *seat, guint32 vt, const char *expected)
+{
+	GError *error = NULL;
+	char *path = g_strconcat("/org/freedesktop/login1/seat/", seat, NULL);
+	GVariant *reply = g_dbus_connection_call_sync(client, "org.freedesktop.login1",
+	    path, "org.freedesktop.login1.Seat", "SwitchTo", g_variant_new("(u)", vt),
+	    G_VARIANT_TYPE("()"), 0, 3000, NULL, &error);
+	g_free(path);
+	if (expected == NULL) {
+		g_assert_no_error(error);
+		g_assert_nonnull(reply);
+		g_variant_unref(reply);
+	} else {
+		char *remote;
+		g_assert_null(reply);
+		g_assert_nonnull(error);
+		remote = g_dbus_error_get_remote_error(error);
+		if (g_strcmp0(remote, expected) != 0)
+			g_test_message("Seat switch error: %s", error->message);
+		g_assert_cmpstr(remote, ==, expected);
+		g_free(remote);
+		g_error_free(error);
+	}
+}
+
+static void
+test_seat_switch(void)
+{
+	const char *denied = "org.freedesktop.DBus.Error.AccessDenied";
+	GDBusConnection *first, *second;
+	GVariant *reply;
+	guint32 before, after, vt;
+
+	if (!peer_pid_available) {
+		g_test_skip("Host cannot authenticate controller PIDs");
+		return;
+	}
+	first = client_connection();
+	second = client_connection();
+	mode("control");
+	switch_vt(first, "seat0", 2, denied);
+	control(first, "Session6", "TakeControl", FALSE, NULL);
+	reply = call(CK, MANAGER, "org.bsd3.Test", "GetSwitchCounters", NULL, "(uu)");
+	g_variant_get(reply, "(uu)", &before, &vt);
+	g_variant_unref(reply);
+	switch_vt(second, "seat0", 2, denied);
+	switch_vt(first, "seat1", 2, denied);
+	switch_vt(first, "seat0", 0, "org.freedesktop.DBus.Error.InvalidArgs");
+	reply = call(CK, MANAGER, "org.bsd3.Test", "EmitActive", g_variant_new("(b)", FALSE), "()");
+	g_variant_unref(reply);
+	switch_vt(first, "seat0", 2, denied);
+	reply = call(CK, MANAGER, "org.bsd3.Test", "EmitActive", g_variant_new("(b)", TRUE), "()");
+	g_variant_unref(reply);
+	mode("normal"); /* Original PID no longer belongs to controlled Session6. */
+	switch_vt(first, "seat0", 2, denied);
+	mode("no-seat");
+	switch_vt(first, "seat0", 2, denied);
+	mode("bad-seat-path");
+	switch_vt(first, "seat0", 2, denied);
+	mode("control");
+	reply = call(CK, MANAGER, "org.bsd3.Test", "GetSwitchCounters", NULL, "(uu)");
+	g_variant_get(reply, "(uu)", &after, &vt);
+	g_assert_cmpuint(after, ==, before); /* Every denial stayed at the boundary. */
+	g_variant_unref(reply);
+	switch_vt(first, "seat0", 2, NULL);
+	mode("legacy-seat"); /* Seat1 object still has canonical name seat0. */
+	switch_vt(first, "seat0", 3, NULL);
+	mode("custom-seat-name");
+	switch_vt(first, "seat0", 4, denied);
+	switch_vt(first, "seat_2dlab", 4, NULL);
+	mode("switch-fail");
+	switch_vt(first, "seat0", 5, "org.freedesktop.DBus.Error.Failed");
+	reply = call(CK, MANAGER, "org.bsd3.Test", "GetSwitchCounters", NULL, "(uu)");
+	g_variant_get(reply, "(uu)", &after, &vt);
+	g_assert_cmpuint(after, ==, before + 4);
+	g_assert_cmpuint(vt, ==, 5);
+	g_variant_unref(reply);
+	mode("control");
+	control(first, "Session6", "ReleaseControl", FALSE, NULL);
+	switch_vt(first, "seat0", 2, denied);
+	g_dbus_connection_close_sync(first, NULL, NULL);
+	g_dbus_connection_close_sync(second, NULL, NULL);
+	g_object_unref(first);
+	g_object_unref(second);
+	wait_no_controllers();
+	mode("normal");
+}
+
 int
 main(int argc, char **argv)
 {
@@ -742,6 +862,7 @@ main(int argc, char **argv)
 	g_test_add_func("/bsd3/readiness-owner", test_owner_readiness);
 	g_test_add_func("/bsd3/discovery", test_discovery);
 	g_test_add_func("/bsd3/seat-names", test_seat_names);
+	g_test_add_func("/bsd3/seat-objects", test_seat_objects);
 	g_test_add_func("/bsd3/enumeration", test_enumeration);
 	g_test_add_func("/bsd3/display", test_display);
 	g_test_add_func("/bsd3/errors", test_errors);
@@ -753,6 +874,7 @@ main(int argc, char **argv)
 	g_test_add_func("/bsd3/device-failures", test_device_failures);
 	g_test_add_func("/bsd3/device-limit", test_device_limit);
 	g_test_add_func("/bsd3/device-active", test_device_active);
+	g_test_add_func("/bsd3/seat-switch", test_seat_switch);
 	rc = g_test_run();
 	g_object_unref(bus);
 	return (rc);
