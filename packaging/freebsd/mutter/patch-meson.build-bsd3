@@ -6,7 +6,7 @@
  
 -  if libsystemd_dep.found()
 +  if host_machine.system() == 'freebsd'
-+    logind_provider_dep = dependency('bsd3-login', static: true)
++    logind_provider_dep = dependency('bsd3-login')
 +  elif libsystemd_dep.found()
      logind_provider_dep = libsystemd_dep
    else

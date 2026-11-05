@@ -91,3 +91,8 @@ build artifacts will include the complete modified Mutter source and exact port
 recipe with licenses preserved, alongside a separate checksum manifest. These
 are corresponding-source artifacts for the GPL consumer, separate from BSD³'s
 original BSD-2-Clause code. No candidate has been published to the package catalogue.
+
+The warm VM subsequently compiled and linked the native backend and passed the
+bounded Wayland client startup test after the scheduling and dependency-link-mode
+fixes. See [the November5 milestone](native-wayland-2026-11-05.md) for exact scope,
+evidence, failures and limitations. Clean package validation remains separate.

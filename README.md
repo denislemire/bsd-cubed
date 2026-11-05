@@ -6,8 +6,9 @@ BSD³ (`bsddd`; repository `bsd-cubed`) aims to bridge the desktop interfaces
 GNOME expects to native FreeBSD services. Original project code is C11 under
 the BSD-2-Clause license. FreeBSD keeps rc, PAM, devfs and its own kernel.
 
-**Status: experimental session discovery and controller lifetime. This does not yet make native
-GNOME on Wayland work.** No systemd implementation or source is bundled.
+**Status: experimental session/device bridge. A patched Mutter47.10 has served
+a Wayland client from its native headless backend on FreeBSD. A full native
+GNOME session and hardware device/VT behavior remain unverified.** No systemd implementation or source is bundled.
 The daemon is not a complete logind replacement. Do not enable it as the machine's
 login service or use its presence as proof of native compositor readiness.
 
@@ -34,7 +35,7 @@ BSD³'s license does not relicense those projects.
 
 The install obeys `DESTDIR`, `PREFIX`, `CC`, `AR`, `CPPFLAGS`, `CFLAGS`, `LDFLAGS`,
 and `PKG_CONFIG`. It supplies a binary, static development library, namespaced
-header and manual page. No boot service, D-Bus activation or policy is installed.
+header, explicit bsd3-login pkg-config metadata and manual page. No boot service, D-Bus activation or policy is installed.
 
 ## First implemented boundary
 
@@ -60,7 +61,9 @@ release; never replace the existing beta assets.
 
 ## What a working desktop still requires
 
-See [architecture and milestones](docs/architecture.md),
+See the [native Wayland startup milestone](docs/native-wayland-2026-11-05.md),
+[native Mutter port experiment](docs/native-mutter-port.md),
+[architecture and milestones](docs/architecture.md),
 [source audit](docs/source-audit-2026-11-04.md), and
 [ports/CI instructions](docs/ports-and-ci.md).
 
