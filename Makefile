@@ -11,7 +11,7 @@ BSD3_CPPFLAGS = -Iinclude `$(PKG_CONFIG) --cflags gio-unix-2.0`
 BSD3_LIBS = `$(PKG_CONFIG) --libs gio-unix-2.0`
 INSTALL ?= install
 
-all: bsddd libbsd3-login.a bsd3-login.pc
+all: bsddd bsd3-session bsd3-sddm-session libbsd3-login.a bsd3-login.pc
 
 login.o: src/login.c include/bsd3/sd-login.h
 	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) -fPIC -c src/login.c -o $@
@@ -21,6 +21,12 @@ libbsd3-login.a: login.o
 
 bsddd: src/bsddd.c src/control.c src/control.h src/seats.c src/seats.h libbsd3-login.a
 	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ src/bsddd.c src/control.c src/seats.c libbsd3-login.a $(BSD3_LIBS)
+
+bsd3-session: src/session.c
+	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ src/session.c $(BSD3_LIBS)
+
+bsd3-sddm-session: packaging/bsd3-sddm-session.in Makefile FORCE
+	sed 's|@PREFIX@|$(PREFIX)|g; s|@LOCALBASE@|$(LOCALBASE)|g' packaging/bsd3-sddm-session.in > $@
 
 mock-ck: tests/mock-ck.c
 	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ tests/mock-ck.c $(BSD3_LIBS)
@@ -38,11 +44,16 @@ bsd3-login.pc: packaging/bsd3-login.pc.in Makefile FORCE
 
 install: all
 	$(INSTALL) -d $(DESTDIR)$(PREFIX)/sbin $(DESTDIR)$(PREFIX)/lib $(DESTDIR)$(PREFIX)/include/bsd3 $(DESTDIR)$(PREFIX)/share/man/man8 $(DESTDIR)$(PREFIX)/libdata/pkgconfig
+	$(INSTALL) -d $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/libexec $(DESTDIR)$(PREFIX)/share/examples/bsd-cubed $(DESTDIR)$(PREFIX)/share/man/man1
+	$(INSTALL) -m 755 bsd3-session $(DESTDIR)$(PREFIX)/bin/bsd3-session
+	$(INSTALL) -m 755 bsd3-sddm-session $(DESTDIR)$(PREFIX)/libexec/bsd3-sddm-session
+	sed 's|@PREFIX@|$(PREFIX)|g' packaging/sddm-wayland.conf.in > $(DESTDIR)$(PREFIX)/share/examples/bsd-cubed/sddm-wayland.conf
 	$(INSTALL) -m 755 bsddd $(DESTDIR)$(PREFIX)/sbin/bsddd
 	$(INSTALL) -m 644 bsd3-login.pc $(DESTDIR)$(PREFIX)/libdata/pkgconfig/bsd3-login.pc
 	$(INSTALL) -m 644 libbsd3-login.a $(DESTDIR)$(PREFIX)/lib/libbsd3-login.a
 	$(INSTALL) -m 644 include/bsd3/sd-login.h $(DESTDIR)$(PREFIX)/include/bsd3/sd-login.h
+	$(INSTALL) -m 644 man/bsd3-session.1 $(DESTDIR)$(PREFIX)/share/man/man1/bsd3-session.1
 	$(INSTALL) -m 644 man/bsddd.8 $(DESTDIR)$(PREFIX)/share/man/man8/bsddd.8
 
 clean:
-	rm -f bsddd login.o libbsd3-login.a mock-ck test-login bsd3-login.pc
+	rm -f bsddd bsd3-session bsd3-sddm-session login.o libbsd3-login.a mock-ck test-login bsd3-login.pc

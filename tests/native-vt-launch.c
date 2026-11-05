@@ -48,7 +48,7 @@ main(int argc, char **argv)
 	int attached = 0, paused = 0, resumed = 0, exited = 0, failed = 0;
 	double deadline;
 
-	if (argc != 4 || geteuid() != 0 || getenv("BSD3_DISPOSABLE_VM_TEST") == NULL ||
+	if ((argc != 4 && !(argc == 5 && strcmp(argv[4], "--") == 0)) || geteuid() != 0 || getenv("BSD3_DISPOSABLE_VM_TEST") == NULL ||
 	    strcmp(getenv("BSD3_DISPOSABLE_VM_TEST"), "yes") != 0)
 		return (64);
 	if (sysctlbyname("kern.vm_guest", guest, &guest_size, NULL, 0) != 0 ||
@@ -105,7 +105,7 @@ main(int argc, char **argv)
 		unsetenv("LD_LIBRARY_PATH");
 		puts("BSD3VT:ATTACHED");
 		fflush(stdout);
-		execl(argv[2], argv[2], "--console", argv[3], (char *)NULL);
+		execl(argv[2], argv[2], argc == 5 ? "--" : "--console", argv[3], (char *)NULL);
 		_exit(126);
 	}
 	close(channel[1]);

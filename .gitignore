@@ -10,3 +10,6 @@
 
 /test-native-session
 /test-native-window
+
+/bsd3-session
+/bsd3-sddm-session
