@@ -29,7 +29,10 @@ request(GDBusConnection *bus, const char *path, const char *interface,
 static int
 verify_session(void)
 {
-	char *session = NULL, *type = NULL, *class = NULL;
+	char *session = NULL, *type = NULL, *class = NULL, *path;
+	GError *error = NULL;
+	GDBusConnection *bus;
+	const char *methods[] = { "TakeControl", "ReleaseControl" };
 	uid_t uid;
 
 	g_assert_cmpint(sd_pid_get_session(0, &session), ==, 0);
@@ -40,6 +43,24 @@ verify_session(void)
 	g_assert_cmpint(sd_session_get_class(session, &class), ==, 0);
 	g_assert_cmpstr(class, ==, "user");
 	g_print("PASS: child resolves to real CK Wayland/user session with its own UID\n");
+	/* Exercise the installed privileged bridge with the original child identity. */
+	bus = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(bus);
+	path = g_strconcat("/org/freedesktop/login1/session/", session, NULL);
+	for (unsigned i = 0; i < G_N_ELEMENTS(methods); i++) {
+		GVariant *reply = g_dbus_connection_call_sync(bus,
+		    "org.freedesktop.login1", path, "org.freedesktop.login1.Session",
+		    methods[i], i == 0 ? g_variant_new("(b)", FALSE) : NULL,
+		    G_VARIANT_TYPE("()"), G_DBUS_CALL_FLAGS_NO_AUTO_START, 10000,
+		    NULL, &error);
+		g_assert_no_error(error);
+		g_assert_nonnull(reply);
+		g_variant_unref(reply);
+	}
+	g_print("PASS: real session child acquired and released installed bridge control\n");
+	g_free(path);
+	g_object_unref(bus);
 	free(session);
 	free(type);
 	free(class);

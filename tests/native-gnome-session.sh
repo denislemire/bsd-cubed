@@ -38,6 +38,7 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 export XDG_CONFIG_HOME="$profile/config" XDG_CACHE_HOME="$profile/cache" XDG_DATA_HOME="$profile/data"
 export XDG_CURRENT_DESKTOP=GNOME XDG_SESSION_DESKTOP=gnome
+export XDG_CONFIG_DIRS=/usr/local/etc/xdg:/etc/xdg XDG_DATA_DIRS=/usr/local/share:/usr/share
 export WAYLAND_DISPLAY=bsd3-session LIBGL_ALWAYS_SOFTWARE=true GSETTINGS_BACKEND=memory
 export LANG=C.UTF-8
 unset DISPLAY SESSION_MANAGER
@@ -48,6 +49,7 @@ sed 's|^Exec=.*|Exec=/usr/local/bin/gnome-shell --headless --wayland --no-x11 --
     /usr/local/share/applications/org.gnome.Shell.desktop >"$XDG_DATA_HOME/applications/org.gnome.Shell.desktop"
 dbus-update-activation-environment XDG_CONFIG_HOME XDG_CACHE_HOME XDG_DATA_HOME \
     XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE XDG_RUNTIME_DIR \
+    XDG_CONFIG_DIRS XDG_DATA_DIRS \
     WAYLAND_DISPLAY LIBGL_ALWAYS_SOFTWARE GSETTINGS_BACKEND LANG
 /usr/local/libexec/gnome-session-binary --builtin --session=gnome --disable-acceleration-check \
     >dist/gnome/session.log 2>&1 &
