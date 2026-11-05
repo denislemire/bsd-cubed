@@ -7,4 +7,6 @@ lib/libbsd3-login.a
 libdata/pkgconfig/bsd3-login.pc
 sbin/bsddd
 share/man/man8/bsddd.8.gz
+sbin/bsd3-vt-guard
 share/man/man1/bsd3-session.1.gz
+share/man/man8/bsd3-vt-guard.8.gz
