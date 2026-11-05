@@ -62,3 +62,18 @@ binary dependencies (311 packages, including Rust and cross toolchains). The nex
 iteration registers the local origin and requests only the direct port dependency
 packages; pkg resolves their runtime closure. This avoids rebuilding or installing
 toolchains used to produce those already-built binary dependencies.
+
+## Native build iteration: Python generator dependency
+
+[CI17](https://circle.ehws.generic.business/gh/denislemire/bsd-cubed/17), source
+a05da8f15104c6ec8ab45adfb93229b06b8eec49, passed the selected-library shared consumer
+link, native bridge tests and ports stage/manifest/QA/package. Mutter configured
+against BSD3 with its native backend enabled, then compilation failed generating
+`meta-default-modes.h`: `env: python3: No such file or directory`.
+
+The generator is only used by the previously disabled native backend. Add
+`python:build` and `shebangfix` to the port and identify that generator in
+SHEBANG_FILES; the ports framework selects the interpreter and rewrites its path.
+Do not create an unmanaged system-wide python symlink. Native build diagnostics,
+Meson log and actual kernel/userland/compiler/ABI identities were preserved as
+private CI artifacts. No successful Mutter package or compositor startup yet.

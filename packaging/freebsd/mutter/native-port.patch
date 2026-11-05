@@ -18,16 +18,24 @@
  		gnome-settings-daemon>0:sysutils/gnome-settings-daemon \
  		gsettings-desktop-schemas>0:devel/gsettings-desktop-schemas \
  		xkeyboard-config>0:x11/xkeyboard-config \
-@@ -37,7 +38,7 @@
+@@ -36,12 +37,14 @@
+ 		xkeyboard-config>0:x11/xkeyboard-config
  
  USES=		compiler:c++0x gettext-tools gl gnome localbase meson \
- 		pkgconfig tar:xz xorg
+-		pkgconfig tar:xz xorg
 -USE_GL=		egl gbm
++		pkgconfig python:build shebangfix tar:xz xorg
 +USE_GL=		egl gbm glesv2
  USE_GNOME=	atk cairo gdkpixbuf gnomedesktop4 gtk40 introspection:build
  USE_XORG=	ice pixman sm x11 xcb xcomposite xcursor xdamage xext \
  		xfixes xi xinerama xkbfile xrandr xrender xtst
-@@ -49,7 +50,7 @@
+ USE_LDCONFIG=	yes
++
++SHEBANG_FILES=	src/backends/native/gen-default-modes.py
+ 
+ PORTSCOUT=	limit:^47\.
+ 
+@@ -49,7 +52,7 @@
  CPPFLAGS+=	-fno-omit-frame-pointer
  MESON_ARGS=	-Dlibdisplay_info=enabled \
  		-Dlibwacom=false \

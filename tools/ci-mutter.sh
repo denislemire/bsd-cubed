@@ -56,7 +56,8 @@ make -C "$port" PORTSDIR="$ports_root" BATCH=yes -V MESON_ARGS >dist/mutter/meso
 # install-missing-packages recursively includes build tools of dependencies, even
 # though those dependencies are binary packages (e.g. Rust and cross toolchains).
 make -C "$port" PORTSDIR="$ports_root" BATCH=yes DEPENDS_SHOW_FLAVOR=yes \
-    build-depends-list run-depends-list | sort -u >"$work_root/direct-origins"
+    build-depends-list run-depends-list >"$work_root/direct-origins.raw"
+sort -u "$work_root/direct-origins.raw" >"$work_root/direct-origins"
 : >dist/mutter/direct-dependencies.txt
 while IFS= read -r dependency; do
     case "$dependency" in "$ports_root"/*) ;; *) exit 1 ;; esac
