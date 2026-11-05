@@ -50,3 +50,27 @@ peer-PID contract cannot be exercised on that host. On the warm FreeBSD VM,
 checks and all controller/device protocol groups; the deliberate missing-PID
 case was skipped because the native bus provides credentials. Shell syntax and
 `git diff --check` passed. Installed rc/policy checks are pending native CI.
+
+## Next integration experiment
+
+The follow-up CI experiment installs the GNOME47 packages into the disposable VM
+and reinstalls the exact native Mutter artifact afterward. A small unprivileged
+harness opens a real non-local ConsoleKit session, retains its connection,
+verifies the child resolves to its own UID and Wayland/user session through BSD3,
+and closes it after the test. Unlike ck-launch-session's failure path, this
+harness refuses to run a child without a confirmed session. Cookies remain in
+child environments and are not printed.
+
+The installed GNOME session manager runs with its builtin manager and the normal
+GNOME RequiredComponents. A private desktop-file override selects headless Shell;
+no system desktop file is rewritten. The check requires IsSessionRunning, the
+Shell version, a real mapped GTK Wayland window with frame ticks, then clean
+session-manager logout. It uses real system services rather than the component
+test's empty bus or prefix adapters. Results remain pending until CI runs.
+
+The window harness was compiled natively and separately passed against the warm
+VM's private-prefix Shell component: a mapped GTK Wayland window received five
+frame ticks. This does not prove physical pixel presentation, input or VT use.
+The warm VM has no machine bus running; the genuine-session experiment belongs
+in CI with its existing package/service administration access. No new privilege
+grant or laptop change is needed.
