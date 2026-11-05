@@ -5,6 +5,6 @@ includedir=${prefix}/include
 Name: bsd3-login
 Description: Selected sd-login interfaces backed by FreeBSD ConsoleKit
 Version: 0.1.0
-Requires.private: gio-unix-2.0
+Requires: gio-unix-2.0
 Libs: -L${libdir} -lbsd3-login
 Cflags: -I${includedir}

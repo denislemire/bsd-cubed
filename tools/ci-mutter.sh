@@ -92,7 +92,7 @@ tar --exclude "$source_name/_build" -C "${wrksrc%/*}" -czf \
     "$repo_root/dist/mutter/$source_name-bsd3-source.tar.gz" "$source_name"
 tar -C "$work_root/overlay" -czf "$repo_root/dist/mutter/$source_name-bsd3-port.tar.gz" \
     x11-wm/mutter -C "$repo_root" packaging/freebsd/bsd-cubed \
-    tools/ci-mutter.sh tools/test-native-mutter.sh
+    tools/ci-mutter.sh tools/test-native-mutter.sh tests/native-compositor.sh
 (cd dist/mutter/packages/All && sha256 -r mutter-*.pkg) >dist/mutter/MUTTER_SHA256SUMS
 (cd dist/mutter && sha256 -r "$source_name-bsd3-source.tar.gz" \
     "$source_name-bsd3-port.tar.gz") >>dist/mutter/MUTTER_SHA256SUMS
