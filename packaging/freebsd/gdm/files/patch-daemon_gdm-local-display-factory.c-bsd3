@@ -1,0 +1,86 @@
+--- daemon/gdm-local-display-factory.c.orig
++++ daemon/gdm-local-display-factory.c
+@@ -415,9 +415,12 @@
+ 
+         preferred_display_server = get_preferred_display_server (factory);
+ 
++#if defined(ENABLE_USER_DISPLAY_SERVER) || defined(__FreeBSD__)
++        if (g_strcmp0 (preferred_display_server, "wayland") == 0
+ #ifdef ENABLE_USER_DISPLAY_SERVER
+-        if (g_strcmp0 (preferred_display_server, "wayland") == 0 ||
+-            g_strcmp0 (preferred_display_server, "xorg") == 0) {
++            || g_strcmp0 (preferred_display_server, "xorg") == 0
++#endif
++           ) {
+                 g_auto(GStrv) session_types = NULL;
+ 
+                 session_types = gdm_local_display_factory_get_session_types (factory, FALSE);
+@@ -824,6 +827,41 @@
+         return display;
+ }
+ 
++#if defined(__FreeBSD__) && defined(WITH_CONSOLE_KIT)
++/* ConsoleKit's sd-login compatibility call takes an object path, while GDM
++ * keeps the advertised seat name. Resolve the pair; do not guess its path. */
++static int
++freebsd_seat_can_graphical (GdmLocalDisplayFactory *factory, const char *name)
++{
++        g_autoptr(GVariant) reply = NULL;
++        g_autoptr(GVariant) array = NULL;
++        GVariantIter iter;
++        const char *seat, *path;
++        g_autofree char *matched = NULL;
++
++        reply = g_dbus_connection_call_sync (factory->connection,
++                                             CK_NAME, CK_MANAGER_PATH,
++                                             CK_MANAGER_INTERFACE, "ListSeats",
++                                             NULL, G_VARIANT_TYPE ("(a(so))"),
++                                             G_DBUS_CALL_FLAGS_NO_AUTO_START,
++                                             3000, NULL, NULL);
++        if (reply == NULL)
++                return -EIO;
++        array = g_variant_get_child_value (reply, 0);
++        g_variant_iter_init (&iter, array);
++        while (g_variant_iter_loop (&iter, "(&s&o)", &seat, &path)) {
++                if (g_strcmp0 (seat, name) != 0)
++                        continue;
++                if (matched != NULL)
++                        return -EINVAL;
++                matched = g_strdup (path);
++        }
++        if (matched == NULL)
++                return -ENOENT;
++        return sd_seat_can_graphical (matched);
++}
++#endif
++
+ static void
+ ensure_display_for_seat (GdmLocalDisplayFactory *factory,
+                          const char             *seat_id)
+@@ -878,7 +916,11 @@
+         if (!waiting_on_udev) {
+                 int ret;
+ 
++#if defined(__FreeBSD__) && defined(WITH_CONSOLE_KIT)
++                ret = freebsd_seat_can_graphical (factory, seat_id);
++#else
+                 ret = sd_seat_can_graphical (seat_id);
++#endif
+ 
+                 if (ret < 0) {
+                         g_critical ("Failed to query CanGraphical information for seat %s", seat_id);
+@@ -975,9 +1017,12 @@
+ 
+         g_debug ("GdmLocalDisplayFactory: Adding display on seat %s", seat_id);
+ 
++#if defined(ENABLE_USER_DISPLAY_SERVER) || defined(__FreeBSD__)
++        if (g_strcmp0 (preferred_display_server, "wayland") == 0
+ #ifdef ENABLE_USER_DISPLAY_SERVER
+-        if (g_strcmp0 (preferred_display_server, "wayland") == 0 ||
+-            g_strcmp0 (preferred_display_server, "xorg") == 0) {
++            || g_strcmp0 (preferred_display_server, "xorg") == 0
++#endif
++           ) {
+                 display = gdm_local_display_new ();
+                 g_object_set (G_OBJECT (display),
+                               "session-type", session_types[0],

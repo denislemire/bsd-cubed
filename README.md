@@ -102,3 +102,6 @@ Native boot configuration is documented in
 
 A learning-oriented [architecture paper](docs/papers/bsd3-architecture/README.md)
 explains the control/rendering paths and evidence boundaries.
+
+Native GDM Wayland greeter and rc.d work is tracked in the
+[November 6 VM investigation](docs/native-gdm-2026-11-06.md).

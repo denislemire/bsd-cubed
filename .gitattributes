@@ -3,3 +3,6 @@ packaging/freebsd/mutter/*.patch -whitespace
 packaging/freebsd/mutter/patch-* -whitespace
 packaging/freebsd/consolekit2/*.patch -whitespace
 packaging/freebsd/consolekit2/patch-* -whitespace
+packaging/freebsd/gdm/*.patch -whitespace
+packaging/freebsd/gdm/files/patch-* -whitespace
+packaging/freebsd/gnome-session47/*.patch -whitespace

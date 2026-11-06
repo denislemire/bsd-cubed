@@ -1,0 +1,15 @@
+--- daemon/gdm-manager.c.orig
++++ daemon/gdm-manager.c
+@@ -2207,6 +2207,12 @@
+         /* systemd finds the display device out on its own based on the display */
+         return NULL;
+ #elif defined(WITH_CONSOLE_KIT)
++#ifdef __FreeBSD__
++        g_autofree char *session_type = NULL;
++        g_object_get (display, "session-type", &session_type, NULL);
++        if (g_strcmp0 (session_type, "wayland") == 0)
++                return NULL; /* The worker allocates and validates its native VT. */
++#endif
+         return query_ck_for_display_device (manager, display);
+ #endif
+ }
