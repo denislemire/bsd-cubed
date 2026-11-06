@@ -32,6 +32,8 @@ That is mixed-version compatibility to test, not a claim of all49 components.
 Native SDK/backend/readiness tests have passed on FreeBSD15-STABLE. The full Meson consumer port passed native build/stage/manifest/QA/package.
 The first actual settings graph rendered an autostart Wayland window and
 logged out with all owners gone; a per-service teardown error triggered the
-authenticated SessionOver correction and strict negative retest. Clean final
-logout and display-manager re-entry remain acceptance gates. GDM49 userdb and
+authenticated SessionOver correction and strict negative retest. Clean strict headless logout and real system-autostart tests now pass.
+The narrow exact-ID Initialization metadata followup also passed the actual
+native GsmApp API test. Its final consumer rebuild, combined CI qualification
+and physical display-manager re-entry remain acceptance gates. GDM49 userdb and
 physical49 desktop acceptance remain separate open work.
