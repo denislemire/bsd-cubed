@@ -714,6 +714,53 @@ test_owner_readiness(void)
 }
 
 static void
+test_session_seat(void)
+{
+	const char *modes[] = { "normal", "legacy-seat", "custom-seat-name",
+	    "underscore-seat-name", "numeric-seat-name", "no-seat" };
+	const char *names[] = { "seat0", "seat0", "seat-lab", "seat_lab", "1seat", "" };
+	const char *paths[] = { "/org/freedesktop/login1/seat/seat0",
+	    "/org/freedesktop/login1/seat/seat0", "/org/freedesktop/login1/seat/seat_2dlab",
+	    "/org/freedesktop/login1/seat/seat_5flab", "/org/freedesktop/login1/seat/_31seat", "/" };
+	for (guint i = 0; i < G_N_ELEMENTS(modes); i++) {
+		GVariant *reply, *dict, *seat;
+		const char *name, *path;
+		mode(modes[i]);
+		/* Mutter49 creates its launcher from the Session.GetAll Seat tuple. */
+		reply = call("org.freedesktop.login1", "/org/freedesktop/login1/session/Session1",
+		    "org.freedesktop.DBus.Properties", "GetAll",
+		    g_variant_new("(s)", "org.freedesktop.login1.Session"), "(a{sv})");
+		g_variant_get(reply, "(@a{sv})", &dict);
+		seat = g_variant_lookup_value(dict, "Seat", G_VARIANT_TYPE("(so)"));
+		g_assert_nonnull(seat);
+		g_variant_get(seat, "(&s&o)", &name, &path);
+		g_assert_cmpstr(name, ==, names[i]); g_assert_cmpstr(path, ==, paths[i]);
+		if (*name) {
+			GVariant *id = call("org.freedesktop.login1", path,
+			    "org.freedesktop.DBus.Properties", "Get",
+			    g_variant_new("(ss)", "org.freedesktop.login1.Seat", "Id"), "(v)");
+			GVariant *value;
+			g_variant_get(id, "(v)", &value);
+			g_assert_cmpstr(g_variant_get_string(value, NULL), ==, name);
+			g_variant_unref(value); g_variant_unref(id);
+		}
+		g_variant_unref(seat); g_variant_unref(dict); g_variant_unref(reply);
+	}
+	const char *invalid[] = { "bad-seat-path", "unsafe-seat-name", "bad-seat-list",
+	    "seat-missing-inventory", "seat-query-error" };
+	for (guint i = 0; i < G_N_ELEMENTS(invalid); i++) {
+		GError *error = NULL;
+		mode(invalid[i]);
+		GVariant *reply = g_dbus_connection_call_sync(bus, "org.freedesktop.login1",
+		    "/org/freedesktop/login1/session/Session1", "org.freedesktop.DBus.Properties",
+		    "Get", g_variant_new("(ss)", "org.freedesktop.login1.Session", "Seat"),
+		    G_VARIANT_TYPE("(v)"), 0, 5000, NULL, &error);
+		g_assert_null(reply); g_assert_nonnull(error); g_clear_error(&error);
+	}
+	mode("normal");
+}
+
+static void
 test_seat_inventory(void)
 {
 	mode("empty"); /* No sessions must not hide a real seat from SDDM. */
@@ -910,6 +957,7 @@ main(int argc, char **argv)
 	g_test_add_func("/bsd3/seat-names", test_seat_names);
 	g_test_add_func("/bsd3/seat-objects", test_seat_objects);
 	g_test_add_func("/bsd3/seat-inventory", test_seat_inventory);
+	g_test_add_func("/bsd3/session-seat", test_session_seat);
 	g_test_add_func("/bsd3/enumeration", test_enumeration);
 	g_test_add_func("/bsd3/display", test_display);
 	g_test_add_func("/bsd3/errors", test_errors);

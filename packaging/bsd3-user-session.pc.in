@@ -5,6 +5,6 @@ includedir=${prefix}/include
 
 Name: bsd3-user-session
 Description: Native BSD3 ordinary-user readiness and future-service environment
-Version: 0.2.0.a1
+Version: 0.2.0.a2
 Libs: -L${libdir} -lbsd3-user-session -pthread
 Cflags: -I${includedir}

@@ -113,7 +113,7 @@ tar --exclude "$source_name/_build" -C "${wrksrc%/*}" -czf \
     "$repo_root/dist/shell49/$source_name-bsd3-source.tar.gz" "$source_name"
 tar -C "$work_root/overlay" -czf "$repo_root/dist/shell49/$source_name-bsd3-port.tar.gz" \
     x11/gnome-shell -C "$repo_root" packaging/freebsd/bsd-cubed \
-    tools/ci-shell49.sh tools/ci-ports-tree.sh tests/native-shell49.py tests/native-window.c \
+    tools/ci-shell49.sh tools/ci-ports-tree.sh tools/hardware/check-gnome49-schemas.sh tests/native-shell49.py tests/native-window.c \
     tests/test-shell49-native.py tests/native-inhibit.c
 (cd dist/shell49/packages/All && sha256 -r gnome-shell-*.pkg) >dist/shell49/SHELL_SHA256SUMS
 (cd dist/shell49 && sha256 -r "$source_name-bsd3-source.tar.gz" \
@@ -125,6 +125,8 @@ set -- dist/shell49/packages/All/gnome-shell-*.pkg
 ! pgrep -x gdm >/dev/null
 ! pgrep -x sddm >/dev/null
 pkg -o REPOS_DIR=/var/empty add -f "$1"
+sh tools/hardware/check-gnome49-schemas.sh / --check >dist/shell49/compiled-schemas.txt 2>&1
+cat dist/shell49/compiled-schemas.txt
 runtime=$(mktemp -d)
 mkdir -p "$runtime/tests"
 cp tests/native-shell49.py "$runtime/tests/"

@@ -341,10 +341,16 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 			g_variant_get(args, "(b)", &system_idle);
 			system_idle_calls++;
 			reply = g_variant_new("()");
-		} else if (strcmp(name, "GetSeatId") == 0)
+		} else if (strcmp(name, "GetSeatId") == 0) {
+			if (strcmp(mode, "seat-query-error") == 0) {
+				g_dbus_method_invocation_return_dbus_error(invocation,
+				    CK ".Error.Failed", "Seat query unavailable");
+				return;
+			}
 			reply = g_variant_new("(o)", strcmp(mode, "no-seat") == 0 ? "/" :
 			    strcmp(mode, "bad-seat-path") == 0 ? "/unrelated/seat0" :
-			    strcmp(mode, "legacy-seat") == 0 ? ROOT "/Seat1" : ROOT "/seat0");
+			    strcmp(mode, "legacy-seat") == 0 || strcmp(mode, "seat-missing-inventory") == 0 ? ROOT "/Seat1" : ROOT "/seat0");
+		}
 		else if (strcmp(name, "CanControlSession") == 0)
 			reply = g_variant_new("(b)", strcmp(mode, "unsupported") != 0);
 		else if (strcmp(name, "TakeControl") == 0) {

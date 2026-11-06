@@ -4,5 +4,6 @@
 #include <gio/gio.h>
 struct bsd3_seat { char *name, *component, *path, *owner; };
 GPtrArray *bsd3_seats_list(GDBusConnection *, GError **);
+GVariant *bsd3_session_seat(GDBusConnection *, const char *, GError **);
 GVariant *bsd3_seat_property(GDBusConnection *, const char *, const char *, GError **);
 #endif

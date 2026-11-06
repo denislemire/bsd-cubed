@@ -77,6 +77,45 @@ failed:
 	g_hash_table_unref(seen); g_ptr_array_unref(seats);
 	return (NULL);
 }
+/* login1 uses the canonical seat name plus its exported bridge object path,
+ * not ConsoleKit's differently named backend object. No default seat guess. */
+GVariant *
+bsd3_session_seat(GDBusConnection *bus, const char *id, GError **error)
+{
+	GVariant *reply, *result = NULL;
+	GPtrArray *seats;
+	char *owner, *seat_path, *session_path;
+	reply = request(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus",
+	    "org.freedesktop.DBus", "GetNameOwner", g_variant_new("(s)", CK), "(s)", error);
+	if (reply == NULL) return (NULL);
+	g_variant_get(reply, "(s)", &owner); g_variant_unref(reply);
+	session_path = g_strconcat(ROOT "/", id, NULL);
+	reply = request(bus, owner, session_path, CK ".Session", "GetSeatId", NULL, "(o)", error);
+	g_free(session_path);
+	if (reply == NULL) { g_free(owner); return (NULL); }
+	g_variant_get(reply, "(o)", &seat_path); g_variant_unref(reply);
+	if (strcmp(seat_path, "/") == 0) {
+		g_free(seat_path); g_free(owner);
+		return (g_variant_new("(so)", "", "/"));
+	}
+	seats = bsd3_seats_list(bus, error);
+	if (seats == NULL) { g_free(seat_path); g_free(owner); return (NULL); }
+	for (guint i = 0; i < seats->len; i++) {
+		struct bsd3_seat *seat = g_ptr_array_index(seats, i);
+		if (strcmp(seat_path, seat->path) != 0 || strcmp(owner, seat->owner) != 0)
+			continue;
+		char *path = g_strconcat("/org/freedesktop/login1/seat/", seat->component, NULL);
+		result = g_variant_new("(so)", seat->name, path);
+		g_free(path);
+		break;
+	}
+	g_ptr_array_unref(seats); g_free(seat_path); g_free(owner);
+	if (result == NULL)
+		g_set_error(error, G_DBUS_ERROR, G_DBUS_ERROR_FAILED,
+		    "Session seat is absent from its backend owner's valid inventory");
+	return (result);
+}
+
 GVariant *
 bsd3_seat_property(GDBusConnection *bus, const char *component, const char *name, GError **error)
 {
