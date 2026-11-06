@@ -1,5 +1,5 @@
 PORTNAME=	bsd-cubed
-DISTVERSION=	0.1.0-beta3
+DISTVERSION=	0.2.0-alpha1
 CATEGORIES=	sysutils
 MASTER_SITES=	https://packages.ehws.generic.business/sources/bsd-cubed/v${DISTVERSION}/ \
 		https://github.com/denislemire/bsd-cubed/releases/download/v${DISTVERSION}/
@@ -25,6 +25,7 @@ INSTALL_TARGET=	install
 TEST_TARGET=	test
 
 OPTIONS_DEFINE=	USERSESSION
+OPTIONS_DEFAULT= USERSESSION
 OPTIONS_SUB=	yes
 USERSESSION_DESC= Experimental ordinary-user service graph API (not GNOME 49 desktop)
 USERSESSION_RUN_DEPENDS= dinit>=0.19.4:sysutils/dinit

@@ -16,7 +16,7 @@ DINITCTL ?= $(LOCALBASE)/sbin/dinitctl
 
 all: bsddd bsd3-vt-guard bsd3-session bsd3-sddm-session libbsd3-login.a bsd3-login.pc
 
-# Explicit opt-in foundation; the GNOME 47/default install is unchanged.
+# Explicit target; the 0.2 FreeBSD port enables this SDK by default.
 user-session: bsd3-user-session libbsd3-user-session.a bsd3-user-session.pc
 
 bsd3-user-session: src/user-session.c
@@ -44,6 +44,8 @@ install-user-session: user-session
 	$(INSTALL) -m 644 include/bsd3/user-session.h $(DESTDIR)$(PREFIX)/include/bsd3/user-session.h
 	$(INSTALL) -m 644 bsd3-user-session.pc $(DESTDIR)$(PREFIX)/libdata/pkgconfig/bsd3-user-session.pc
 	$(INSTALL) -m 644 man/bsd3-user-session.1 $(DESTDIR)$(PREFIX)/share/man/man1/bsd3-user-session.1
+	$(INSTALL) -d $(DESTDIR)$(PREFIX)/share/bsd-cubed/gnome49
+	$(INSTALL) -m 644 src/gnome49-system.c src/gnome49-system.h $(DESTDIR)$(PREFIX)/share/bsd-cubed/gnome49/
 
 login.o: src/login.c include/bsd3/sd-login.h
 	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) -fPIC -c src/login.c -o $@
