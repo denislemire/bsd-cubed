@@ -56,21 +56,19 @@ case "$revision" in *[!0-9a-f]*|'') exit 1;; esac
     printf 'ports=%s\n' "$revision"
     pkg query '%n %v' glib spidermonkey140 gobject-introspection
 } >"$out/provenance.txt"
-git init -q "$work/ports"
-git -C "$work/ports" remote add origin https://git.freebsd.org/ports.git
-git -C "$work/ports" fetch --depth 1 origin "$revision"
-git -C "$work/ports" checkout --detach FETCH_HEAD
+ports_root=${BSD3_CI_PORTS_ROOT:-"$work/ports"}
+sh tools/ci-ports-tree.sh "$ports_root" "$revision"
 for origin in lang/gjs devel/gsettings-desktop-schemas; do
     name=${origin##*/}
     mkdir -p "$work/overlay/${origin%/*}"
     cp -R "packaging/freebsd/${name}49" "$work/overlay/$origin"
     port="$work/overlay/$origin"
-    make -C "$port" PORTSDIR="$work/ports" BATCH=yes DEVELOPER=yes \
+    make -C "$port" PORTSDIR="$ports_root" BATCH=yes DEVELOPER=yes \
         WRKDIRPREFIX="$work/build" PACKAGES="$out/packages" MAKE_JOBS_NUMBER=3 \
         stage check-plist stage-qa package >"$out/$name-build.log" 2>&1 || {
         tail -80 "$out/$name-build.log"; exit 1;
     }
-    source=$(make -C "$port" PORTSDIR="$work/ports" WRKDIRPREFIX="$work/build" -V WRKSRC)
+    source=$(make -C "$port" PORTSDIR="$ports_root" WRKDIRPREFIX="$work/build" -V WRKSRC)
     source_name=${source##*/}
     if [ "$name" = gjs ]; then
         # Use the actual newly built library; do not accidentally test installed GJS.
@@ -96,7 +94,7 @@ for origin in lang/gjs devel/gsettings-desktop-schemas; do
     tar --exclude "$source_name/_build" -C "${source%/*}" -czf \
         "$out/$source_name-bsd3-source.tar.gz" "$source_name"
     tar -C "$work/overlay" -czf "$out/$source_name-bsd3-port.tar.gz" "$origin" \
-        -C "$repo" tools/ci-gnome49-runtime.sh tests/native-inhibit.c
+        -C "$repo" tools/ci-gnome49-runtime.sh tools/ci-ports-tree.sh tests/native-inhibit.c
     (cd "$out" && sha256 -r "$source_name-bsd3-source.tar.gz" \
         "$source_name-bsd3-port.tar.gz") >>"$out/SHA256SUMS"
 done
