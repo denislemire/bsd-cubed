@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-2-Clause
 """Real CK-backed GNOME49 manager/Shell/settings graph, headless only."""
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -85,6 +86,11 @@ with tempfile.TemporaryDirectory(prefix='bsd3-graph49-') as directory:
                 '/org/gnome/SessionManager', '--method',
                 'org.gnome.SessionManager.Logout', '1', env=env)
             assert process.wait(timeout=25) == 0
+            log.flush()
+            diagnostics = (output / 'graph.log').read_text()
+            assert not re.search(r'process terminated with exit code [1-9][0-9]*', diagnostics), diagnostics
+            assert 'terminated due to signal' not in diagnostics, diagnostics
+            assert 'exceeded allowed stop time' not in diagnostics, diagnostics
             assert not list(runtime.glob('bsd3-session.*')), 'private manager socket survived logout'
             # All graph-owned session bus services must be gone after logout.
             for name in ('org.gnome.SessionManager', 'org.gnome.Shell',
