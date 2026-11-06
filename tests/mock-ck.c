@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <poll.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <gio/gunixfdlist.h>
 #include <gio/gio.h>
@@ -16,6 +18,10 @@ static GHashTable *owners;
 static guint takes, releases, acknowledgements, switches, last_vt;
 static GHashTable *devices;
 static gboolean session6_active = TRUE;
+static guint system_idle_calls, system_inhibits, system_closed;
+static gboolean system_idle;
+static int inhibitor_read = -1;
+static char *inhibitor_what;
 struct fake_device { char *owner; gboolean paused; gboolean awaiting_ack; };
 static const char xml[] =
  "<node><interface name='org.freedesktop.ConsoleKit.Manager'>"
@@ -23,6 +29,8 @@ static const char xml[] =
  "<method name='GetSessions'><arg type='ao' direction='out'/></method>"
  "<method name='GetSessionsForUnixUser'><arg type='u' direction='in'/><arg type='ao' direction='out'/></method>"
  "<method name='GetSessionForUnixProcess'><arg type='u' direction='in'/><arg type='o' direction='out'/></method>"
+ "<method name='Inhibit'><arg type='s' direction='in'/><arg type='s' direction='in'/><arg type='s' direction='in'/><arg type='s' direction='in'/><arg type='h' direction='out'/></method>"
+ "<signal name='SessionRemoved'><arg type='s'/><arg type='o'/></signal>"
  "</interface><interface name='org.freedesktop.ConsoleKit.Session'>"
  "<method name='GetSessionType'><arg type='s' direction='out'/></method>"
  "<method name='GetSessionClass'><arg type='s' direction='out'/></method>"
@@ -30,6 +38,7 @@ static const char xml[] =
  "<method name='GetCreationTime'><arg type='s' direction='out'/></method>"
  "<method name='GetUnixUser'><arg type='u' direction='out'/></method>"
  "<method name='IsActive'><arg type='b' direction='out'/></method>"
+ "<method name='SetIdleHint'><arg type='b' direction='in'/></method>"
  "<method name='GetSeatId'><arg type='o' direction='out'/></method>"
  "<method name='CanControlSession'><arg type='b' direction='out'/></method>"
  "<method name='TakeControl'><arg type='b' direction='in'/></method>"
@@ -44,6 +53,8 @@ static const char xml[] =
  "<method name='SetMode'><arg type='s' direction='in'/></method>"
  "<method name='GetSwitchCounters'><arg type='u' direction='out'/><arg type='u' direction='out'/></method>"
  "<method name='GetLastPid'><arg type='u' direction='out'/></method>"
+ "<method name='GetSystemCounters'><arg type='u' direction='out'/><arg type='u' direction='out'/><arg type='u' direction='out'/><arg type='b' direction='out'/><arg type='b' direction='out'/><arg type='s' direction='out'/></method>"
+ "<method name='EmitSystemRemoved'/>"
  "<method name='EmitPause'><arg type='u' direction='in'/><arg type='u' direction='in'/><arg type='s' direction='in'/></method>"
  "<method name='EmitResume'><arg type='u' direction='in'/><arg type='u' direction='in'/></method>"
  "<method name='EmitActive'><arg type='b' direction='in'/></method>"
@@ -138,6 +149,17 @@ emit_device(GDBusConnection *bus, const char *name, GVariant *args)
 }
 
 static void
+probe_inhibitor(void)
+{
+	struct pollfd p = { .fd = inhibitor_read, .events = POLLIN };
+	if (inhibitor_read >= 0 && poll(&p, 1, 0) > 0 && (p.revents & POLLHUP)) {
+		close(inhibitor_read);
+		inhibitor_read = -1;
+		system_closed++;
+	}
+}
+
+static void
 method(GDBusConnection *bus, const char *sender, const char *path,
     const char *iface, const char *name, GVariant *args,
     GDBusMethodInvocation *invocation, gpointer data)
@@ -164,6 +186,15 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 				g_assert_no_error(error); g_variant_unref(r);
 			}
 			reply = g_variant_new("()");
+		} else if (strcmp(name, "GetSystemCounters") == 0) {
+			probe_inhibitor();
+			reply = g_variant_new("(uuubbs)", system_idle_calls, system_inhibits,
+			    system_closed, inhibitor_read >= 0, system_idle,
+			    inhibitor_what ? inhibitor_what : "");
+		} else if (strcmp(name, "EmitSystemRemoved") == 0) {
+			g_dbus_connection_emit_signal(bus, NULL, ROOT "/Manager", CK ".Manager",
+			    "SessionRemoved", g_variant_new("(so)", "Session6", ROOT "/Session6"), NULL);
+			reply = g_variant_new("()");
 		} else if (strcmp(name, "EmitPause") == 0 || strcmp(name, "EmitResume") == 0) {
 			emit_device(bus, name, args);
 			reply = g_variant_new("()");
@@ -187,7 +218,33 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 		    "org.freedesktop.DBus.Error.AccessDenied", "Fixture denial");
 		return;
 	} else if (strcmp(iface, CK ".Manager") == 0) {
-		if (strcmp(name, "GetSeats") == 0) {
+		if (strcmp(name, "Inhibit") == 0) {
+			GUnixFDList *fds;
+			const char *who, *why, *kind;
+			int ends[2];
+			probe_inhibitor();
+			if (inhibitor_read >= 0) {
+				g_dbus_method_invocation_return_dbus_error(invocation,
+				    CK ".Manager.Error.Failed", "One inhibitor per client");
+				return;
+			}
+			g_free(inhibitor_what);
+			g_variant_get(args, "(s&s&s&s)", &inhibitor_what, &who, &why, &kind);
+			(void)who; (void)why;
+			g_assert_cmpstr(kind, ==, "block");
+			g_assert_cmpint(pipe(ends), ==, 0);
+			inhibitor_read = ends[0];
+			fds = g_unix_fd_list_new();
+			g_assert_cmpint(g_unix_fd_list_append(fds, ends[1], NULL), ==, 0);
+			if (strcmp(mode, "system-extra-fd") == 0)
+				g_assert_cmpint(g_unix_fd_list_append(fds, ends[1], NULL), ==, 1);
+			close(ends[1]);
+			system_inhibits++;
+			g_dbus_method_invocation_return_value_with_unix_fd_list(invocation,
+			    g_variant_new("(h)", 0), fds);
+			g_object_unref(fds);
+			return;
+		} else if (strcmp(name, "GetSeats") == 0) {
 			GVariantBuilder seats;
 			g_variant_builder_init(&seats, G_VARIANT_TYPE("ao"));
 			if (strcmp(mode, "no-seat") != 0) {
@@ -263,8 +320,8 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 		const char *component = strrchr(path, '/');
 		if (component != NULL)
 			(void)sscanf(component, "/Session%d", &id);
-		type = id == 1 ? "tty" : "wayland";
-		class_name = id == 4 ? "greeter" : "user";
+		type = id == 1 || strcmp(mode, "system-tty") == 0 ? "tty" : "wayland";
+		class_name = strcmp(mode, "system-bad-class") == 0 ? "manager" : id == 4 ? "greeter" : "user";
 		state = id == 5 ? "closing" : id == 2 || (id == 6 && !session6_active) ? "online" : "active";
 		created = id == 2 ? "2026-11-04T02:00:00Z" : "2026-11-04T03:00:00Z";
 		if (strcmp(name, "GetSessionType") == 0)
@@ -280,7 +337,11 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 			    id == 8 ? (guint32)getuid() + 1 : 1000U);
 		else if (strcmp(name, "IsActive") == 0)
 			reply = g_variant_new("(b)", strcmp(state, "active") == 0);
-		else if (strcmp(name, "GetSeatId") == 0)
+		else if (strcmp(name, "SetIdleHint") == 0) {
+			g_variant_get(args, "(b)", &system_idle);
+			system_idle_calls++;
+			reply = g_variant_new("()");
+		} else if (strcmp(name, "GetSeatId") == 0)
 			reply = g_variant_new("(o)", strcmp(mode, "no-seat") == 0 ? "/" :
 			    strcmp(mode, "bad-seat-path") == 0 ? "/unrelated/seat0" :
 			    strcmp(mode, "legacy-seat") == 0 ? ROOT "/Seat1" : ROOT "/seat0");

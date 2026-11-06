@@ -182,23 +182,35 @@ index b7f1788..a3d8bf7 100644
          }
  
 diff --git a/gnome-session/gsm-system.c b/gnome-session/gsm-system.c
-index dc49a1a..59a3e75 100644
+index dc49a1a..423e58b 100644
 --- a/gnome-session/gsm-system.c
 +++ b/gnome-session/gsm-system.c
-@@ -23,7 +23,9 @@
+@@ -23,7 +23,12 @@
  
  #include "gsm-system.h"
  
 +#ifndef HAVE_BSD3_USER_SESSION
  #include "gsm-systemd.h"
 +#endif
++#if defined(HAVE_BSD3_USER_SESSION) && !defined(BSD3_DIAGNOSTIC_NULL_SYSTEM)
++#include "gnome49-system.h"
++#endif
  
  
  enum {
-@@ -245,12 +247,14 @@ gsm_get_system (void)
+@@ -245,12 +250,23 @@ gsm_get_system (void)
  {
          static GsmSystem *system = NULL;
  
++#if defined(HAVE_BSD3_USER_SESSION) && !defined(BSD3_DIAGNOSTIC_NULL_SYSTEM)
++        if (system == NULL) {
++                g_autoptr (GError) error = NULL;
++                system = gsm_bsd3_system_new (&error);
++                if (system == NULL)
++                        g_error ("Cannot bind native desktop session: %s", error->message);
++        }
++#endif
++
 +#ifndef HAVE_BSD3_USER_SESSION
          if (system == NULL) {
                  system = GSM_SYSTEM (gsm_systemd_new ());

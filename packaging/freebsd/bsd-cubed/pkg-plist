@@ -15,3 +15,5 @@ share/man/man8/bsd3-vt-guard.8.gz
 %%USERSESSION%%lib/libbsd3-user-session.a
 %%USERSESSION%%libdata/pkgconfig/bsd3-user-session.pc
 %%USERSESSION%%share/man/man1/bsd3-user-session.1.gz
+%%USERSESSION%%share/bsd-cubed/gnome49/gnome49-system.c
+%%USERSESSION%%share/bsd-cubed/gnome49/gnome49-system.h
