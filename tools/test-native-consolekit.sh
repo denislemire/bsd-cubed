@@ -12,6 +12,21 @@ service_started=no
 finish() {
     result=$?
     trap - EXIT HUP INT TERM
+    if [ "$result" -ne 0 ]; then
+        # These fixtures never log cookies. Surface the failed launcher phase
+        # as well as retaining its full artifact; preserve the original status.
+        for diagnostic in dist/consolekit/bootstrap-*.txt; do
+            [ -f "$diagnostic" ] || continue
+            printf '\nLauncher diagnostic: %s\n' "${diagnostic##*/}"
+            tail -40 "$diagnostic" || :
+        done
+        if [ -r /var/log/messages ]; then
+            tail -200 /var/log/messages | \
+                grep -E 'console-kit-daemon.*(kvm_openfiles|get_kinfo_proc|kvm_getenvv)' \
+                >dist/consolekit/process-environment-diagnostic.txt || :
+            cat dist/consolekit/process-environment-diagnostic.txt || :
+        fi
+    fi
     [ "$service_started" = no ] || sudo service bsddd onestop || :
     rm -rf "$work_root" "$fixture_root"
     exit "$result"
