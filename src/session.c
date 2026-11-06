@@ -45,8 +45,12 @@ request(const char *path, const char *method, GVariant *args, const char *type)
 	GVariant *reply = call(backend, path, strcmp(path, MANAGER) == 0 ?
 	    CK ".Manager" : CK ".Session", method, args, type, &error);
 	if (reply == NULL) {
-		/* Error text can contain a cookie; log only the operation name. */
-		fprintf(stderr, "bsd3-session: ConsoleKit %s failed\n", method);
+		/* Error text can contain a cookie. A remote error name identifies
+		 * the protocol failure without exposing the message or arguments. */
+		char *remote = g_dbus_error_get_remote_error(error);
+		fprintf(stderr, "bsd3-session: ConsoleKit %s failed (%s)\n", method,
+		    remote != NULL ? remote : "transport error");
+		g_free(remote);
 		g_clear_error(&error);
 	}
 	return (reply);

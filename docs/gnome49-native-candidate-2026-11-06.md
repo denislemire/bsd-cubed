@@ -93,6 +93,14 @@ input revoke/resume and the production VT bootstrap. Its nested production
 launcher reuse check failed at ConsoleKit GetSessionForUnixProcess; the captured
 VT recovery passed. This remains an investigated regression, not a successful
 combined candidate. The pipeline stopped before building the49 consumers.
+The complete CK/VT/production-launcher suite then passed five times on the
+persistent STABLE VM, including a 64KiB synthetic environment. The actual CI
+and VM CK manager/process-environment source files match. The STABLE and
+15.1-RELEASE kernels differ in process-environment read-error handling, but
+that is a hypothesis rather than an established cause. The next CI run retains
+all identity checks and adds remote D-Bus error names, captured launcher-phase
+output and only CK process-environment reader warnings to diagnose a recurrence.
+Error messages and arguments that could contain cookies remain omitted.
 
 A separate real GJS probe showed GStreamer init_check returns a two-element
 GI tuple. The Shell adaptation now checks its first boolean explicitly. The
