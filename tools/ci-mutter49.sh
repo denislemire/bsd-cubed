@@ -138,7 +138,9 @@ cc -std=c11 -Wall -Wextra -Werror $(pkg-config --cflags gtk+-3.0) \
     tests/native-window.c -o "$runtime/native-window" $(pkg-config --libs gtk+-3.0)
 chown -R circleci "$runtime"
 status=0
-su -l circleci -c "cd '$runtime' && timeout -k 5 90 dbus-run-session -- python3.12 tests/native-mutter49.py ./native-window" \
+sudo -H -u circleci /usr/bin/env -i HOME=/home/circleci USER=circleci \
+    LOGNAME=circleci PATH=/usr/local/bin:/usr/bin:/bin LANG=C.UTF-8 \
+    /bin/sh -c "cd '$runtime' && timeout -k 5 90 dbus-run-session -- python3.12 tests/native-mutter49.py ./native-window" \
     >dist/mutter49/native-runtime.log 2>&1 || status=$?
 if [ -d "$runtime/dist" ]; then cp -R "$runtime/dist" dist/mutter49/runtime; fi
 rm -rf "$runtime"

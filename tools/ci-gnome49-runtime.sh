@@ -77,9 +77,16 @@ for origin in lang/gjs devel/gsettings-desktop-schemas; do
         id circleci >/dev/null
         chmod 755 "$work"
         chown -R circleci "$source/_build"
-        su -l circleci -c "env LD_LIBRARY_PATH='$source/_build' GI_TYPELIB_PATH='$source/_build' '$source/_build/gjs-console' -c 'print(imports.system.version)'" >"$out/gjs-version.txt"
+        # Run the exact binary without login greetings or inherited credentials.
+        sudo -H -u circleci /usr/bin/env -i HOME=/home/circleci USER=circleci \
+            LOGNAME=circleci PATH=/usr/local/bin:/usr/bin:/bin LANG=C.UTF-8 \
+            LD_LIBRARY_PATH="$source/_build" GI_TYPELIB_PATH="$source/_build" \
+            "$source/_build/gjs-console" -c 'print(imports.system.version)' >"$out/gjs-version.txt"
         [ "$(cat "$out/gjs-version.txt")" = 18600 ]
-        su -l circleci -c "meson test -C '$source/_build' --no-rebuild --print-errorlogs 'API tests' GIMarshalling GObject Introspection Gio GLib" \
+        sudo -H -u circleci /usr/bin/env -i HOME=/home/circleci USER=circleci \
+            LOGNAME=circleci PATH=/usr/local/bin:/usr/bin:/bin LANG=C.UTF-8 \
+            meson test -C "$source/_build" --no-rebuild --print-errorlogs \
+            'API tests' GIMarshalling GObject Introspection Gio GLib \
             >"$out/gjs-functional-tests.txt" 2>&1 || {
             tail -80 "$out/gjs-functional-tests.txt"; exit 1;
         }
