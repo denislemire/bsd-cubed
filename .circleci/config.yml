@@ -44,6 +44,10 @@ jobs:
           name: Build native GDM port and verify seat and VT boundaries
           no_output_timeout: 30m
           command: sh tools/ci-gdm.sh
+      - run:
+          name: Build GNOME49 compositor and test real Wayland window rendering
+          no_output_timeout: 30m
+          command: sh tools/ci-mutter49.sh
       - store_artifacts:
           path: dist
           destination: freebsd
