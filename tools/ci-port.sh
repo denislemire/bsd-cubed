@@ -47,7 +47,7 @@ make -C "$port" PORTSDIR="$ports_root" DISTDIR="$work_root/distfiles" \
 test -f "$repo_root/dist/packages/All/$pkgname.pkg"
 cp "$port/distinfo" "$repo_root/dist/snapshot.distinfo"
 cp "$work_root/distfiles/$distname.tar.gz" "$repo_root/dist/"
-git -C "$ports_root" rev-parse HEAD >"$repo_root/dist/ports-revision.txt"
+git -c safe.directory="$ports_root" -C "$ports_root" rev-parse HEAD >"$repo_root/dist/ports-revision.txt"
 # Names match flattened GitHub release assets, without machine-specific paths.
 (cd "$repo_root/dist/packages/All" && sha256 -r "$pkgname.pkg") >"$repo_root/dist/SHA256SUMS"
 (cd "$repo_root/dist" && sha256 -r "$distname.tar.gz") >>"$repo_root/dist/SHA256SUMS"

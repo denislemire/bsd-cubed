@@ -5,6 +5,7 @@ version: 2.1
 jobs:
   freebsd-build-test-package:
     environment:
+      BSD3_USERSESSION: "yes"
       PYTHON: /usr/local/bin/python3.12
       BSD3_CI_DNS: 192.168.12.153
       BSD3_CI_PORTS_ROOT: /var/tmp/bsd3-ci-ports
