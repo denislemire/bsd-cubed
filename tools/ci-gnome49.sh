@@ -118,7 +118,7 @@ chmod 755 "$work_root"
 status=0
 sudo -H -u circleci /usr/bin/env -i HOME=/home/circleci USER=circleci LOGNAME=circleci \
     PATH=/usr/local/bin:/usr/bin:/bin LANG=C.UTF-8 /bin/sh -c \
-    "cd '$work_root/runtime' && timeout -k 5 120 ./native-session dbus-run-session -- python3.12 tests/native-gnome49-graph.py ./native-window" \
+    "cd '$work_root/runtime' && timeout -k 5 120 ./native-session dbus-run-session -- python3.12 tests/native-gnome49-graph.py ./native-window && timeout -k 5 120 ./native-session dbus-run-session -- python3.12 tests/native-gnome49-graph.py ./native-window --system-autostart" \
     >dist/session49/native-runtime.log 2>&1 || status=$?
 cat dist/session49/native-runtime.log
 [ "$status" -eq 0 ]
