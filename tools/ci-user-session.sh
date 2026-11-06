@@ -18,7 +18,10 @@ if [ "$(id -u)" -eq 0 ]; then
     git clone --quiet --no-hardlinks "$repo_root" "$user_root/source"
     chown -R circleci "$user_root"
     set +e
-    sudo -H -u circleci env BSD3_CI_DNS="${BSD3_CI_DNS:-}" \
+    sudo -H -u circleci /usr/bin/env -i HOME=/home/circleci USER=circleci \
+        LOGNAME=circleci PATH="$PATH" LANG=C.UTF-8 \
+        PYTHON="${PYTHON:-/usr/local/bin/python3.12}" \
+        PORTSDIR="${PORTSDIR:-}" BSD3_CI_DNS="${BSD3_CI_DNS:-}" \
         /bin/sh "$user_root/source/tools/ci-user-session.sh"
     user_status=$?
     set -e
