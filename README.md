@@ -6,12 +6,17 @@ BSD³ (`bsddd`; repository `bsd-cubed`) aims to bridge the desktop interfaces
 GNOME expects to native FreeBSD services. Original project code is C11 under
 the BSD-2-Clause license. FreeBSD keeps rc, PAM, devfs and its own kernel.
 
-**November 5, 2026: published beta5 runs a physical GNOME 47 Wayland desktop
-with input, webpages, sound and clean logout. Native automatic graphical startup
-also passed a one-shot reboot. Combined Wi-Fi acceptance remains open, so the
-new desktop environment is not yet the persistent reboot default.** See the
-[physical record](docs/physical-desktop-2026-11-05.md) and
-[startup record](docs/automatic-startup-2026-11-05.md) for exact evidence and limits.
+**November 6, 2026: the released alpha2 candidate runs GNOME Shell49.10 on
+Wayland on a FreeBSD15-STABLE laptop. The owner confirmed input, apps, Airwave
+and ordinary logout. The accepted environment is now the default boot target.**
+The current greeter still uses SDDM/Xorg; Settings47 and SettingsDaemon47 remain
+in that accepted package set. The next candidate upgrades the remaining GNOME49
+components and apps. See the [hardware acceptance record](docs/gnome49-hardware-trial-2026-11-06.md)
+and [alpha2 release](https://github.com/denislemire/bsd-cubed/releases/tag/v0.2.0-alpha2).
+Wi-Fi performance, camera capture and physical VT shortcuts remain separate open
+checks. These results establish the identified laptop trial, not every FreeBSD
+machine or all GNOME features.
+
 No systemd implementation or source is bundled. The daemon is a selected
 session/device compatibility subset, not a complete logind replacement.
 
@@ -66,8 +71,8 @@ are implemented. Linking both libraries that export the same `sd_*` symbols is
 unsupported.
 
 The published v0.1.0-beta1 remains the earlier read-only discovery preview.
-Controller work is validated separately and must receive a new version before
-release; never replace the existing beta assets.
+Later native controller/session work is included in the alpha2 candidate.
+Historical beta assets remain immutable; use a coherent tested release set.
 
 ## What a working desktop still requires
 
@@ -82,11 +87,10 @@ See the [guarded SDDM trial](docs/guarded-sddm-trial-2026-11-05.md),
 [ports/CI instructions](docs/ports-and-ci.md).
 
 The first acceptance target is a native GNOME Wayland session on a real VT, with
-keyboard/mouse, DRM access, VT switching and clean logout. The current FreeBSD
-GNOME 47 packages are a baseline, not the final definition of modern GNOME.
-GNOME 51 is the current stable desktop target. The initial GNOME 49 source audit
-establishes where session startup changed; newer interfaces must also be ported
-and validated. GNOME 49 and later need a user-session startup solution. A login1 service alone cannot supply that.
+keyboard/mouse, DRM access, VT switching and clean logout. The FreeBSD GNOME47 packages supplied the initial baseline. GNOME49 is the
+current project target. Its removed built-in service manager is replaced by an
+original BSD3 launcher and a private Dinit user-service graph. A login1 service
+alone cannot supply session startup.
 
 This repository is independent of the private laptop notebook. Public bug reports
 and patches should stand alone and avoid machine-identifying logs or credentials.
@@ -105,19 +109,33 @@ explains the control/rendering paths and evidence boundaries.
 
 Native GDM Wayland greeter and rc.d work is tracked in the
 [November 6 VM investigation](docs/native-gdm-2026-11-06.md).
-## GNOME 49 development
+## GNOME49 ports and development
 
-The optional native user-session foundation is under development separately
-from the working GNOME 47 desktop. See the [architecture, licensing boundaries
-and validation limits](docs/gnome49-native-session-2026-11-06.md).
-It does not yet provide a GNOME 49 desktop.
+The [native session architecture](docs/gnome49-native-session-2026-11-06.md)
+explains Dinit lifecycle, BSD3 APIs and licensing. The
+[hardware trial record](docs/gnome49-hardware-trial-2026-11-06.md) preserves the
+failed first49 attempts, their fixes and the accepted alpha2 desktop.
+Earlier dated headless/component records retain their original validation limits.
 
-Native49 component results are recorded for the
-[runtime dependencies](docs/gnome49-runtime-dependencies-2026-11-06.md),
-[Mutter compositor](docs/native-mutter49-2026-11-06.md), and
-[Shell consumer](docs/gnome49-consumer-ports-2026-11-06.md).
-These component checks do not establish a complete49 desktop or hardware trial.
+Consumer overlays live under `packaging/freebsd/`: Mutter49, Shell49, Session49,
+GJS, settings schemas, ConsoleKit and Dinit. New Settings49.9, SettingsDaemon49.1
+and application overlays are being validated for the next candidate. Independent
+libraries retain upstream version numbers: GNOME49's manifest selects
+`gnome-desktop44.5`, for example. These overlays are not submissions accepted into
+the official FreeBSD ports tree. Read each overlay's README before building.
 
-The [November6 candidate record](docs/gnome49-native-candidate-2026-11-06.md)
-identifies the verified complete native49 headless user session and remaining
-CI, release and hardware acceptance boundaries.
+Original project code is BSD-2-Clause. GNOME consumers, inherited FreeBSD patches,
+ConsoleKit and Dinit retain their own licenses; see [third-party provenance](THIRD_PARTY.md).
+GNOME executables containing GPL code remain GPL, even when linked with our
+permissively licensed adapter. No GPL implementation is relicensed as BSD.
+
+Current order of work:
+
+1. Finish native validation, packages and publication for the remaining GNOME49
+   components and apps, preserving the accepted desktop and recovery BE.
+2. Prepare the repository and matching release for public publication.
+3. Replace the Xorg-based greeter with a Wayland-native greeter, then remove the
+   Xorg server dependency. Xwayland compatibility is a separate choice.
+
+The generic FreeBSD VM and serial CircleCI executor are primary build/test targets.
+Hardware installation uses exact published release assets after native validation.

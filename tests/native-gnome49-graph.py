@@ -16,6 +16,14 @@ if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and sys.argv[2] != "--syst
     raise SystemExit('usage: native-gnome49-graph.py /path/to/native-window [--system-autostart]')
 window = str(Path(sys.argv[1]).resolve(strict=True))
 system_autostart = len(sys.argv) == 3
+settings_version = subprocess.check_output(
+    ['/usr/local/sbin/pkg', 'query', '%v', 'gnome-settings-daemon'], text=True).strip()
+assert re.fullmatch(r'[0-9]+(?:\.[0-9]+)*(?:_[0-9]+)?', settings_version), settings_version
+expected_settings = os.environ.get('BSD3_EXPECT_GSD_VERSION')
+if expected_settings:
+    assert settings_version == expected_settings, (settings_version, expected_settings)
+settings_library = ('/usr/local/lib/gnome-settings-daemon-' +
+                    settings_version.split('.')[0] + '/libgsd.so')
 assert os.environ.get('XDG_SESSION_COOKIE'), 'real ConsoleKit session required'
 runtime = Path(os.environ['XDG_RUNTIME_DIR'])
 assert runtime.stat().st_uid == os.getuid() and runtime.stat().st_mode & 0o777 == 0o700
@@ -71,6 +79,7 @@ with tempfile.TemporaryDirectory(prefix='bsd3-graph49-') as directory:
         '[Desktop Entry]\nType=Application\nName=BSD3 actual Wayland app\n'
         f'Exec={application}\nOnlyShowIn=GNOME;\n')
     with (output / 'graph.log').open('w') as log:
+        settings_ui = None
         process = subprocess.Popen(['/usr/local/bin/bsd3-user-session',
             str(services), 'gnome-session'], env=env, stdout=log, stderr=subprocess.STDOUT)
         try:
@@ -101,6 +110,36 @@ with tempfile.TemporaryDirectory(prefix='bsd3-graph49-') as directory:
                     '-f', f'^/usr/local/libexec/gsd-{slug}([[:space:]]|$)'],
                     capture_output=True, timeout=5, check=True)
                 assert [int(pid) for pid in processes.stdout.split()] == [owner_pid], (slug, processes.stdout, owner_pid)
+                mappings = subprocess.check_output(
+                    ['/usr/bin/procstat', '-v', str(owner_pid)], timeout=5, text=True)
+                assert settings_library in mappings, (slug, settings_library)
+            if os.environ.get('BSD3_TEST_SETTINGS_UI') == 'yes':
+                ui_env = env.copy()
+                ui_env.update(WAYLAND_DISPLAY='bsd3-graph49', GDK_BACKEND='wayland',
+                              WAYLAND_DEBUG='client')
+                ui_version = subprocess.check_output(
+                    ['/usr/local/bin/gnome-control-center', '--version'],
+                    env=ui_env, timeout=10, text=True)
+                assert '49.9' in ui_version, ui_version
+                (output / 'settings-version.txt').write_text(ui_version)
+                ui_log_path = output / 'settings-ui.log'
+                with ui_log_path.open('w') as ui_log:
+                    settings_ui = subprocess.Popen(
+                        ['/usr/local/bin/gnome-control-center', 'system', 'about'],
+                        env=ui_env, stdout=ui_log, stderr=subprocess.STDOUT)
+                    def settings_mapped():
+                        protocol = ui_log_path.read_text(errors='replace')
+                        owner = call('--dest', 'org.freedesktop.DBus', '--object-path',
+                            '/org/freedesktop/DBus', '--method',
+                            'org.freedesktop.DBus.NameHasOwner', 'org.gnome.Settings', env=ui_env)
+                        return (b'true' in owner.stdout and 'xdg_toplevel' in protocol
+                                and re.search(r'wl_surface[^\n]*\.attach\(', protocol))
+                    eventually(settings_mapped, settings_ui, deadline=30)
+                    call('--dest', 'org.gnome.Settings', '--object-path',
+                        '/org/gnome/Settings', '--method', 'org.gtk.Actions.Activate',
+                        'quit', '[]', '{}', env=ui_env)
+                    assert settings_ui.wait(timeout=10) == 0
+                print('PASS: actual Settings49.9 About UI maps a Wayland surface and quits normally')
             call('--dest', 'org.gnome.SessionManager', '--object-path',
                 '/org/gnome/SessionManager', '--method',
                 'org.gnome.SessionManager.Logout', '1', env=env)
@@ -122,11 +161,18 @@ with tempfile.TemporaryDirectory(prefix='bsd3-graph49-') as directory:
                 assert b'false' in answer.stdout, (name, answer.stdout)
             (output / 'result.txt').write_text(
                 'PASS: actual CK-backed GNOME49 manager, Shell49.10, '
-                'SettingsDaemon47.2_1 graph, future display environment, '
+                f'SettingsDaemon{settings_version} graph, future display environment, '
                 'autostart Wayland window, normal logout and owner cleanup\n'
                 'DRM/VT, display-manager re-entry and hardware49 remain NOT VERIFIED\n')
             print((output / 'result.txt').read_text(), end='')
         finally:
+            if settings_ui is not None and settings_ui.poll() is None:
+                settings_ui.terminate()
+                try:
+                    settings_ui.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    settings_ui.kill()
+                    settings_ui.wait(timeout=5)
             if process.poll() is None:
                 process.terminate()
                 try:

@@ -1,0 +1,28 @@
+PORTNAME=	bsdisks
+DISTVERSION=	0.41
+PORTREVISION=	1
+CATEGORIES=	sysutils
+
+MAINTAINER=	arrowd@FreeBSD.org
+COMMENT=	UDisks2 service implementation for FreeBSD
+WWW=		https://foss.heptapod.net/bsdutils/bsdisks
+
+LICENSE=	BSD3CLAUSE
+
+LIB_DEPENDS=	libpolkit-qt6-core-1.so:sysutils/polkit-qt-1@qt6
+
+USES=		cmake compiler:c++11-lang qt:6
+
+USE_QT=		base
+
+USE_GITLAB=	yes
+GL_SITE=	https://foss.heptapod.net
+GL_ACCOUNT=	bsdutils
+
+CMAKE_ON=	BUILD_TESTING
+TEST_TARGET=	test
+
+post-extract:
+	${CP} ${FILESDIR}/bsd3-visibility-test.cpp ${WRKSRC}/
+
+.include <bsd.port.mk>

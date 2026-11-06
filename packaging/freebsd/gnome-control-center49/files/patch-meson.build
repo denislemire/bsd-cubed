@@ -1,0 +1,14 @@
+--- meson.build.orig
++++ meson.build
+@@ -331,6 +331,11 @@
+              description: 'Define to 1 to build the WWan panel')
+ config_h.set('HAVE_WWAN', host_is_linux,
+              description: 'Define to 1 if WWan is available')
++config_h.set('BUILD_WELLBEING', host_is_linux,
++             description: 'Define to 1 to build the Wellbeing panel')
++config_h.set('BUILD_SHARING', host_is_linux,
++             description: 'Define to 1 to build the Sharing panel')
++
+ 
+ if host_is_linux_not_s390
+   # gnome-bluetooth
