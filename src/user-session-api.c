@@ -21,7 +21,6 @@
 #ifndef BSD3_DINITCTL
 #define BSD3_DINITCTL "/usr/local/sbin/dinitctl"
 #endif
-extern char **environ;
 
 int
 bsd3_session_ready(void)
@@ -95,6 +94,10 @@ bsd3_session_setenv(const char *name, const char *value)
     struct stat st;
     char *directory, *slash, *entry;
     char *argv[8];
+    char *child_environment[] = {
+        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "LANG=C.UTF-8", NULL
+    };
     posix_spawn_file_actions_t actions;
     struct timespec delay = {0, 25000000}, start, now;
     pid_t child;
@@ -149,7 +152,8 @@ bsd3_session_setenv(const char *name, const char *value)
         error = posix_spawn_file_actions_addopen(&actions, STDOUT_FILENO,
             "/dev/null", O_WRONLY, 0);
         if (!error)
-            error = posix_spawn(&child, BSD3_DINITCTL, &actions, NULL, argv, environ);
+            error = posix_spawn(&child, BSD3_DINITCTL, &actions, NULL, argv,
+                child_environment);
         posix_spawn_file_actions_destroy(&actions);
     }
     free(entry);
