@@ -10,3 +10,8 @@ share/man/man8/bsddd.8.gz
 sbin/bsd3-vt-guard
 share/man/man1/bsd3-session.1.gz
 share/man/man8/bsd3-vt-guard.8.gz
+%%USERSESSION%%bin/bsd3-user-session
+%%USERSESSION%%include/bsd3/user-session.h
+%%USERSESSION%%lib/libbsd3-user-session.a
+%%USERSESSION%%libdata/pkgconfig/bsd3-user-session.pc
+%%USERSESSION%%share/man/man1/bsd3-user-session.1.gz

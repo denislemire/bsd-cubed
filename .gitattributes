@@ -3,3 +3,4 @@ packaging/freebsd/mutter/*.patch -whitespace
 packaging/freebsd/mutter/patch-* -whitespace
 packaging/freebsd/consolekit2/*.patch -whitespace
 packaging/freebsd/consolekit2/patch-* -whitespace
+packaging/freebsd/gnome-session49/*.patch -whitespace

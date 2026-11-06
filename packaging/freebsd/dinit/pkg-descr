@@ -1,0 +1,5 @@
+Dinit supervises services with explicit dependencies, readiness notification,
+bounded restarts and ordered shutdown. This overlay disables Linux shutdown,
+cgroups and utmpx support. It installs no boot integration, system services,
+or replacement for FreeBSD init. BSD3 uses it only as an ordinary-user session
+backend. Dinit remains a separately licensed Apache-2.0 dependency.

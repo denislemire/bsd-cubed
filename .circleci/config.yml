@@ -3,6 +3,22 @@ version: 2.1
 # EhWS CircleCI Server native FreeBSD machine executor.
 # Package artifacts only; no host deployment, boot changes or catalogue publishing.
 jobs:
+  freebsd-user-session49:
+    machine:
+      image: freebsd-15.1:current
+    resource_class: freebsd.medium
+    steps:
+      - checkout
+      - run:
+          name: Install native user-session build dependencies
+          command: sudo pkg install -y git pkgconf glib dbus python3 gmake gnome-desktop consolekit2
+      - run:
+          name: Native Dinit port and real GNOME 49 manager lifecycle
+          no_output_timeout: 20m
+          command: sh tools/ci-user-session.sh
+      - store_artifacts:
+          path: dist/user-session
+          destination: user-session49
   freebsd-build-test-package:
     machine:
       image: freebsd-15.1:current
@@ -48,3 +64,4 @@ workflows:
   build:
     jobs:
       - freebsd-build-test-package
+      - freebsd-user-session49
