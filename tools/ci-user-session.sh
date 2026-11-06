@@ -4,9 +4,29 @@
 set -eu
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 [ "$(uname -s)" = FreeBSD ] || exit 1
-[ "$(id -u)" -ne 0 ] || { echo 'ordinary CI user required' >&2; exit 1; }
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$repo_root"
+# The machine executor runs its controller as root. Give the ordinary-user
+# suites an isolated checkout without copying CI remote credentials or keys.
+if [ "$(id -u)" -eq 0 ]; then
+    id circleci >/dev/null
+    user_root=$(mktemp -d)
+    trap 'rm -rf "$user_root"' EXIT
+    trap 'exit 129' HUP
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    git clone --quiet --no-hardlinks "$repo_root" "$user_root/source"
+    chown -R circleci "$user_root"
+    set +e
+    sudo -H -u circleci /bin/sh "$user_root/source/tools/ci-user-session.sh"
+    user_status=$?
+    set -e
+    mkdir -p "$repo_root/dist/user-session"
+    if [ -d "$user_root/source/dist/user-session" ]; then
+        cp -R "$user_root/source/dist/user-session/." "$repo_root/dist/user-session/"
+    fi
+    exit "$user_status"
+fi
 mkdir -p dist/user-session/packages
 work_root=$(mktemp -d)
 inhibit_pid=
@@ -87,6 +107,9 @@ git clone --depth 1 --branch 49.0 https://gitlab.gnome.org/GNOME/gnome-session.g
 sh tools/test-gnome49-util.sh "$work_root/gnome-session"
 sh tools/test-gnome49-manager.sh "$work_root/gnome-session"
 PORTSDIR="$ports_root" BSD3_USERSESSION=yes sh tools/ci-port.sh
+mkdir -p dist/user-session/bsd3
+cp dist/packages/All/bsd-cubed-*.pkg dist/bsd-cubed-*.tar.gz \
+    dist/SHA256SUMS dist/user-session/bsd3/
 stage="$work_root/stage"
 make DESTDIR="$stage" PREFIX=/usr/local install-user-session
 test -x "$stage/usr/local/bin/bsd3-user-session"
