@@ -93,3 +93,21 @@ Laptop alpha2 installation and a fresh interactive hardware trial remain open.
 The initial upload was interrupted by a slow management connection; deployment
 switched to laptop-initiated, hash-verified downloads from the public channel.
 The running47 environment and default boot selection remain preserved.
+
+## Alpha2 installed candidate
+
+At approximately22:11UTC, the complete final package matched its release hash
+after bounded resumed downloads. All eight release packages were installed with
+`pkg -c` into the inactive `stable-15-gnome49-20261106` root. The schema refresh
+and all six brightness-key checks passed. Installed-file integrity passed for
+all eight packages, Cheese and Airwave. Kernel, radio-module and supplicant hashes
+matched the currently running47 environment. No boot selection was changed.
+
+The candidate's separate profile symlink and enabled desktop, Airwave, mDNS,
+webcam and bounded recovery services were checked. Its recovery guard now kills
+its background sleep when stopped, avoiding the orphaned pidfile lock seen in
+the earlier trial; this correction has a shell syntax check but awaits the real
+boot/stop path. An active user desktop was detected, so reboot awaits the owner's
+save/logout confirmation. Hardware49 display/input and logout acceptance remain
+open. The documentation-only CI59 run was canceled to preserve lab capacity;
+the candidate remains the exact successful CI58 source and packages.
