@@ -3,6 +3,26 @@ version: 2.1
 # EhWS CircleCI Server native FreeBSD machine executor.
 # Package artifacts only; no host deployment, boot changes or catalogue publishing.
 jobs:
+  freebsd-user-session49:
+    environment:
+      # EhWS edge DNS, declared in ehws-infra/clusters/ehws/lan-dns.
+      # Used only for the pinned artifact's curl --resolve, never host DNS.
+      BSD3_CI_DNS: 192.168.12.153
+    machine:
+      image: freebsd-15.1:current
+    resource_class: freebsd.medium
+    steps:
+      - checkout
+      - run:
+          name: Install native user-session build dependencies
+          command: sudo pkg install -y git pkgconf glib dbus python3 gmake gnome-desktop consolekit2 bind-tools curl
+      - run:
+          name: Native Dinit port and real GNOME 49 manager lifecycle
+          no_output_timeout: 20m
+          command: sh tools/ci-user-session.sh
+      - store_artifacts:
+          path: dist/user-session
+          destination: user-session49
   freebsd-build-test-package:
     machine:
       image: freebsd-15.1:current
@@ -70,7 +90,10 @@ workflows:
   build:
     jobs:
       - freebsd-build-test-package
-      # Bound peak lab memory: consumer builds start after the core job finishes.
-      - freebsd-gnome49-runtime:
+      # Bound peak memory: no parallel FreeBSD consumer build machines.
+      - freebsd-user-session49:
           requires:
             - freebsd-build-test-package
+      - freebsd-gnome49-runtime:
+          requires:
+            - freebsd-user-session49

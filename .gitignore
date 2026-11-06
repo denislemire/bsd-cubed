@@ -16,3 +16,8 @@
 /bsd3-vt-guard
 
 /output/pdf/bsd3-architecture.pdf
+/bsd3-user-session
+/user-session-api.o
+/libbsd3-user-session.a
+/bsd3-user-session.pc
+/test-user-session-client
