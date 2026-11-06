@@ -1,0 +1,857 @@
+--- clutter/clutter/clutter-frame-clock.c.orig
++++ clutter/clutter/clutter-frame-clock.c
+@@ -531,13 +531,13 @@
+           if (frame_info->presentation_time <= current_time_us)
+             {
+               g_string_append_printf (description,
+-                                      "presentation was %ld µs earlier",
++                                      "presentation was %" G_GINT64_FORMAT " µs earlier",
+                                       current_time_us - frame_info->presentation_time);
+             }
+           else
+             {
+               g_string_append_printf (description,
+-                                      "presentation will be %ld µs later",
++                                      "presentation will be %" G_GINT64_FORMAT " µs later",
+                                       frame_info->presentation_time - current_time_us);
+             }
+         }
+@@ -548,7 +548,7 @@
+             g_string_append (description, ", ");
+ 
+           g_string_append_printf (description,
+-                                  "buffer swap to GPU done: %ld µs",
++                                  "buffer swap to GPU done: %" G_GINT64_FORMAT " µs",
+                                   ns2us (frame_info->gpu_rendering_duration_ns));
+         }
+ 
+@@ -592,7 +592,7 @@
+         frame_info->gpu_rendering_duration_ns / 1000;
+ 
+       CLUTTER_NOTE (FRAME_TIMINGS,
+-                    "%s: update2dispatch %ld µs, dispatch2swap %ld µs, swap2render %ld µs, swap2flip %ld µs",
++                    "%s: update2dispatch %" G_GINT64_FORMAT " µs, dispatch2swap %" G_GINT64_FORMAT " µs, swap2render %" G_GINT64_FORMAT " µs, swap2flip %" G_GINT64_FORMAT " µs",
+                     debug_state,
+                     presented_frame->dispatch_lateness_us,
+                     dispatch_to_swap_us,
+@@ -623,7 +623,7 @@
+     }
+   else
+     {
+-      CLUTTER_NOTE (FRAME_TIMINGS, "%s: update2dispatch %ld µs",
++      CLUTTER_NOTE (FRAME_TIMINGS, "%s: update2dispatch %" G_GINT64_FORMAT " µs",
+                     debug_state,
+                     presented_frame->dispatch_lateness_us);
+     }
+@@ -1640,7 +1640,7 @@
+       G_UNLIKELY (cogl_is_tracing_enabled ()))
+     {
+       g_autofree char *description = NULL;
+-      description = g_strdup_printf ("dispatched %ld µs late",
++      description = g_strdup_printf ("dispatched %" G_GINT64_FORMAT " µs late",
+                                      this_dispatch_time_us - this_dispatch_ready_time_us);
+       COGL_TRACE_DESCRIBE (ClutterFrameClockDispatch, description);
+     }
+@@ -1688,16 +1688,16 @@
+       return string;
+     }
+ 
+-  g_string_append_printf (string, "%ld µs", max_update_time_estimate_us);
++  g_string_append_printf (string, "%" G_GINT64_FORMAT " µs", max_update_time_estimate_us);
+ 
+   if (last_presentation && last_presentation->got_measurements)
+     g_string_append_printf (string, " =");
+   else
+     g_string_append_printf (string, " (no measurements last frame)");
+ 
+-  g_string_append_printf (string, "\nVblank duration: %ld µs +",
++  g_string_append_printf (string, "\nVblank duration: %" G_GINT64_FORMAT " µs +",
+                           frame_clock->vblank_duration_us);
+-  g_string_append_printf (string, "\nUpdate duration: %ld µs +",
++  g_string_append_printf (string, "\nUpdate duration: %" G_GINT64_FORMAT " µs +",
+                           get_max_update_duration_us (frame_clock));
+   g_string_append_printf (string, "\nConstant: %d µs",
+                           clutter_max_render_time_constant_us);
+--- clutter/clutter/pango/clutter-pango-private.h.orig
++++ clutter/clutter/pango/clutter-pango-private.h
+@@ -79,7 +79,9 @@
+                           ClutterColorState *color_state,
+                           ClutterColorState *target_color_state);
+ 
++#ifndef HAVE_PANGO_RENDERER_AUTOPTR
+ G_DEFINE_AUTOPTR_CLEANUP_FUNC (PangoRenderer, g_object_unref)
++#endif
+ 
+ static inline PangoDirection
+ clutter_text_direction_to_pango_direction (ClutterTextDirection dir)
+--- cogl/cogl/cogl-dma-buf-handle.c.orig
++++ cogl/cogl/cogl-dma-buf-handle.c
+@@ -36,7 +36,27 @@
+ #include <errno.h>
+ #include <gio/gio.h>
+ #include <glib/gstdio.h>
++#ifdef __linux__
+ #include <linux/dma-buf.h>
++#else
++typedef uint64_t __u64;
++
++// From https://github.com/evadot/drm-subtree or https://reviews.freebsd.org/D23085
++struct dma_buf_sync
++{
++  __u64 flags;
++};
++
++#define DMA_BUF_SYNC_READ  (1 << 0)
++#define DMA_BUF_SYNC_WRITE (2 << 0)
++#define DMA_BUF_SYNC_RW    (DMA_BUF_SYNC_READ | DMA_BUF_SYNC_WRITE)
++#define DMA_BUF_SYNC_START (0 << 2)
++#define DMA_BUF_SYNC_END   (1 << 2)
++#define DMA_BUF_SYNC_VALID_FLAGS_MASK \
++    (DMA_BUF_SYNC_RW | DMA_BUF_SYNC_END)
++#define DMA_BUF_BASE       'b'
++#define DMA_BUF_IOCTL_SYNC _IOW(DMA_BUF_BASE, 0, struct dma_buf_sync)
++#endif
+ #include <sys/ioctl.h>
+ #include <sys/mman.h>
+ #include <unistd.h>
+--- config.h.meson.orig
++++ config.h.meson
+@@ -141,6 +141,7 @@
+ 
+ /* Building with font rendering integration support */
+ #mesondefine HAVE_FONTS
++#mesondefine HAVE_PANGO_RENDERER_AUTOPTR
+ 
+ /* Whether libei has eis_event_ref() */
+ #mesondefine HAVE_EIS_EVENT_REF
+--- meson.build.orig
++++ meson.build
+@@ -43,7 +43,8 @@
+ 
+ # optional version requirements
+ udev_req = '>= 228'
+-gudev_req = '>= 238'
++# FreeBSD uses the legacy tag API provided by its native compatibility library.
++gudev_req = '>= 232'
+ umockdev_req = '>= 0.3.0'
+ 
+ # wayland version requirements
+@@ -117,7 +118,11 @@
+ 
+ m_dep = cc.find_library('m', required: true)
+ graphene_dep = dependency('graphene-gobject-1.0', version: graphene_req)
+-glycin_dep = dependency('glycin-2', version: glycin_req)
++if host_machine.system() == 'freebsd'
++  image_loader_dep = dependency('gdk-pixbuf-2.0')
++else
++  image_loader_dep = dependency('glycin-2', version: glycin_req)
++endif
+ cairo_dep = dependency('cairo', version: cairo_req)
+ pixman_dep = dependency('pixman-1', version: pixman_req)
+ gsettings_desktop_schemas_dep = dependency('gsettings-desktop-schemas',
+@@ -257,7 +262,11 @@
+ 
+ have_logind = get_option('logind')
+ if have_logind
+-  logind_dep = dependency('libsystemd', required: false)
++  if host_machine.system() == 'freebsd'
++    logind_dep = dependency('bsd3-login')
++  else
++    logind_dep = dependency('libsystemd', required: false)
++  endif
+ 
+   if not logind_dep.found()
+     logind_dep = dependency('libelogind', required: false)
+@@ -276,11 +285,15 @@
+ 
+   libudev_dep = dependency('libudev', version: udev_req)
+   gudev_dep = dependency('gudev-1.0', version: gudev_req)
+-  udev_dep = dependency('udev')
++  udev_dep = dependency('udev', required: false)
+ 
+   udev_dir = get_option('udev_dir')
+   if udev_dir == ''
+-    udev_dir = udev_dep.get_variable('udevdir')
++    if udev_dep.found()
++      udev_dir = udev_dep.get_variable('udevdir')
++    else
++      udev_dir = libdir / 'udev'
++    endif
+   endif
+ endif
+ 
+@@ -619,6 +632,11 @@
+ cdata.set('HAVE_TIMERFD', have_timerfd)
+ cdata.set('HAVE_EVENTFD', have_eventfd)
+ cdata.set('HAVE_FONTS', have_fonts)
++if have_fonts
++  cdata.set('HAVE_PANGO_RENDERER_AUTOPTR', cc.compiles(
++    '#include <pango/pango.h>\nint main(void) { g_autoptr(PangoRenderer) r = NULL; return r != NULL; }',
++    dependencies: pango_dep, name: 'PangoRenderer automatic cleanup'))
++endif
+ cdata.set('HAVE_DRM_PLANE_SIZE_HINT', have_drm_plane_size_hint)
+ cdata.set('HAVE_XKBCOMMON_KANA_COMPOSE_LEDS',
+   xkbcommon_dep.version().version_compare('>= 1.8.0'))
+--- src/backends/meta-launcher.c.orig
++++ src/backends/meta-launcher.c
+@@ -22,14 +22,16 @@
+ #include <gio/gunixfdlist.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
++#ifndef __FreeBSD__
+ #include <sys/sysmacros.h>
+ #include <malloc.h>
++#endif
+ #include <fcntl.h>
+ #include <errno.h>
+ #include <stdlib.h>
+ #include <string.h>
+ #include <unistd.h>
+-#include <systemd/sd-login.h>
++#include <bsd3/sd-login.h>
+ 
+ #include "backends/meta-backend-private.h"
+ #include "backends/meta-dbus-utils.h"
+--- src/backends/meta-stage-impl.c.orig
++++ src/backends/meta-stage-impl.c
+@@ -35,6 +35,9 @@
+ #include <math.h>
+ 
+ #include "backends/meta-renderer.h"
++#ifdef HAVE_NATIVE_BACKEND
++#include "backends/native/meta-stage-native.h"
++#endif
+ #include "backends/meta-stage-view-private.h"
+ #include "clutter/clutter-mutter.h"
+ #include "cogl/cogl.h"
+@@ -618,9 +621,12 @@
+    * artefacts.
+    */
+   /* swap_region does not need damage history, set it up before that */
+-  if (!use_clipped_redraw)
++#ifdef HAVE_NATIVE_BACKEND
++  if (!use_clipped_redraw && META_IS_STAGE_NATIVE (stage_window))
+     swap_region = mtk_region_create ();
+-  else if (clutter_stage_view_has_shadowfb (stage_view))
++  else
++#endif
++  if (clutter_stage_view_has_shadowfb (stage_view))
+     swap_region = mtk_region_ref (fb_clip_region);
+   else
+     swap_region = mtk_region_copy (fb_clip_region);
+--- src/backends/meta-udev.c.orig
++++ src/backends/meta-udev.c
+@@ -142,7 +142,7 @@
+ {
+   const char * const *tags;
+ 
+-  tags = g_udev_device_get_current_tags (device);
++  tags = g_udev_device_get_tags (device);
+   if (!tags)
+     return FALSE;
+ 
+@@ -161,7 +161,37 @@
+ 
+   device_type = g_udev_device_get_property (device, "DEVTYPE");
+   if (g_strcmp0 (device_type, DRM_CARD_UDEV_DEVICE_TYPE) != 0)
+-    return FALSE;
++    {
++#ifdef __FreeBSD__
++      const char *name = g_udev_device_get_name (device);
++      const char *path = g_udev_device_get_device_file (device);
++      const char *number;
++
++      /* libudev-devd supplies DRM nodes without Linux DEVTYPE metadata.
++       * Accept only canonical numeric DRM nodes in the DRM subsystem.
++       * Explicit incompatible metadata must still be rejected.
++       */
++      if (device_type || !name || !path ||
++          g_strcmp0 (g_udev_device_get_subsystem (device), "drm") != 0)
++        return FALSE;
++      if (g_str_has_prefix (name, "card"))
++        number = name + 4;
++      else if (g_str_has_prefix (name, "renderD"))
++        number = name + 7;
++      else
++        return FALSE;
++      if (!*number)
++        return FALSE;
++      for (; *number; number++)
++        if (*number < '0' || *number > '9')
++          return FALSE;
++      if (!g_str_has_prefix (path, "/dev/dri/") ||
++          g_strcmp0 (path + 9, name) != 0)
++        return FALSE;
++#else
++      return FALSE;
++#endif
++    }
+ 
+   /* Skip devices that do not belong to our seat. */
+   if (!meta_backend_is_headless (udev->backend))
+@@ -170,7 +200,11 @@
+       const char *device_seat;
+       const char *seat_id;
+ 
++#ifdef __FreeBSD__
++      g_return_val_if_fail (launcher, FALSE);
++#else
+       g_return_val_if_fail (launcher, TRUE);
++#endif
+ 
+       device_seat = g_udev_device_get_property (device, "ID_SEAT");
+       if (!device_seat)
+@@ -202,7 +236,12 @@
+     {
+     case META_UDEV_DEVICE_TYPE_CARD:
+       g_udev_enumerator_add_match_name (enumerator, "card*");
++#ifndef __FreeBSD__
++      /* FreeBSD's devd compatibility layer does not assign udev tags.
++       * Character-device, DRM identity and seat checks remain below.
++       */
+       g_udev_enumerator_add_match_tag (enumerator, "seat");
++#endif
+       break;
+     case META_UDEV_DEVICE_TYPE_RENDER_NODE:
+       g_udev_enumerator_add_match_name (enumerator, "render*");
+--- src/backends/native/meta-device-pool.c.orig
++++ src/backends/native/meta-device-pool.c
+@@ -22,7 +22,9 @@
+ #include <fcntl.h>
+ #include <gio/gunixfdlist.h>
+ #include <sys/stat.h>
++#ifndef __FreeBSD__
+ #include <sys/sysmacros.h>
++#endif
+ #include <sys/types.h>
+ 
+ #include "backends/meta-launcher.h"
+--- src/backends/native/meta-kms-impl-device.c.orig
++++ src/backends/native/meta-kms-impl-device.c
+@@ -22,7 +22,9 @@
+ #include <errno.h>
+ #include <fcntl.h>
+ #include <glib/gstdio.h>
++#ifdef __linux__
+ #include <linux/dma-buf.h>
++#endif
+ #include <poll.h>
+ #include <sys/ioctl.h>
+ #include <sys/timerfd.h>
+--- src/backends/native/meta-thread.c.orig
++++ src/backends/native/meta-thread.c
+@@ -21,6 +21,10 @@
+ 
+ #include <glib.h>
+ #include <sys/resource.h>
++#ifdef __FreeBSD__
++#include <pthread.h>
++#include <pthread_np.h>
++#endif
+ 
+ #include "backends/meta-backend-private.h"
+ #include "backends/meta-backend-types.h"
+@@ -303,6 +307,13 @@
+ request_realtime_scheduling (MetaThread  *thread,
+                              GError     **error)
+ {
++#ifndef RLIMIT_RTTIME
++  /* Do not request unbounded realtime scheduling without its CPU watchdog. */
++  (void) thread;
++  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
++                       "Realtime scheduling requires RLIMIT_RTTIME support");
++  return FALSE;
++#else
+   MetaThreadPrivate *priv = meta_thread_get_instance_private (thread);
+   g_autoptr (GError) local_error = NULL;
+   int64_t rttime;
+@@ -369,6 +380,7 @@
+     }
+ 
+   return TRUE;
++#endif
+ }
+ 
+ static gboolean
+@@ -536,7 +548,11 @@
+   meta_profiler_register_thread (profiler, thread_context, priv->name);
+ #endif
+ 
++#ifdef __FreeBSD__
++  priv->kernel.thread_id = pthread_getthreadid_np ();
++#else
+   priv->kernel.thread_id = gettid ();
++#endif
+   priv->kernel.realtime_inhibit_count = 0;
+ 
+   meta_thread_impl_setup (impl);
+--- src/compositor/meta-background-image.c.orig
++++ src/compositor/meta-background-image.c
+@@ -20,7 +20,11 @@
+ 
+ #include "compositor/meta-background-image-private.h"
+ 
++#ifdef __FreeBSD__
++#include <gdk-pixbuf/gdk-pixbuf.h>
++#else
+ #include <glycin.h>
++#endif
+ #include <gio/gio.h>
+ 
+ #include "clutter/clutter.h"
+@@ -117,6 +121,72 @@
+   return cache;
+ }
+ 
++#ifdef __FreeBSD__
++/* FreeBSD's established image loaders provide8-bit RGB/RGBA backgrounds.
++ * This path does not claim glycin HDR/color-metadata or Linux sandbox support. */
++static void
++load_file (GTask *task, MetaBackgroundImage *source,
++           gpointer task_data, GCancellable *cancellable)
++{
++  g_autoptr(GFileInputStream) stream = NULL;
++  g_autoptr(GdkPixbuf) decoded = NULL;
++  GdkPixbuf *oriented;
++  GError *error = NULL;
++
++  stream = g_file_read (source->file, cancellable, &error);
++  if (!stream)
++    {
++      g_task_return_error (task, error);
++      return;
++    }
++  decoded = gdk_pixbuf_new_from_stream (G_INPUT_STREAM (stream), cancellable, &error);
++  if (!decoded)
++    {
++      g_task_return_error (task, error);
++      return;
++    }
++  oriented = gdk_pixbuf_apply_embedded_orientation (decoded);
++  g_task_return_pointer (task, oriented, g_object_unref);
++}
++
++static void
++file_loaded (GObject *source_object, GAsyncResult *result, gpointer user_data)
++{
++  MetaBackgroundImage *image = META_BACKGROUND_IMAGE (source_object);
++  ClutterBackend *backend = clutter_get_default_backend ();
++  CoglContext *ctx = clutter_backend_get_cogl_context (backend);
++  g_autoptr(GError) error = NULL;
++  g_autoptr(GdkPixbuf) pixels = g_task_propagate_pointer (G_TASK (result), &error);
++  CoglTexture *texture;
++  gboolean alpha;
++
++  if (!pixels)
++    {
++      g_warning ("Failed to load background: %s", error->message);
++      goto out;
++    }
++  alpha = gdk_pixbuf_get_has_alpha (pixels);
++  texture = meta_create_texture (gdk_pixbuf_get_width (pixels),
++                                 gdk_pixbuf_get_height (pixels), ctx,
++                                 alpha ? COGL_TEXTURE_COMPONENTS_RGBA
++                                       : COGL_TEXTURE_COMPONENTS_RGB,
++                                 META_TEXTURE_ALLOW_SLICING);
++  if (!cogl_texture_set_data (texture,
++                              alpha ? COGL_PIXEL_FORMAT_RGBA_8888
++                                    : COGL_PIXEL_FORMAT_RGB_888,
++                              gdk_pixbuf_get_rowstride (pixels),
++                              gdk_pixbuf_get_pixels (pixels), 0, &error))
++    {
++      g_warning ("Failed to create background texture: %s", error->message);
++      g_clear_object (&texture);
++    }
++  image->texture = texture;
++  image->color_state = NULL;
++out:
++  image->loaded = TRUE;
++  g_signal_emit (image, signals[LOADED], 0);
++}
++#else
+ static CoglPixelFormat
+ gly_memory_format_to_cogl (GlyMemoryFormat format)
+ {
+@@ -306,6 +376,8 @@
+   g_signal_emit (image, signals[LOADED], 0);
+ }
+ 
++#endif
++
+ /**
+  * meta_background_image_cache_load:
+  * @cache: a #MetaBackgroundImageCache
+--- src/core/meta-context-main.c.orig
++++ src/core/meta-context-main.c
+@@ -25,7 +25,9 @@
+ #include <glib.h>
+ #include <gio/gio.h>
+ 
+-#ifdef HAVE_WAYLAND
++#if defined(HAVE_LOGIND) && defined(__FreeBSD__)
++#include <bsd3/sd-login.h>
++#elif defined(HAVE_LOGIND)
+ #include <systemd/sd-login.h>
+ #endif
+ 
+@@ -340,7 +342,7 @@
+ #ifdef HAVE_WAYLAND
+       if (context_main->options.no_x11)
+         return META_X11_DISPLAY_POLICY_DISABLED;
+-#ifdef HAVE_LOGIND
++#if defined(HAVE_LOGIND) && !defined(__FreeBSD__)
+       else if (sd_pid_get_user_unit (0, &unit) < 0)
+         return META_X11_DISPLAY_POLICY_MANDATORY;
+ #endif
+--- src/core/window-private.h.orig
++++ src/core/window-private.h
+@@ -528,7 +528,7 @@
+   guint placed : 1;
+ 
+   /* Have this window been positioned? */
+-  uint unconstrained_rect_valid : 1;
++  unsigned int unconstrained_rect_valid : 1;
+ 
+   /* Has this window not ever been shown yet? */
+   guint showing_for_first_time : 1;
+--- src/core/window.c.orig
++++ src/core/window.c
+@@ -108,7 +108,7 @@
+ #include "wayland/meta-window-xwayland.h"
+ #endif
+ 
+-#ifdef HAVE_LOGIND
++#if defined(HAVE_LOGIND) && !defined(__FreeBSD__)
+ #include <systemd/sd-login.h>
+ #endif
+ 
+@@ -7094,7 +7094,7 @@
+ GFile *
+ meta_window_get_unit_cgroup (MetaWindow *window)
+ {
+-#ifdef HAVE_LOGIND
++#if defined(HAVE_LOGIND) && !defined(__FreeBSD__)
+   g_autofree char *contents = NULL;
+   g_autofree char *complete_path = NULL;
+   g_autofree char *unit_name = NULL;
+--- src/helpers/meson.build.orig
++++ src/helpers/meson.build
+@@ -1,23 +1,27 @@
+ helpers_cdata = configuration_data()
+ helpers_cdata.set('libexecdir', libexecdir)
+ 
+-# backlight helper
+-configure_file(
+-  input: 'org.gnome.mutter.backlight-helper.policy.in',
+-  output: 'org.gnome.mutter.backlight-helper.policy',
+-  configuration: helpers_cdata,
+-  install_dir: join_paths(datadir, 'polkit-1', 'actions')
+-)
++# Linux sysfs helper and its policy are not a FreeBSD brightness provider.
++if host_machine.system() == 'linux'
++  # backlight helper
++  configure_file(
++    input: 'org.gnome.mutter.backlight-helper.policy.in',
++    output: 'org.gnome.mutter.backlight-helper.policy',
++    configuration: helpers_cdata,
++    install_dir: join_paths(datadir, 'polkit-1', 'actions')
++  )
+ 
+-executable('mutter-backlight-helper',
+-  sources: [
+-    files('meta-backlight-helper.c'),
+-  ],
+-  include_directories: top_includepath,
+-  install_rpath: pkglibdir,
+-  install_dir: libexecdir,
+-  install: true,
+-)
++  executable('mutter-backlight-helper',
++    sources: [
++      files('meta-backlight-helper.c'),
++    ],
++    include_directories: top_includepath,
++    install_rpath: pkglibdir,
++    install_dir: libexecdir,
++    install: true,
++  )
++
++endif
+ 
+ # restart helper
+ if have_x11
+--- src/meson.build.orig
++++ src/meson.build
+@@ -25,7 +25,7 @@
+   gmodule_no_export_dep,
+   gnome_settings_daemon_dep,
+   xkbcommon_dep,
+-  glycin_dep,
++  image_loader_dep,
+   libeis_dep,
+   libdisplay_info_dep,
+ ]
+--- src/wayland/meta-wayland-buffer.c.orig
++++ src/wayland/meta-wayland-buffer.c
+@@ -227,6 +227,7 @@
+   return format;
+ }
+ 
++#ifdef HAVE_NATIVE_BACKEND
+ static const char *
+ shm_format_to_string (MetaDrmFormatBuf   *format_buf,
+                       enum wl_shm_format  shm_format)
+@@ -236,6 +237,7 @@
+   drm_format = shm_to_drm_format (shm_format);
+   return meta_drm_format_to_string (format_buf, drm_format);
+ }
++#endif
+ 
+ static const MetaFormatInfo *
+ get_supported_shm_format_info (uint32_t shm_format)
+@@ -408,7 +410,9 @@
+   int stride, width, height;
+   MetaMultiTextureFormat multi_format;
+   CoglPixelFormat cogl_format;
++#ifdef HAVE_NATIVE_BACKEND
+   MetaDrmFormatBuf format_buf;
++#endif
+   uint32_t shm_format;
+   const MetaFormatInfo *format_info;
+ 
+@@ -432,6 +436,7 @@
+   cogl_format = format_info->cogl_format;
+   multi_format = format_info->multi_texture_format;
+ 
++#ifdef HAVE_NATIVE_BACKEND
+   meta_topic (META_DEBUG_WAYLAND,
+               "[wl-shm] wl_buffer@%u wl_shm_format %s "
+               "-> MetaMultiTextureFormat %s / CoglPixelFormat %s",
+@@ -439,6 +444,7 @@
+               shm_format_to_string (&format_buf, shm_format),
+               meta_multi_texture_format_to_string (multi_format),
+               cogl_pixel_format_to_string (cogl_format));
++#endif
+ 
+   if (*texture &&
+       meta_multi_texture_get_width (*texture) == width &&
+--- src/wayland/meta-wayland-dma-buf.c.orig
++++ src/wayland/meta-wayland-dma-buf.c
+@@ -39,7 +39,9 @@
+ 
+ #include <drm_fourcc.h>
+ #include <glib/gstdio.h>
++#ifdef __linux__
+ #include <linux/dma-buf.h>
++#endif
+ #include <sys/ioctl.h>
+ #include <sys/stat.h>
+ #include <sys/types.h>
+@@ -70,6 +72,26 @@
+ #include "linux-dmabuf-v1-server-protocol.h"
+ 
+ #define META_WAYLAND_DMA_BUF_MAX_FDS 4
++
++#ifndef __linux__
++/* From https://reviews.freebsd.org/D23085 */
++typedef uint64_t __u64;
++
++struct dma_buf_sync
++{
++  __u64 flags;
++};
++
++#define DMA_BUF_SYNC_READ  (1 << 0)
++#define DMA_BUF_SYNC_WRITE (2 << 0)
++#define DMA_BUF_SYNC_RW    (DMA_BUF_SYNC_READ | DMA_BUF_SYNC_WRITE)
++#define DMA_BUF_SYNC_START (0 << 2)
++#define DMA_BUF_SYNC_END   (1 << 2)
++#define DMA_BUF_SYNC_VALID_FLAGS_MASK \
++  (DMA_BUF_SYNC_RW | DMA_BUF_SYNC_END)
++#define DMA_BUF_BASE       'b'
++#define DMA_BUF_IOCTL_SYNC _IOW(DMA_BUF_BASE, 0, struct dma_buf_sync)
++#endif
+ 
+ /* Compatible with zwp_linux_dmabuf_feedback_v1.tranche_flags */
+ typedef enum _MetaWaylandDmaBufTrancheFlags
+@@ -951,7 +973,9 @@
+   gpointer user_data;
+ 
+   gpointer fd_tags[META_WAYLAND_DMA_BUF_MAX_FDS];
++#ifdef __linux__
+   int owned_sync_fd[META_WAYLAND_DMA_BUF_MAX_FDS];
++#endif
+ } MetaWaylandDmaBufSource;
+ 
+ static gboolean
+@@ -986,10 +1010,12 @@
+   for (i = 0; i < META_WAYLAND_DMA_BUF_MAX_FDS; i++)
+     {
+       gpointer fd_tag = source->fd_tags[i];
+-      int fd;
+ 
+       if (!fd_tag)
+         continue;
++
++#ifdef __linux__
++      int fd;
+ 
+       fd = source->owned_sync_fd[i];
+       if (fd < 0)
+@@ -1000,10 +1026,19 @@
+           ready = FALSE;
+           continue;
+         }
++#else
++      if (!is_fd_readable (dma_buf->fds[i]))
++        {
++          ready = FALSE;
++          continue;
++        }
++#endif
+ 
+       g_source_remove_unix_fd (&source->base, fd_tag);
+       source->fd_tags[i] = NULL;
++#ifdef __linux__
+       g_clear_fd (&source->owned_sync_fd[i], NULL);
++#endif
+     }
+ 
+   if (!ready)
+@@ -1030,7 +1065,9 @@
+         {
+           g_source_remove_unix_fd (&source->base, fd_tag);
+           source->fd_tags[i] = NULL;
++#ifdef __linux__
+           g_clear_fd (&source->owned_sync_fd[i], NULL);
++#endif
+         }
+     }
+ 
+@@ -1048,7 +1085,6 @@
+                gpointer                         user_data)
+ {
+   MetaWaylandDmaBufSource *source;
+-  int i;
+ 
+   source =
+     (MetaWaylandDmaBufSource *) g_source_new (&meta_wayland_dma_buf_source_funcs,
+@@ -1059,12 +1095,17 @@
+   source->dispatch = dispatch;
+   source->user_data = user_data;
+ 
++#ifdef __linux__
++  int i;
++
+   for (i = 0; i < META_WAYLAND_DMA_BUF_MAX_FDS; i++)
+     source->owned_sync_fd[i] = -1;
++#endif
+ 
+   return source;
+ }
+ 
++#ifdef __linux__
+ static int
+ get_sync_file (int dma_buf_fd)
+ {
+@@ -1082,6 +1123,7 @@
+ 
+   return -1;
+ }
++#endif
+ 
+ /**
+  * meta_wayland_dma_buf_create_source:
+@@ -1122,9 +1164,11 @@
+       if (!source)
+         source = create_source (buffer, dispatch, user_data);
+ 
++#ifdef __linux__
+       source->owned_sync_fd[i] = get_sync_file (fd);
+       if (source->owned_sync_fd[i] >= 0)
+         fd = source->owned_sync_fd[i];
++#endif
+ 
+       source->fd_tags[i] = g_source_add_unix_fd (&source->base, fd, G_IO_IN);
+     }
+@@ -1163,7 +1207,9 @@
+     return NULL;
+ 
+   source->fd_tags[0] = g_source_add_unix_fd (&source->base, sync_fd, G_IO_IN);
++#ifdef __linux__
+   source->owned_sync_fd[0] = g_steal_fd (&sync_fd);
++#endif
+ 
+   return &source->base;
+ }
+--- src/wayland/meta-wayland.c.orig
++++ src/wayland/meta-wayland.c
+@@ -727,7 +727,7 @@
+                                                        g_variant_builder_end (&builder)),
+                                         NULL,
+                                         G_DBUS_CALL_FLAGS_NO_AUTO_START,
+-                                        -1, NULL, &error);
++                                        3000, NULL, &error);
+ 
+   if (error)
+     {
+@@ -760,7 +760,7 @@
+ 			       g_variant_new ("(ss)", name, value),
+ 			       NULL,
+ 			       G_DBUS_CALL_FLAGS_NO_AUTO_START,
+-			       -1, NULL, &error);
++			       3000, NULL, &error);
+   if (error)
+     {
+       g_autofree char *remote_error = NULL;
+@@ -768,6 +768,8 @@
+       remote_error = g_dbus_error_get_remote_error (error);
+       if (g_strcmp0 (remote_error, "org.freedesktop.DBus.Error.NameHasNoOwner") == 0)
+         {
++          if (g_getenv ("BSD3_SESSION_SOCKET"))
++            return FALSE;
+           return update_activation_environment (session_bus, name, value);
+         }
+       else if (g_strcmp0 (remote_error, "org.gnome.SessionManager.NotInInitialization") != 0)
+@@ -1113,11 +1115,15 @@
+       status &=
+         set_gnome_env ("XAUTHORITY", compositor->xwayland_manager.auth_file);
+ 
++      if (!status && g_getenv ("BSD3_SESSION_SOCKET"))
++        g_error ("Native session X11 environment publication failed");
+       meta_xwayland_set_should_enable_ei_portal (&compositor->xwayland_manager, status);
+     }
+ #endif
+ 
+-  set_gnome_env ("WAYLAND_DISPLAY", meta_wayland_get_wayland_display_name (compositor));
++  if (!set_gnome_env ("WAYLAND_DISPLAY", meta_wayland_get_wayland_display_name (compositor)) &&
++      g_getenv ("BSD3_SESSION_SOCKET"))
++    g_error ("Native session Wayland environment publication failed");
+ 
+   return compositor;
+ }
+--- src/wayland/meta-xwayland.c.orig
++++ src/wayland/meta-xwayland.c
+@@ -599,9 +599,11 @@
+ {
+   int abstract_fd, unix_fd;
+ 
++#ifdef __linux__
+   abstract_fd = bind_to_abstract_socket (display_index, error);
+   if (abstract_fd < 0)
+     return FALSE;
++#endif
+ 
+   unix_fd = bind_to_unix_socket (display_index, error);
+   if (unix_fd < 0)
+@@ -609,6 +611,10 @@
+       close (abstract_fd);
+       return FALSE;
+     }
++
++#ifndef __linux__
++  abstract_fd = unix_fd;
++#endif
+ 
+   *abstract_fd_out = abstract_fd;
+   *unix_fd_out = unix_fd;
