@@ -63,5 +63,8 @@ jobs:
 workflows:
   build:
     jobs:
-      - freebsd-build-test-package
+      - freebsd-build-test-package:
+          filters:
+            branches:
+              ignore: codex/gnome49-native-session
       - freebsd-user-session49
