@@ -1,0 +1,33 @@
+--- CMakeLists.txt.orig
++++ CMakeLists.txt
+@@ -14,8 +14,7 @@
+ 
+ add_definitions(-DINSTALL_PREFIX=\"${CMAKE_INSTALL_PREFIX}\")
+ 
+-add_executable(bsdisks
+-    main.cpp
++set(BSDISKS_SOURCES
+     adaptors.cpp
+     block.cpp
+     blockfilesystem.cpp
+@@ -34,6 +33,8 @@
+ 
+     camcontrol.c
+ )
++
++add_executable(bsdisks main.cpp ${BSDISKS_SOURCES})
+ 
+ target_link_libraries(bsdisks Qt6::DBus
+                               Qt6::Core
+@@ -74,3 +75,11 @@
+ install(FILES org.freedesktop.udisks2.policy
+     DESTINATION share/polkit-1/actions
+ )
++
++include(CTest)
++if(BUILD_TESTING)
++    add_executable(bsdisks-visibility-test bsd3-visibility-test.cpp ${BSDISKS_SOURCES})
++    target_link_libraries(bsdisks-visibility-test Qt6::DBus Qt6::Core
++        PolkitQt6-1::Core Threads::Threads cam geom)
++    add_test(NAME block-visibility COMMAND bsdisks-visibility-test)
++endif()

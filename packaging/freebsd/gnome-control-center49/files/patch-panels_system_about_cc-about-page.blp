@@ -1,0 +1,11 @@
+--- panels/system/about/cc-about-page.blp.orig
++++ panels/system/about/cc-about-page.blp
+@@ -45,6 +45,8 @@
+ 
+       Adw.PreferencesGroup {
+         $CcHostnameEntry hostname_row {
++          /* FreeBSD does not provide hostname1 mutation support. */
++          visible: false;
+           title: _("_Device Name");
+           use-underline: true;
+         }

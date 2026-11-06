@@ -1,0 +1,11 @@
+--- panels/system/users/meson.build.orig
++++ panels/system/users/meson.build
+@@ -90,7 +90,7 @@
+ )
+ 
+ # Kerberos support
+-krb_dep = dependency('krb5', required: false)
++krb_dep = cc.find_library('krb5')
+ assert(krb_dep.found(), 'kerberos libraries not found in your path')
+ 
+ cflags += [

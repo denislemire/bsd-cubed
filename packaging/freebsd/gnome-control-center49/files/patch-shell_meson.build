@@ -1,0 +1,12 @@
+--- shell/meson.build.orig
++++ shell/meson.build
+@@ -135,7 +135,8 @@
+          dependencies : shell_deps,
+                c_args : cflags,
+             link_with : panels_libs,
+-              install : true
++              install : true,
++        install_rpath : '/usr/lib'
+ )
+ 
+ 
