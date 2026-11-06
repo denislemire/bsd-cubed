@@ -41,6 +41,7 @@ static const char xml[] =
     "<signal name='PauseDevice'><arg type='u'/><arg type='u'/><arg type='s'/></signal>"
     "<signal name='ResumeDevice'><arg type='u'/><arg type='u'/><arg type='h'/></signal>"
     "<property name='Id' type='s' access='read'/>"
+    "<property name='Seat' type='(so)' access='read'/>"
     "<property name='Active' type='b' access='read'/>"
     "<property name='Type' type='s' access='read'/>"
     "<property name='Class' type='s' access='read'/>"
@@ -209,6 +210,8 @@ property(GDBusConnection *bus, const char *sender, const char *path,
 	}
 	if (strcmp(name, "Id") == 0)
 		return (g_variant_new_string(id));
+	if (strcmp(name, "Seat") == 0)
+		return (bsd3_session_seat(bus, id, error));
 	if (strcmp(name, "Active") == 0) {
 		rc = sd_session_is_active(id);
 		if (rc >= 0)

@@ -1,5 +1,5 @@
 PORTNAME=	bsd-cubed
-DISTVERSION=	0.2.0-alpha1
+DISTVERSION=	0.2.0-alpha2
 CATEGORIES=	sysutils
 MASTER_SITES=	https://packages.ehws.generic.business/sources/bsd-cubed/v${DISTVERSION}/ \
 		https://github.com/denislemire/bsd-cubed/releases/download/v${DISTVERSION}/

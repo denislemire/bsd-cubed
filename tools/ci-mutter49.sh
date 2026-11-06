@@ -110,6 +110,9 @@ cat dist/mutter49/frame-swap-fixtures.txt
 "$python_cmd" tests/test-mutter49-background.py "$wrksrc/src/compositor/meta-background-image.c" \
     >dist/mutter49/background-fixtures.txt 2>&1
 cat dist/mutter49/background-fixtures.txt
+"$python_cmd" tests/test-mutter49-session-seat.py "$wrksrc" \
+    >dist/mutter49/session-seat-fixtures.txt 2>&1
+cat dist/mutter49/session-seat-fixtures.txt
 source_name=${wrksrc##*/}
 case "$source_name" in mutter-[0-9]*) ;; *) exit 1 ;; esac
 tar --exclude "$source_name/_build" -C "${wrksrc%/*}" -czf \
@@ -118,7 +121,7 @@ tar -C "$work_root/overlay" -czf "$repo_root/dist/mutter49/$source_name-bsd3-por
     x11-wm/mutter -C "$repo_root" packaging/freebsd/bsd-cubed \
     tools/ci-mutter49.sh tools/ci-ports-tree.sh tests/native-mutter49.py tests/native-window.c \
     tests/test-mutter49-drm.py tests/test-mutter49-frame-swap.py \
-    tests/test-mutter49-background.py tests/native-inhibit.c
+    tests/test-mutter49-background.py tests/test-mutter49-session-seat.py tests/native-inhibit.c
 (cd dist/mutter49/packages/All && sha256 -r mutter-*.pkg) >dist/mutter49/MUTTER_SHA256SUMS
 (cd dist/mutter49 && sha256 -r "$source_name-bsd3-source.tar.gz" \
     "$source_name-bsd3-port.tar.gz") >>dist/mutter49/MUTTER_SHA256SUMS
