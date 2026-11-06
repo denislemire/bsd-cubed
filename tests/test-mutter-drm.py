@@ -93,7 +93,9 @@ with tempfile.TemporaryDirectory(prefix="bsd3-drm-test-") as temp:
     for freebsd in (False, True):
         # Define the target selector after host headers, so the host libc's
         # declarations remain correct when testing FreeBSD behavior on macOS.
-        define = "\n#define __FreeBSD__ 1\n" if freebsd else "\n#undef __FreeBSD__\n"
+        define = "\n#undef __FreeBSD__\n"
+        if freebsd:
+            define += "#define __FreeBSD__ 1\n"
         text = stub + define + predicate
         text += "\nstatic void enumerate_card(void) { void *enumerator=NULL; int device_type=META_UDEV_DEVICE_TYPE_CARD;\n"
         text += enumeration + "\n}\n" + main
