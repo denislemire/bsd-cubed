@@ -16,7 +16,7 @@ fi
 port="$work_root/overlay/sysutils/bsd-cubed"
 mkdir -p "$port" "$work_root/distfiles" "$repo_root/dist/packages"
 cp -R packaging/freebsd/bsd-cubed/. "$port/"
-option_args=
+option_args=OPTIONS_UNSET=USERSESSION
 if [ "${BSD3_USERSESSION:-no}" = yes ]; then
     option_args=OPTIONS_SET=USERSESSION
 fi
