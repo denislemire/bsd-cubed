@@ -69,3 +69,27 @@ is not established. Do not describe either issue as fixed by the seat change.
 The recovery guard returned to the original47 environment. The49 BE, private
 crash record and logs are retained. Native CI, a matching alpha2 prerelease and
 fresh hardware login/input/apps/logout acceptance remain required.
+
+## Alpha2 release qualification
+
+Revision `fd0270824dfe96f3b1cfc1289934b2c54f18bbfe` passed combined native
+CI58. Its eight exact packages passed installed-file integrity and both isolated
+and system-autostart complete-session tests on FreeBSD15-STABLE
+(`stable/15-n286624-646a485c3b2f`): Shell49.10, SettingsDaemon47.2_1, a real
+Wayland application, ordinary logout and bus-owner cleanup. This VM has no DRM;
+these results do not establish hardware display/input acceptance.
+
+Signed prerelease `v0.2.0-alpha2` contains the packages, matching consumer sources
+and ports recipes, complete BSD3 source, hashes and validation provenance. A fresh
+download of every release asset matched the verified staging files. The immutable
+public `bsd3-gnome49-beta2` channel also includes the previously released Airwave
+alpha2. An isolated native package client read its nine entries, downloaded all
+nine packages and compared them byte-for-byte with the release inputs. The first
+client attempt lacked `INSTALL_AS_USER` and correctly refused the user-owned
+private database; enabling that setting permitted validation without touching the
+system package database.
+
+Laptop alpha2 installation and a fresh interactive hardware trial remain open.
+The initial upload was interrupted by a slow management connection; deployment
+switched to laptop-initiated, hash-verified downloads from the public channel.
+The running47 environment and default boot selection remain preserved.
