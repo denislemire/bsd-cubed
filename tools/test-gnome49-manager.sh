@@ -43,5 +43,5 @@ cp data/org.gnome.SessionManager.gschema.xml "$build_root/schemas/"
 glib-compile-schemas "$build_root/schemas"
 cd "$repo_root"
 dbus-run-session --config-file=tests/dbus.conf -- \
-    python3 tests/test-gnome49-manager.py "$build_root/gnome-session-service" \
+    "${PYTHON:-python3}" tests/test-gnome49-manager.py "$build_root/gnome-session-service" \
     "$build_root/schemas"

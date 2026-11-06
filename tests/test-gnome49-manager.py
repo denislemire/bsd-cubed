@@ -30,7 +30,7 @@ with tempfile.TemporaryDirectory(prefix="bsd3-gnome49-") as tmp:
         "start-timeout = 10\nstop-timeout = 3\n")
     (services / "initialized").write_text(
         "type = scripted\ndepends-on = manager\n"
-        f"command = /usr/local/bin/python3 {repo}/tests/gnome49-initialize.py\n"
+        f"command = {sys.executable} {repo}/tests/gnome49-initialize.py\n"
         "start-timeout = 5\nstop-timeout = 3\n")
     (services / "environment").write_text(
         f"type = scripted\ndepends-on = manager\ncommand = {repo}/test-user-session-client environment\n"

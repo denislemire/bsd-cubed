@@ -25,6 +25,6 @@ cc -std=gnu11 -Wall -Wextra -Werror=implicit-function-declaration \
     "$repo_root/libbsd3-user-session.a" -pthread \
     $(pkg-config --libs gio-unix-2.0) -o "$build_root/gnome49-util-client"
 cd "$repo_root"
-dbus-run-session --config-file=tests/dbus.conf -- python3 tests/test-user-session.py \
+dbus-run-session --config-file=tests/dbus.conf -- "${PYTHON:-python3}" tests/test-user-session.py \
     --dinitctl "${DINITCTL:-/usr/local/sbin/dinitctl}" \
     --gnome49-client "$build_root/gnome49-util-client"
