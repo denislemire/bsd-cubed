@@ -2,6 +2,15 @@
 
 ## Current checkpoint: release ready, hardware window closed
 
+Later coordinator report: `stable-15-he-usable-20261105` is the proposed clone
+origin and selected normal default, with all version entries15.2-PRERELEASE.
+Its final ordinary-reboot traffic check is still underway and the coordinator
+has **not** released the device. Verify the actual BE identity/dataset layout
+at handoff; do not infer permission from this candidate name. Preserve its
+rc.conf/wpa_supplicant network ownership and the existing start_if.wlan0 HE-before-WPA
+hook and hpbsd-ifconfig-he helper. This supersedes earlier CURRENT assumptions
+for planning only; no laptop inspection or change was made by the desktop work.
+
 The signed [v0.1.0-beta3](https://github.com/denislemire/bsd-cubed/releases/tag/v0.1.0-beta3)
 now exists at implementation8bfa868f3a1c485954d35b9be28b2347b2e4bf30.
 [CI36](https://circle.ehws.generic.business/gh/denislemire/bsd-cubed/36) passed
