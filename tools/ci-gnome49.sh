@@ -49,7 +49,8 @@ revision=$(cat packaging/freebsd/gnome-session49/PORTS_REVISION)
 case "$revision" in *[!0-9a-f]*|'') exit 1 ;; esac
 [ "${#revision}" -eq 40 ]
 sh tools/ci-ports-tree.sh "$ports_root" "$revision"
-cp -R packaging/freebsd/bsd-cubed "$ports_root/sysutils/bsd-cubed"
+mkdir -p "$ports_root/sysutils/bsd-cubed"
+cp -R packaging/freebsd/bsd-cubed/. "$ports_root/sysutils/bsd-cubed/"
 mkdir -p "$(dirname "$port")"
 cp -R packaging/freebsd/gnome-session49 "$port"
 # All custom runtime/SDK providers must already be installed by preceding
@@ -96,7 +97,7 @@ case "$source_name" in gnome-session-49.0) ;; *) exit 1 ;; esac
 tar --exclude "$source_name/_build" -C "${wrksrc%/*}" -czf \
     "$repo_root/dist/session49/$source_name-bsd3-source.tar.gz" "$source_name"
 tar -C "$work_root/overlay" -czf "$repo_root/dist/session49/$source_name-bsd3-port.tar.gz" \
-    x11/gnome-session -C "$repo_root" tools/ci-gnome49.sh tests/native-gnome49-graph.py \
+    x11/gnome-session -C "$repo_root" tools/ci-gnome49.sh tools/ci-ports-tree.sh tests/native-gnome49-graph.py \
     tests/native-session.c tests/native-window.c tests/native-inhibit.c
 (cd dist/session49/packages/All && sha256 -r gnome-session-*.pkg) >dist/session49/SESSION_SHA256SUMS
 (cd dist/session49 && sha256 -r "$source_name-bsd3-source.tar.gz" \
@@ -108,8 +109,8 @@ set -- dist/session49/packages/All/gnome-session-*.pkg
 pkg -o REPOS_DIR=/var/empty add -f "$1"
 mkdir -p "$work_root/runtime/tests"
 cp tests/native-gnome49-graph.py "$work_root/runtime/tests/"
-cc -std=c11 -Wall -Wextra -Werror -Iinclude $(pkg-config --cflags gio-unix-2.0) \
-    tests/native-session.c libbsd3-login.a $(pkg-config --libs gio-unix-2.0) \
+cc -std=c11 -Wall -Wextra -Werror $(pkg-config --cflags bsd3-login) \
+    tests/native-session.c $(pkg-config --libs bsd3-login) \
     -o "$work_root/runtime/native-session"
 cc -std=c11 -Wall -Wextra -Werror $(pkg-config --cflags gtk+-3.0) \
     tests/native-window.c -o "$work_root/runtime/native-window" $(pkg-config --libs gtk+-3.0)

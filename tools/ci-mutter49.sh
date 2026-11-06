@@ -55,7 +55,8 @@ case "$revision" in *[!0-9a-f]*|'') exit 1 ;; esac
 # Pin the complete ports framework and consumer port, not just its Makefile.
 sh tools/ci-ports-tree.sh "$ports_root" "$revision"
 # Recursive dependency enumeration still needs the origin even with its package installed.
-cp -R packaging/freebsd/bsd-cubed "$ports_root/sysutils/bsd-cubed"
+mkdir -p "$ports_root/sysutils/bsd-cubed"
+cp -R packaging/freebsd/bsd-cubed/. "$ports_root/sysutils/bsd-cubed/"
 mkdir -p "$(dirname "$port")"
 cp -R packaging/freebsd/mutter49 "$port"
 printf '%s\n' "$revision" >dist/mutter49/ports-revision.txt

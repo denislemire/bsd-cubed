@@ -1,29 +1,14 @@
 version: 2.1
 
-# EhWS CircleCI Server native FreeBSD machine executor.
-# Package artifacts only; no host deployment, boot changes or catalogue publishing.
+# One disposable EhWS FreeBSD executor: bound peak RAM and preserve one coherent
+# candidate/source set. Hardware rollout and catalogue publication are separate.
 jobs:
-  freebsd-user-session49:
-    environment:
-      # EhWS edge DNS, declared in ehws-infra/clusters/ehws/lan-dns.
-      # Used only for the pinned artifact's curl --resolve, never host DNS.
-      BSD3_CI_DNS: 192.168.12.153
-    machine:
-      image: freebsd-15.1:current
-    resource_class: freebsd.medium
-    steps:
-      - checkout
-      - run:
-          name: Install native user-session build dependencies
-          command: sudo pkg install -y git pkgconf glib dbus python3 gmake gnome-desktop consolekit2 bind-tools curl
-      - run:
-          name: Native Dinit port and real GNOME 49 manager lifecycle
-          no_output_timeout: 20m
-          command: sh tools/ci-user-session.sh
-      - store_artifacts:
-          path: dist/user-session
-          destination: user-session49
   freebsd-build-test-package:
+    environment:
+      PYTHON: /usr/local/bin/python3.12
+      BSD3_CI_DNS: 192.168.12.153
+      BSD3_CI_PORTS_ROOT: /var/tmp/bsd3-ci-ports
+      PORTSDIR: /var/tmp/bsd3-ci-ports
     machine:
       image: freebsd-15.1:current
     resource_class: freebsd.medium
@@ -34,11 +19,18 @@ jobs:
           command: |
             set -eu
             export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-            sudo pkg install -y git pkgconf glib dbus consolekit2
+            sudo pkg install -y git pkgconf glib dbus consolekit2 python312 gmake gnome-desktop bind-tools curl
+      - run:
+          name: Prepare one pinned framework for serial candidate consumers
+          command: sh tools/ci-ports-tree.sh "$BSD3_CI_PORTS_ROOT" "$(cat packaging/freebsd/mutter49/PORTS_REVISION)"
       - run:
           name: Rebuild ConsoleKit with native FreeBSD device semantics
           no_output_timeout: 20m
           command: sh tools/ci-consolekit.sh
+      - run:
+          name: Native Dinit, user-session SDK and real GNOME49 protocol tests
+          no_output_timeout: 20m
+          command: sh tools/ci-user-session.sh
       - run:
           name: Native build, private-bus tests and ports stage QA
           no_output_timeout: 20m
@@ -65,35 +57,29 @@ jobs:
           no_output_timeout: 30m
           command: sh tools/ci-gdm.sh
       - run:
+          name: Build GNOME49 runtime dependencies and test actual GJS
+          no_output_timeout: 30m
+          command: sh tools/ci-gnome49-runtime.sh
+      - run:
+          name: Install this candidate's tested runtime dependency packages
+          command: sh tools/ci-install-runtime49.sh
+      - run:
           name: Build GNOME49 compositor and test real Wayland window rendering
           no_output_timeout: 30m
           command: sh tools/ci-mutter49.sh
+      - run:
+          name: Build Shell49 and verify native rendering and capability boundaries
+          no_output_timeout: 30m
+          command: sh tools/ci-shell49.sh
+      - run:
+          name: Build GNOME49 session and verify real CK, settings, apps and logout
+          no_output_timeout: 30m
+          command: sh tools/ci-gnome49.sh
       - store_artifacts:
           path: dist
           destination: freebsd
-
-  freebsd-gnome49-runtime:
-    machine:
-      image: freebsd-15.1:current
-    resource_class: freebsd.medium
-    steps:
-      - checkout
-      - run:
-          name: Build GNOME49 runtime dependencies and test the actual new GJS
-          no_output_timeout: 30m
-          command: sh tools/ci-gnome49-runtime.sh
-      - store_artifacts:
-          path: dist/gnome49-runtime
-          destination: freebsd/gnome49-runtime
 
 workflows:
   build:
     jobs:
       - freebsd-build-test-package
-      # Bound peak memory: no parallel FreeBSD consumer build machines.
-      - freebsd-user-session49:
-          requires:
-            - freebsd-build-test-package
-      - freebsd-gnome49-runtime:
-          requires:
-            - freebsd-user-session49
