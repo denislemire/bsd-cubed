@@ -55,7 +55,8 @@ trap 'exit 143' TERM
 # Reuse the qualified native dependency; do not rebuild or modify it here.
 ck_url=https://packages.ehws.generic.business/FreeBSD:15:amd64/bsd3-beta5/All/consolekit2-2.0.0_5.pkg
 ck_sha=08d42eb5055f6cdf3dd91d3613c24f16fa91a33180b8bee7473e1cd737454fd9
-if [ "$(pkg query '%v' consolekit2)" != 2.0.0_5 ]; then
+ck_installed=$(pkg query '%v' consolekit2 2>/dev/null || :)
+if [ -z "$ck_installed" ] || [ "$(pkg version -t "$ck_installed" 2.0.0_5)" = '<' ]; then
     if [ -n "${BSD3_CI_DNS:-}" ]; then
         python3 -c 'import ipaddress,sys; ipaddress.ip_address(sys.argv[1])' "$BSD3_CI_DNS"
         # Query the lab resolver explicitly and scope the answer to this curl
