@@ -6,13 +6,14 @@ BSD³ (`bsddd`; repository `bsd-cubed`) aims to bridge the desktop interfaces
 GNOME expects to native FreeBSD services. Original project code is C11 under
 the BSD-2-Clause license. FreeBSD keeps rc, PAM, devfs and its own kernel.
 
-**Status: experimental session/device bridge. A patched Mutter47.10 has served
-a Wayland client from its native headless backend on FreeBSD. Full GNOME47
-headless session/window/logout passes native CI; real input revocation and VT
-switching pass on a stable/15 KVM. Physical GPU presentation and laptop login
-remain unverified.** No systemd implementation or source is bundled.
-The daemon is not a complete logind replacement. Do not enable it as the machine's
-login service or use its presence as proof of native compositor readiness.
+**November 5, 2026: published beta5 runs a physical GNOME 47 Wayland desktop
+with input, webpages, sound and clean logout. Native automatic graphical startup
+also passed a one-shot reboot. Combined Wi-Fi acceptance remains open, so the
+new desktop environment is not yet the persistent reboot default.** See the
+[physical record](docs/physical-desktop-2026-11-05.md) and
+[startup record](docs/automatic-startup-2026-11-05.md) for exact evidence and limits.
+No systemd implementation or source is bundled. The daemon is a selected
+session/device compatibility subset, not a complete logind replacement.
 
 ## Build and test
 
@@ -39,7 +40,8 @@ The install obeys `DESTDIR`, `PREFIX`, `CC`, `AR`, `CPPFLAGS`, `CFLAGS`, `LDFLAG
 and `PKG_CONFIG`. It supplies a binary, static development library, namespaced
 header, explicit bsd3-login pkg-config metadata and manual page. The FreeBSD port
 also installs a disabled rc.d service and a root-only login1 ownership policy;
-there is no D-Bus activation. Keep the service disabled outside isolated testing.
+there is no D-Bus activation. Enable services only after qualifying the native package set and local session;
+installation leaves startup disabled by default.
 `bsddd --check-owner PID` verifies that the bus name belongs to that exact process;
 it does not establish desktop readiness.
 
@@ -51,8 +53,8 @@ it does not establish desktop readiness.
   authenticated TakeControl/ReleaseControl, and isolated controller lifetimes.
   Experimental descriptor handoff and pause/resume protocol are implemented;
   Seat.SwitchTo requires the active original controller on the matching seat;
-  real input revocation and console switching pass in KVM; DRM and physical
-  hardware behavior remain unverified. Existing bus
+  real input revocation and console switching pass in KVM; physical GPU presentation is verified for the identified beta5 laptop only.
+  Existing bus
   owners are never replaced.
 - Tests for session selection/filtering, PID-zero caller identity, properties,
   backend failure, invalid identifiers, duplicate ownership and shutdown.
@@ -94,3 +96,6 @@ The current physical rendering investigation is recorded in
 
 Optional trial login-screen preferences are documented in
 [greeter preferences](docs/greeter-preferences-2026-11-05.md).
+
+Native boot configuration is documented in
+[automatic desktop startup](docs/automatic-startup-2026-11-05.md).
