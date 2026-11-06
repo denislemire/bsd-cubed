@@ -67,9 +67,12 @@ percentage in its separate persistent profile.
 
 The experimental boot environment remains active for this running session.
 The normal HE-enabled environment remains the persistent reboot default.
-SDDM is currently started manually through its native rc.d script. Temporary
-boot-return/inhibitor settings still need deliberate retirement before this
-clone can be described as an unattended boot-ready desktop. No default boot
+SDDM is currently started manually through its native rc.d script. At handoff the temporary
+boot-return and trial-inhibitor startup knobs were disabled in the clone. The
+bounded sleep inhibitor was stopped and ConsoleKit confirmed only the normal
+GNOME inhibitors remained. The broker still owned login1 and SDDM remained
+running. Automatic desktop startup and reboot acceptance remain to validate;
+the normal parent is still the persistent reboot default. No default boot
 selection is changed by these example scripts.
 
 Protected on-machine evidence is under `/var/crash/bsd3-beta5-20261105/`, including
