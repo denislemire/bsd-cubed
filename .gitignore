@@ -21,3 +21,7 @@
 /libbsd3-user-session.a
 /bsd3-user-session.pc
 /test-user-session-client
+
+/bsd3-bus-ready
+/bsd3-session-initialized
+/test-bus-ready-client

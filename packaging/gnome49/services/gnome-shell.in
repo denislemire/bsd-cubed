@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: BSD-2-Clause
+type = process
+command = @LOCALBASE@/bin/gnome-shell --wayland
+depends-on = gnome-session-manager
+ready-notification = pipevar:BSD3_READY_FD
+restart = no
+start-timeout = 40
+stop-timeout = 10
+chain-to = gnome-session-shutdown
+options = always-chain

@@ -154,4 +154,40 @@ with tempfile.TemporaryDirectory(prefix="bsd3-test-") as tmp:
                     proc.wait()
             if proc.returncode:
                 print((base / "log").read_text())
-print("user session: readiness/dependencies, env set/unset, failure, restart limit, bounded stop and cleanup passed")
+    # A normal or failed session-manager exit must stop even an independently
+    # pinned application, not leave a half-alive desktop supervisor behind.
+    for termination in (signal.SIGTERM, signal.SIGKILL):
+        service("manager", "dependency", "ready-notification = pipevar:BSD3_READY_FD\n"
+                "chain-to = shutdown\noptions = always-chain\n")
+        (services / "shutdown").write_text("type = process\n"
+            f"command = {ctl} --user --use-passed-cfd shutdown\n"
+            "options = pass-cs-fd\n")
+        (services / "desktop").write_text("type = internal\ndepends-on = manager\n")
+        with (base / "chain-log").open("w") as log:
+            proc = subprocess.Popen([launcher, str(services), "desktop"], env=env,
+                                    stdout=log, stderr=log)
+            try:
+                eventually(lambda: bool(list(base.glob("bsd3-session.*"))))
+                channel = str(next(base.glob("bsd3-session.*")) / "control")
+                eventually(lambda: subprocess.run([ctl, "--user", "--socket-path",
+                    channel, "is-started", "desktop"], stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL).returncode == 0)
+                time.sleep(.3)  # Allow the wrapper's initial start acknowledgement.
+                subprocess.run([ctl, "--user", "--socket-path", channel, "start",
+                    "stubborn"], check=True, timeout=5, capture_output=True)
+                subprocess.run([ctl, "--user", "--socket-path", channel,
+                    "signal", str(int(termination)), "manager"], check=True,
+                    timeout=5, capture_output=True)
+                assert proc.wait(timeout=12) == 0, (base / "chain-log").read_text()
+                assert not list(base.glob("bsd3-session.*"))
+            finally:
+                if proc.returncode:
+                    print((base / "chain-log").read_text())
+                if proc.poll() is None:
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=35)
+                    except subprocess.TimeoutExpired:
+                        proc.kill()
+                        proc.wait()
+print("user session: readiness/dependencies, env, failure, restart limit, bounded stop, chained logout and cleanup passed")
