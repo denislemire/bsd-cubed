@@ -117,3 +117,7 @@ Native49 component results are recorded for the
 [Mutter compositor](docs/native-mutter49-2026-11-06.md), and
 [Shell consumer](docs/gnome49-consumer-ports-2026-11-06.md).
 These component checks do not establish a complete49 desktop or hardware trial.
+
+The [November6 candidate record](docs/gnome49-native-candidate-2026-11-06.md)
+identifies the verified complete native49 headless user session and remaining
+CI, release and hardware acceptance boundaries.

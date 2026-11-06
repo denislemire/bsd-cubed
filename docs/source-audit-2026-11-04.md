@@ -70,3 +70,15 @@ The laptop's GNOME Shell47.10 help includes `--wayland` and `--nested`, but not 
 native-only display-server/headless options. Its SDDM wayland-sessions directory
 already contains gnome-wayland.desktop, gnome.desktop and classic variants.
 Adding another .desktop file cannot enable the compiled-out native backend.
+
+## November6 native49 user-session milestone
+
+Denis selected GNOME49 as the next compatibility and laptop target. The
+original BSD3/Dinit user-session graph and native ConsoleKit system adapter
+now run the actual49 manager and Shell49.10 on15-STABLE, with seven actual
+SettingsDaemon47.2_1 services, a real autostarted Wayland app, exact service
+PID ownership and strict normal logout cleanup. See the
+[dated candidate validation record](gnome49-native-candidate-2026-11-06.md).
+These are headless VM results. A coherent native CI release and actual49
+DRM/input/VT/login-manager/laptop acceptance remain distinct open gates.
+The working physical47 installation and its kernel/Wi-Fi remain unchanged.

@@ -296,8 +296,10 @@ graph-owned desktop IDs, then marks them disabled for ordinary autostart.
 The actual GsmApp API test passed natively: all seven accepted/disabled,
 ordinary Application enabled, unsupported phases and near-match IDs refused.
 Other optional47 session-service entries remain unsupported and are not claimed
-as automatically provided by this graph. The final rebuilt consumer and
-combined immutable CI candidate remain to be qualified after this last patch.
+as automatically provided by this graph. The final cleanly rebuilt consumer subsequently passed native stage/plist/QA
+and the actual production-directory session trial. The combined immutable CI
+candidate and hardware49 trial remain open; see the
+[native candidate record](gnome49-native-candidate-2026-11-06.md).
 
 The diagnostic manager compilation now explicitly defines HAVE_CONFIG_H,
 matching real Meson behavior for upstream files with conditional config includes.
