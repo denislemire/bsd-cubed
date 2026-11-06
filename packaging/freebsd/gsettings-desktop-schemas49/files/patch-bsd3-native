@@ -1,0 +1,11 @@
+--- meson.build.orig
++++ meson.build
+@@ -44,7 +44,7 @@
+ pkg = configure_file(configuration: conf,
+                      input: 'gsettings-desktop-schemas.pc.in',
+                      install: true,
+-                     install_dir: join_paths(datadir, 'pkgconfig'),
++                     install_dir: join_paths(prefix, 'libdata/pkgconfig'),
+                      output: 'gsettings-desktop-schemas.pc')
+ gsettings_desktop_schemas_dep = declare_dependency(
+     include_directories: include_directories('headers'),
