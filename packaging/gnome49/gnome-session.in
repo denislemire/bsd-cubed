@@ -1,0 +1,12 @@
+#!/bin/sh
+# SPDX-License-Identifier: BSD-2-Clause
+# Display manager must supply the authenticated native session and private bus.
+set -eu
+case "$#:$*" in 0:|1:--session=gnome) ;; *) echo 'Only native GNOME Wayland is supported' >&2; exit 64 ;; esac
+[ "$(id -u)" -gt 0 ] || exit 77
+: "${XDG_RUNTIME_DIR:?native session runtime directory required}"
+: "${DBUS_SESSION_BUS_ADDRESS:?private session bus required}"
+unset WAYLAND_DISPLAY WAYLAND_SOCKET DISPLAY XAUTHORITY GNOME_SETUP_DISPLAY
+export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=GNOME XDG_SESSION_DESKTOP=gnome
+export GNOME_SHELL_SESSION_MODE=user
+exec @PREFIX@/bin/bsd3-user-session @PREFIX@/share/bsd-cubed/gnome49/services gnome-session

@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# Foreground executable and public bus name from GNOME Settings Daemon 47.
+type = process
+command = @PREFIX@/libexec/bsd3-bus-ready org.gnome.SettingsDaemon.Keyboard -- @LOCALBASE@/libexec/gsd-keyboard
+depends-on = gnome-shell
+ready-notification = pipevar:BSD3_READY_FD
+restart = no
+start-timeout = 35
+stop-timeout = 5

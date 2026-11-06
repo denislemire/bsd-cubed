@@ -17,3 +17,17 @@ share/man/man8/bsd3-vt-guard.8.gz
 %%USERSESSION%%share/man/man1/bsd3-user-session.1.gz
 %%USERSESSION%%share/bsd-cubed/gnome49/gnome49-system.c
 %%USERSESSION%%share/bsd-cubed/gnome49/gnome49-system.h
+%%USERSESSION%%libexec/bsd3-bus-ready
+%%USERSESSION%%libexec/bsd3-session-initialized
+%%USERSESSION%%libexec/bsd3-gnome49-session
+%%USERSESSION%%share/bsd-cubed/gnome49/services/gnome-session-manager
+%%USERSESSION%%share/bsd-cubed/gnome49/services/gnome-session-shutdown
+%%USERSESSION%%share/bsd-cubed/gnome49/services/gnome-session
+%%USERSESSION%%share/bsd-cubed/gnome49/services/gnome-shell
+%%USERSESSION%%share/bsd-cubed/gnome49/services/gsd-a11y-settings
+%%USERSESSION%%share/bsd-cubed/gnome49/services/gsd-color
+%%USERSESSION%%share/bsd-cubed/gnome49/services/gsd-keyboard
+%%USERSESSION%%share/bsd-cubed/gnome49/services/gsd-media-keys
+%%USERSESSION%%share/bsd-cubed/gnome49/services/gsd-power
+%%USERSESSION%%share/bsd-cubed/gnome49/services/gsd-screensaver-proxy
+%%USERSESSION%%share/bsd-cubed/gnome49/services/gsd-sound

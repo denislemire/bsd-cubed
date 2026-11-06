@@ -1,5 +1,26 @@
+diff --git a/data/meson.build b/data/meson.build
+index 76b15e9..0eedf27 100644
+--- a/data/meson.build
++++ b/data/meson.build
+@@ -60,6 +60,7 @@ if have_x11
+   endforeach
+ endif
+ 
++if not native_bsd3
+ # Next, let's install the necessary systemd scaffolding
+ 
+ install_data(
+@@ -126,6 +127,8 @@ install_data(
+   install_dir : join_paths(systemd_userunitdir, 'app-flatpak-.scope.d')
+ )
+ 
++endif
++
+ # Install some other misc. configuration files
+ 
+ i18n.merge_file(
 diff --git a/gnome-session/gsm-app.c b/gnome-session/gsm-app.c
-index d38138b..ed57158 100644
+index d38138b..1cd82b9 100644
 --- a/gnome-session/gsm-app.c
 +++ b/gnome-session/gsm-app.c
 @@ -27,8 +27,10 @@
@@ -13,7 +34,34 @@ index d38138b..ed57158 100644
  
  #include "gsm-app.h"
  #include "gsm-util.h"
-@@ -192,6 +194,7 @@ gsm_app_peek_is_disabled (GsmApp *app)
+@@ -177,6 +179,26 @@ gsm_app_peek_is_disabled (GsmApp *app)
+                 return TRUE;
+         }
+ 
++#ifdef HAVE_BSD3_USER_SESSION
++        /* These foreground services belong to the native graph. Do not launch
++         * a second copy through the compatibility autostart directory. */
++        {
++                const char *id = gsm_app_peek_app_id (app);
++                const char *managed[] = {
++                        "org.gnome.SettingsDaemon.A11ySettings.desktop",
++                        "org.gnome.SettingsDaemon.Color.desktop",
++                        "org.gnome.SettingsDaemon.Keyboard.desktop",
++                        "org.gnome.SettingsDaemon.MediaKeys.desktop",
++                        "org.gnome.SettingsDaemon.Power.desktop",
++                        "org.gnome.SettingsDaemon.ScreensaverProxy.desktop",
++                        "org.gnome.SettingsDaemon.Sound.desktop",
++                };
++                for (gsize i = 0; i < G_N_ELEMENTS (managed); i++)
++                        if (g_strcmp0 (id, managed[i]) == 0)
++                                return TRUE;
++        }
++#endif
++
+         /* Check if app is systemd enabled */
+         if (g_desktop_app_info_get_boolean (app->inner, GSM_APP_SYSTEMD_HIDDEN_KEY)) {
+                 g_debug ("App %s is disabled by " GSM_APP_SYSTEMD_HIDDEN_KEY,
+@@ -192,6 +214,7 @@ gsm_app_peek_is_disabled (GsmApp *app)
          return FALSE;
  }
  
@@ -21,7 +69,7 @@ index d38138b..ed57158 100644
  static void
  app_launched (GAppLaunchContext *ctx,
                GAppInfo          *appinfo,
-@@ -215,6 +218,7 @@ app_launched (GAppLaunchContext *ctx,
+@@ -215,6 +238,7 @@ app_launched (GAppLaunchContext *ctx,
                                     NULL,
                                     NULL, NULL, NULL);
  }
@@ -29,7 +77,7 @@ index d38138b..ed57158 100644
  
  gboolean
  gsm_app_start (GsmApp  *app,
-@@ -224,7 +228,9 @@ gsm_app_start (GsmApp  *app,
+@@ -224,7 +248,9 @@ gsm_app_start (GsmApp  *app,
          GError *local_error = NULL;
          const char * const *variable_denylist;
          const char * const *child_environment;
@@ -39,7 +87,7 @@ index d38138b..ed57158 100644
          gboolean success;
  
          g_debug ("GsmApp: starting %s (command=%s)",
-@@ -244,7 +250,9 @@ gsm_app_start (GsmApp  *app,
+@@ -244,7 +270,9 @@ gsm_app_start (GsmApp  *app,
                          g_app_launch_context_setenv (ctx, split[0], split[1]);
          }
  
@@ -49,7 +97,7 @@ index d38138b..ed57158 100644
          success = g_desktop_app_info_launch_uris_as_manager (app->inner,
                                                               NULL,
                                                               ctx,
-@@ -256,7 +264,9 @@ gsm_app_start (GsmApp  *app,
+@@ -256,7 +284,9 @@ gsm_app_start (GsmApp  *app,
                                              "Unable to start app (%s): ",
                                              gsm_app_peek_app_id (app));
  
@@ -352,3 +400,129 @@ index 2cc129f..d1b7f87 100644
  const char * const * gsm_util_listenv               (void);
  const char * const * gsm_util_get_variable_blacklist(void);
  
+diff --git a/gnome-session/meson.build b/gnome-session/meson.build
+index 403d057..9e3ac2d 100644
+--- a/gnome-session/meson.build
++++ b/gnome-session/meson.build
+@@ -1,14 +1,17 @@
+-sources = files(
+-  'gsm-util.c',
+-  'leader-main.c'
+-)
+-
+ cflags = [
+   '-DLOCALE_DIR="@0@"'.format(session_localedir),
+   '-DDATA_DIR="@0@"'.format(session_pkgdatadir),
+   '-DLIBEXECDIR="@0@"'.format(session_libexecdir)
+ ]
+ 
++
++if not native_bsd3
++sources = files(
++  'gsm-util.c',
++  'leader-main.c'
++)
++
++
+ executable(
+   meson.project_name(),
+   sources,
+@@ -34,6 +37,8 @@ executable(
+   install_dir: session_libexecdir
+ )
+ 
++endif
++
+ sources = files(
+   'gsm-app.c',
+   'gsm-client.c',
+@@ -44,11 +49,16 @@ sources = files(
+   'gsm-shell.c',
+   'gsm-store.c',
+   'gsm-system.c',
+-  'gsm-systemd.c',
+   'gsm-util.c',
+   'service-main.c'
+ )
+ 
++if native_bsd3
++  sources += files('gnome49-system.c')
++else
++  sources += files('gsm-systemd.c')
++endif
++
+ dbus_ifaces = [
+   'org.gnome.SessionManager',
+   'org.gnome.SessionManager.ClientPrivate',
+diff --git a/meson.build b/meson.build
+index b10c945..fcf1dba 100644
+--- a/meson.build
++++ b/meson.build
+@@ -90,20 +90,25 @@ session_deps = [
+   dependency('json-glib-1.0', version: '>= 0.10')
+ ]
+ 
+-libsystemd_dep = dependency('libsystemd', version: '>= 209', required: true)
+-config_h.set('SYSTEMD_STRICT_ENV',
+-              libsystemd_dep.version().version_compare('< 248'))
+-
+-session_bin_deps = session_deps + [
+-  libsystemd_dep,
+-  dependency('gio-unix-2.0', version: glib_req_version),
+-]
+-
+-systemd_userunitdir = get_option('systemduserunitdir')
+-if systemd_userunitdir == ''
+-  systemd_dep = dependency('systemd', version: '>= 242', required: true)
+-  systemd_userunitdir = systemd_dep.get_variable(pkgconfig: 'systemduserunitdir',
++native_bsd3 = get_option('bsd3')
++session_bin_deps = session_deps + [dependency('gio-unix-2.0', version: glib_req_version)]
++systemd_userunitdir = ''
++if native_bsd3
++  if host_machine.system() != 'freebsd'
++    error('The native BSD3 backend requires FreeBSD')
++  endif
++  config_h.set('HAVE_BSD3_USER_SESSION', 1)
++  session_bin_deps += dependency('bsd3-user-session', version: '>= 0.2.0.a1', static: true)
++else
++  libsystemd_dep = dependency('libsystemd', version: '>= 209', required: true)
++  config_h.set('SYSTEMD_STRICT_ENV', libsystemd_dep.version().version_compare('< 248'))
++  session_bin_deps += libsystemd_dep
++  systemd_userunitdir = get_option('systemduserunitdir')
++  if systemd_userunitdir == ''
++    systemd_dep = dependency('systemd', version: '>= 242', required: true)
++    systemd_userunitdir = systemd_dep.get_variable(pkgconfig: 'systemduserunitdir',
+                                                  pkgconfig_define: ['prefix', session_prefix])
++  endif
+ endif
+ 
+ configure_file(
+diff --git a/meson_options.txt b/meson_options.txt
+index 781d8ee..7e9c300 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -4,3 +4,5 @@ option('docbook', type: 'boolean', value: true, description: 'build documentatio
+ option('man', type: 'boolean', value: true, description: 'build documentation (requires xmlto)')
+ option('x11', type: 'boolean', value: false, description: 'enable x11 session support')
+ option('mimeapps', type: 'boolean', value: true, description: 'install default gnome-mimeapps.list')
++
++option('bsd3', type: 'boolean', value: false, description: 'Use the native FreeBSD BSD3 session backend')
+diff --git a/tools/meson.build b/tools/meson.build
+index c453093..4937075 100644
+--- a/tools/meson.build
++++ b/tools/meson.build
+@@ -1,10 +1,13 @@
+ programs = [
+   # name, deps, install_dir
+-  ['gnome-session-ctl', session_bin_deps, session_libexecdir],
+   ['gnome-session-inhibit', session_deps, session_bindir],
+   ['gnome-session-quit', session_deps, session_bindir],
+ ]
+ 
++if not native_bsd3
++  programs += [['gnome-session-ctl', session_bin_deps, session_libexecdir]]
++endif
++
+ foreach program: programs
+   executable(
+     program[0],
