@@ -20,7 +20,7 @@ struct service {
     GDBusConnection *bus;
     GSubprocess *child;
     pid_t pid;
-    gboolean ready, stopping, failed;
+    gboolean ready, stopping, failed, session_ending, child_success;
     guint deadline, kill_deadline;
 };
 static gboolean kill_child(gpointer data)
@@ -47,6 +47,17 @@ static gboolean expired(gpointer data)
     stop(s, TRUE);
     return G_SOURCE_REMOVE;
 }
+static gboolean finish_child(gpointer data)
+{
+    struct service *s = data;
+    if (!s->ready || (!s->stopping && !s->session_ending) ||
+        (!s->child_success && !s->stopping)) s->failed = TRUE;
+    /* Reap foreground child; kill remaining peers in its owned process group.
+     * The outer FreeBSD supervisor reaps escaped descendants at teardown. */
+    kill(-s->pid, SIGKILL);
+    g_main_loop_quit(s->loop);
+    return G_SOURCE_REMOVE;
+}
 static void exited(GObject *object, GAsyncResult *result, gpointer data)
 {
     struct service *s = data;
@@ -55,14 +66,12 @@ static void exited(GObject *object, GAsyncResult *result, gpointer data)
         g_printerr("Service wait failed: %s\n", error->message);
         g_clear_error(&error);
         s->failed = TRUE;
-    } else if (!s->stopping && !g_subprocess_get_successful(s->child)) {
-        s->failed = TRUE;
+    } else {
+        s->child_success = g_subprocess_get_successful(s->child);
     }
-    if (!s->ready) s->failed = TRUE;
-    /* Reap the foreground process; terminate any remaining process-group peers.
-     * The outer FreeBSD supervisor also reaps escaped descendants at teardown. */
-    kill(-s->pid, SIGKILL);
-    g_main_loop_quit(s->loop);
+    /* Kernel child notification can precede delivery of SessionOver queued on
+     * the bus. Drain that bounded interval before judging a natural exit. */
+    g_timeout_add(100, finish_child, s);
 }
 static void appeared(GDBusConnection *bus, const gchar *name,
                      const gchar *owner, gpointer data)
@@ -105,7 +114,15 @@ static void vanished(GDBusConnection *bus, const gchar *name, gpointer data)
 {
     struct service *s = data;
     (void)bus; (void)name;
-    if (s->ready) stop(s, TRUE);
+    if (s->ready && !s->session_ending) stop(s, TRUE);
+}
+static void session_over(GDBusConnection *bus, const gchar *sender,
+                         const gchar *path, const gchar *iface,
+                         const gchar *signal, GVariant *args, gpointer data)
+{
+    struct service *s = data;
+    (void)bus; (void)sender; (void)path; (void)iface; (void)signal;
+    if (g_variant_is_of_type(args, G_VARIANT_TYPE_UNIT)) s->session_ending = TRUE;
 }
 static void closed(GDBusConnection *bus, gboolean remote, GError *error, gpointer data)
 {
@@ -128,8 +145,11 @@ int main(int argc, char **argv)
     GError *error = NULL;
     GSubprocessLauncher *launcher;
     GVariant *reply;
+    const char *identifier;
+    char *end;
+    guint64 child_pid;
     gboolean owned;
-    guint watch, term, interrupt;
+    guint watch, term, interrupt, session_watch = 0;
     gulong close_handler;
     if (!getuid() || geteuid() != getuid()) return 77;
     if (argc < 4 || !g_dbus_is_name(argv[1]) || argv[1][0] == ':' ||
@@ -144,6 +164,25 @@ int main(int argc, char **argv)
     if (!reply) goto failure;
     g_variant_get(reply, "(b)", &owned); g_variant_unref(reply);
     if (owned) { g_printerr("Declared service name already owned\n"); g_object_unref(s.bus); return 1; }
+    /* GNOME clients can exit in response to ClientPrivate.Stop before Dinit
+     * receives the manager's exit. Pin the current manager's unique owner and
+     * accept only its explicit SessionOver signal as that orderly phase. */
+    reply = g_dbus_connection_call_sync(s.bus, "org.freedesktop.DBus",
+        "/org/freedesktop/DBus", "org.freedesktop.DBus", "GetNameOwner",
+        g_variant_new("(s)", "org.gnome.SessionManager"), G_VARIANT_TYPE("(s)"),
+        G_DBUS_CALL_FLAGS_NO_AUTO_START, 3000, NULL, &error);
+    if (reply) {
+        const char *manager;
+        g_variant_get(reply, "(&s)", &manager);
+        session_watch = g_dbus_connection_signal_subscribe(s.bus, manager,
+            "org.gnome.SessionManager", "SessionOver", "/org/gnome/SessionManager",
+            NULL, G_DBUS_SIGNAL_FLAGS_NONE, session_over, &s, NULL);
+        g_variant_unref(reply);
+    } else if (g_error_matches(error, G_DBUS_ERROR, G_DBUS_ERROR_NAME_HAS_NO_OWNER)) {
+        g_clear_error(&error); /* Generic foreground service outside GNOME. */
+    } else {
+        goto failure;
+    }
     launcher = g_subprocess_launcher_new(G_SUBPROCESS_FLAGS_NONE);
     g_subprocess_launcher_unsetenv(launcher, "BSD3_READY_FD");
     g_subprocess_launcher_set_child_setup(launcher, child_setup,
@@ -151,7 +190,17 @@ int main(int argc, char **argv)
     s.child = g_subprocess_launcher_spawnv(launcher, (const gchar * const *)&argv[3], &error);
     g_object_unref(launcher);
     if (!s.child) goto failure;
-    s.pid = (pid_t)strtol(g_subprocess_get_identifier(s.child), NULL, 10);
+    identifier = g_subprocess_get_identifier(s.child);
+    child_pid = identifier ? g_ascii_strtoull(identifier, &end, 10) : 0;
+    if (!identifier || !*identifier || *end || child_pid <= 1 || child_pid > G_MAXINT) {
+        g_set_error_literal(&error, G_IO_ERROR, G_IO_ERROR_FAILED,
+            "Foreground child exited before process identification");
+        g_subprocess_force_exit(s.child);
+        g_subprocess_wait(s.child, NULL, NULL);
+        g_clear_object(&s.child);
+        goto failure;
+    }
+    s.pid = (pid_t)child_pid;
     s.loop = g_main_loop_new(NULL, FALSE);
     term = g_unix_signal_add(SIGTERM, terminated, &s);
     interrupt = g_unix_signal_add(SIGINT, terminated, &s);
@@ -162,6 +211,7 @@ int main(int argc, char **argv)
     g_subprocess_wait_async(s.child, NULL, exited, &s);
     g_main_loop_run(s.loop);
     g_bus_unwatch_name(watch);
+    if (session_watch) g_dbus_connection_signal_unsubscribe(s.bus, session_watch);
     g_signal_handler_disconnect(s.bus, close_handler);
     if (s.deadline) g_source_remove(s.deadline);
     if (s.kill_deadline) g_source_remove(s.kill_deadline);
@@ -171,6 +221,8 @@ int main(int argc, char **argv)
     return s.failed ? 1 : 0;
 failure:
     g_printerr("Service startup failed: %s\n", error ? error->message : "unknown error");
-    g_clear_error(&error); g_clear_object(&s.bus);
+    g_clear_error(&error);
+    if (session_watch) g_dbus_connection_signal_unsubscribe(s.bus, session_watch);
+    g_clear_object(&s.bus);
     return 1;
 }

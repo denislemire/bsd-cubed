@@ -29,7 +29,9 @@ upstream47.2 (archive SHA256
 `1eb758862e888f55a0869193087f1cfbcc7a1163654e630099ff4342dd3f6a5a`).
 That is mixed-version compatibility to test, not a claim of all49 components.
 
-Native SDK/backend/readiness tests have passed on FreeBSD15-STABLE. The new
-full Meson consumer port, actual settings graph, rendering, normal logout and
-display-manager re-entry still require native qualification. GDM49 userdb and
+Native SDK/backend/readiness tests have passed on FreeBSD15-STABLE. The full Meson consumer port passed native build/stage/manifest/QA/package.
+The first actual settings graph rendered an autostart Wayland window and
+logged out with all owners gone; a per-service teardown error triggered the
+authenticated SessionOver correction and strict negative retest. Clean final
+logout and display-manager re-entry remain acceptance gates. GDM49 userdb and
 physical49 desktop acceptance remain separate open work.

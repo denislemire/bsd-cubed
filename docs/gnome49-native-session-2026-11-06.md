@@ -244,3 +244,35 @@ and production mixed49/SettingsDaemon47.2_1 graph are still open qualification.
 The seven settings services' public names were audited from upstream47.2.
 Their exact desktop IDs are excluded only in the native consumer to prevent
 duplicate autostart; upstream systemd behavior is preserved otherwise.
+
+
+## Native production consumer and first complete graph trial
+
+The actual49.0 Meson native port passed build, stage, manifest, stage QA and
+package creation on FreeBSD15-STABLE. Its local qualification package SHA256
+was `14af55004e1bee63e98157a22944e4a2003a54cf23b87e0d28df3248131e5cd6`.
+This was an unpublished VM build, not a release approved for hardware.
+
+The first complete headless graph trial passed real ConsoleKit binding,
+GNOME Session49 manager, Shell49.10, seven real SettingsDaemon47.2_1 processes,
+future display environment propagation into an ordinary autostart application,
+a real Wayland window, IsSessionRunning=true, Logout1, supervisor exit0 and
+all tracked bus owners/private control socket cleanup. It nevertheless logged
+one settings-helper exit1 during logout, so it was not accepted as clean
+per-service teardown. The acceptance test now explicitly rejects nonzero
+service diagnostics, unexpected signals and forced stop-deadline cleanup.
+
+Auditing the actual47.2 settings skeleton identified legitimate client exit
+after SessionManager.ClientPrivate.Stop before Dinit sends its own SIGTERM.
+The helper now pins the existing manager's unique bus owner and recognizes
+only its real SessionOver signal. A bounded100ms drain handles kernel child
+notification arriving before queued bus delivery. Clean exit before that signal
+still fails; nonzero exit after it still fails. The negative fixture includes
+spoofed signals with and without a legitimate pinned manager. Native retesting
+of this final correction remains required.
+
+A working headless user graph does not establish GDM47 greeter compatibility
+with the replacement49 launcher. Candidate deployment retains the existing
+SDDM greeter and needs a separate49 profile without47's --builtin argument.
+Native DRM/VT, physical input, display-manager re-entry, browser workaround
+carryover and successful immutable CI release assets are still acceptance gates.

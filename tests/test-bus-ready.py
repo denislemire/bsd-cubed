@@ -51,4 +51,43 @@ for mode in ('hold', 'leave'):
         if proc.poll() is None:
             proc.terminate()
             proc.wait(timeout=5)
-print('PASS: exact child PID readiness, ordinary stop, bus owner loss and failure')
+# An arbitrary connection cannot spoof the manager's pinned signal sender.
+proc, fd = start('leave')
+try:
+    assert select.select([fd], [], [], 5)[0] and os.read(fd, 1) == b'\n'
+    subprocess.run(['gdbus', 'emit', '--session', '--object-path',
+        '/org/gnome/SessionManager', '--signal',
+        'org.gnome.SessionManager.SessionOver'], check=True)
+    assert proc.wait(timeout=5) != 0
+finally:
+    os.close(fd)
+    if proc.poll() is None:
+        proc.terminate()
+        proc.wait(timeout=5)
+manager = subprocess.Popen([client, 'org.gnome.SessionManager', 'hold'])
+try:
+    subprocess.run(['gdbus', 'wait', '--session', '--timeout', '3',
+                    'org.gnome.SessionManager'], check=True)
+    for mode, expected, authenticated in (('leave', 1, False), ('leave', 0, True), ('leave-error', 1, True)):
+        proc, fd = start(mode)
+        try:
+            assert select.select([fd], [], [], 5)[0]
+            assert os.read(fd, 1) == b'\n'
+            if authenticated:
+                subprocess.run(['gdbus', 'call', '--session', '--dest',
+                    'org.gnome.SessionManager', '--object-path', '/org/gnome/SessionManager',
+                    '--method', 'org.bsd3.ReadinessTest.End'], check=True, capture_output=True)
+            else:
+                subprocess.run(['gdbus', 'emit', '--session', '--object-path',
+                    '/org/gnome/SessionManager', '--signal',
+                    'org.gnome.SessionManager.SessionOver'], check=True)
+            assert proc.wait(timeout=5) == expected, proc.stderr.read().decode()
+        finally:
+            os.close(fd)
+            if proc.poll() is None:
+                proc.terminate()
+                proc.wait(timeout=5)
+finally:
+    manager.terminate()
+    manager.wait(timeout=5)
+print('PASS: exact PID readiness, stop, premature exit, authenticated SessionOver, spoof refusal, post-SessionOver failure')
