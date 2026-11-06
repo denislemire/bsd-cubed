@@ -105,3 +105,9 @@ explains the control/rendering paths and evidence boundaries.
 
 Native GDM Wayland greeter and rc.d work is tracked in the
 [November 6 VM investigation](docs/native-gdm-2026-11-06.md).
+## GNOME 49 development
+
+The optional native user-session foundation is under development separately
+from the working GNOME 47 desktop. See the [architecture, licensing boundaries
+and validation limits](docs/gnome49-native-session-2026-11-06.md).
+It does not yet provide a GNOME 49 desktop.

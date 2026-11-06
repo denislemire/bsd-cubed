@@ -20,7 +20,20 @@ USE_GNOME=	glib20
 USE_RC_SUBR=	bsddd
 
 MAKE_ARGS=	PREFIX=${PREFIX} LOCALBASE=${LOCALBASE}
+ALL_TARGET=	all
+INSTALL_TARGET=	install
 TEST_TARGET=	test
+
+OPTIONS_DEFINE=	USERSESSION
+OPTIONS_SUB=	yes
+USERSESSION_DESC= Experimental ordinary-user service graph API (not GNOME 49 desktop)
+USERSESSION_RUN_DEPENDS= dinit>=0.19.4:sysutils/dinit
+USERSESSION_BUILD_DEPENDS= dinit>=0.19.4:sysutils/dinit
+USERSESSION_USES= python:3.11+,build
+USERSESSION_MAKE_ARGS= PYTHON=${PYTHON_CMD}
+USERSESSION_ALL_TARGET= user-session
+USERSESSION_INSTALL_TARGET= install-user-session
+USERSESSION_TEST_TARGET= test-user-session
 
 post-install:
 	${MKDIR} ${STAGEDIR}${PREFIX}/etc/dbus-1/system.d
