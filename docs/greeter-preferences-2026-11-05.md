@@ -49,3 +49,9 @@ native cursor loader otherwise defaults to Linux/X11R6 locations and warned that
 no cursor theme was available. This configuration does not change the normal
 user's GNOME profile. Shell syntax was checked; visible cursor acceptance remains
 part of the next physical trial.
+
+Dated hardware update: the customized greeter accepted password logins, the
+Wayland desktop and cursor worked, and normal logout returned to the greeter.
+See [physical acceptance](physical-desktop-2026-11-05.md) for evidence and remaining
+browser/activation/boot integration limits; the earlier pending statements above
+describe the pre-trial checkpoint.
