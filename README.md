@@ -91,3 +91,6 @@ and patches should stand alone and avoid machine-identifying logs or credentials
 
 The current physical rendering investigation is recorded in
 [native frame presentation](docs/native-frame-presentation-2026-11-05.md).
+
+Optional trial login-screen preferences are documented in
+[greeter preferences](docs/greeter-preferences-2026-11-05.md).
