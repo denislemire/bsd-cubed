@@ -72,3 +72,36 @@ checks onestatus first. This changes no compiled runtime or published beta asset
 Raw captures, screenshots, configuration copies and matching binaries remain
 protected on-machine; no identifying raw logs or authentication cookies are
 included here. Only the experimental clone was modified.
+
+## Actual password login: GPU discovery failure
+
+The user completed normal-password authentication on the physical laptop.
+Trial3 selected Plasma Wayland and produced a black screen with a cursor;
+this was not a GNOME test. The owned guard returned to originalVT2 with
+recoveryPASS after SIGTERM, terminating61 descendants without SIGKILL.
+For trial4 the clone-only SDDM session directories were restricted to the
+BSD3 GNOME trial, with no X11 session choices. The user confirmed that choice.
+GNOME Shell47 started its native Mutter47.10 backend and exited with
+`Failed to setup: No GPUs found`; SDDM returned to its greeter. The session
+wrapper reported exit0 even though Shell exited1: wrapper success is not
+successful desktop acceptance.
+
+Read-only libudev and GUdev probes as the desktop user both enumerated the
+actual character device `card0`, subsystem`drm`, path`/dev/dri/card0`.
+`DEVTYPE` and `ID_SEAT` were absent; the libudev `seat` tag was absent too.
+The Intel DRM driver was loaded and the user belonged to video. Mutter's
+Linux seat-tag enumeration and mandatory `DEVTYPE=drm_minor` reject this
+FreeBSD device before attempting GPU initialization. This demonstrates a
+specific discovery failure; it does not establish that later device opening,
+DRM master handoff, physical rendering or input will work after correction.
+
+The proposed port revision4 omits only the Linux seat-tag prerequisite on
+FreeBSD. Missing DEVTYPE is accepted there only for a character device in
+subsystem`drm`, with numeric `cardN` or `renderDN` name and exactly matching
+`/dev/dri/` path. Explicit conflicting DEVTYPE and foreign seat are rejected.
+The normal seat comparison and Linux behavior remain. Fixtures compile the
+actual patched Mutter predicate and enumeration switch in both modes; malformed
+names/paths, missing identity, non-character nodes and foreign seats are covered.
+The original unpatched predicate fails the FreeBSD fixture as expected.
+Native package CI and a newly released exact package are required before retrying
+on hardware. No ad hoc compositor binary was installed.
