@@ -43,9 +43,12 @@ the HE hook succeeded and HE1/EHT0/hardware crypto1 were present. A fresh scan
 found multiple 5 GHz candidates for the saved network. No band constraint was
 configured on that profile. Subsequent SSH became unreliable before the staged
 5 GHz roam experiment could be transferred, so that experiment did not run.
-The user was given temporary local profile-frequency/reassociation commands;
-these do not save a configuration change. A band-selection difference has been
-observed, not a proven explanation of every connection stall.
+The user ran temporary local profile-frequency/reassociation commands and
+reported no carrier. These did not save a configuration change. He then rebooted
+to the normal HE fallback; that also associated on 2.4 GHz HT/20. At his request,
+the original Wi-Fi development chat is auditing its exact successful baseline.
+A band-selection difference has been observed, not a proven explanation of every
+connection stall or a demonstrated preference fix.
 
 The desktop environment has not been promoted to persistent default. The former
 normal HE environment remains R; the desktop is the currently running N. The
@@ -76,3 +79,26 @@ new package sets require VM qualification before hardware rollout.
 For a qualified update, explicitly unlock only the custom package set, install
 the verified candidate, requalify and relock it. The exact lock command used was
 `pkg lock -y bsd-cubed consolekit2 mutter`; existing unrelated locks remain intact.
+
+## Subsequent guarded diagnostic and hardware handoff
+
+The original Wi-Fi chat confirmed this same enhanced STABLE environment was the
+validated baseline; its earlier passing tests used a particular 5 GHz access
+point with only an in-memory preference. A detached guarded diagnostic reached
+channel48/5240MHz with native accepted HE. Both gateway-family probes returned0,
+but the guard had already intervened, so this is an assisted observation rather
+than an acceptance pass. Its initial `wpa_cli bssid 0 any` clear was rejected.
+The corrected zero-address form returnedOK and subsequent get_network bssid
+returnedFAIL, confirming the temporary pin is unset. No persistent WPA
+configuration was saved. Observer output remains protected and is not claimed
+as a complete export.
+
+The laptop was physically relocated upstairs relative to the earlier RF tests.
+The Wi-Fi chat now owns all laptop mutations for proper automatic AP selection
+and roaming; the GNOME work continues in the primary VM. The user's expanded
+combined target includes a GNOME/Wayland GDM greeter, removing old Xorg/XFCE/Plasma
+app selections after validating replacement dependencies, native Signal, and
+IPv6 link-local hpbsd.local discovery. No app removals or GDM laptop switch have
+yet occurred. The existing SDDM greeter needs Xorg, and its optional battery
+component currently needs a Plasma plugin, so deleting those dependencies first
+would break accepted behavior.

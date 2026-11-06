@@ -99,3 +99,6 @@ Optional trial login-screen preferences are documented in
 
 Native boot configuration is documented in
 [automatic desktop startup](docs/automatic-startup-2026-11-05.md).
+
+A learning-oriented [architecture paper](docs/papers/bsd3-architecture/README.md)
+explains the control/rendering paths and evidence boundaries.
