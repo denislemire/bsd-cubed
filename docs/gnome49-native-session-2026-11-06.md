@@ -186,3 +186,34 @@ with pthread. Tested API source SHA256:
 The corresponding native test archive hash is
 `5d8e2efaeaa50f37983ef7270ed999558089bf1504f98da5d57d3503d457c94d`.
 This is a library-link qualification, not complete GNOME49 desktop acceptance.
+
+
+## Native ConsoleKit system backend and alpha version
+
+The original C11/BSD-2-Clause `gnome49-system.c` implements the upstream
+GsmSystem interface without libsystemd. Production binds only to the root-owned
+ConsoleKit service and its current-process session, requiring the caller UID and
+Wayland session type. Activity and idle state are real queries/operations.
+Inhibitors hold the actual ConsoleKit FIFO lease, with checked replacement,
+release and finalization. Power operations remain explicitly unsupported.
+Session removal, service-owner loss and bus connection closure invalidate the
+binding and close its lease. The native backend sources install with the SDK;
+GNOME consumer patches retain GPL-2.0-or-later and do not relicense GNOME.
+
+The private-bus test passed on 2026-11-06, including spoofed identity/session,
+malformed inhibitor descriptors, backend loss, closed-bus notification without
+a further method call, and power denial. The real ConsoleKit test passed on
+FreeBSD 15.2-STABLE in the parent validation VM: current-process binding,
+activity, reversible idle state, inhibitor replacement/release/finalization,
+and unsupported power capability checks. This is protocol validation, not
+production GNOME49 graph or hardware acceptance.
+
+The next candidate version is `0.2.0-alpha1` (`0.2.0.a1` in pkg/pkg-config),
+with USERSESSION enabled by default so the normal port supplies Shell49's SDK
+dependency. The existing beta3/beta5 artifacts remain immutable. There is no
+release distinfo for the unpublished alpha: CI generates a checksum for its
+exact source snapshot via makesum and exports `dist/snapshot.distinfo`. Release
+publication must retain that source and checksum and restore release distinfo
+before the port is submitted or used as an upstream release port. The SDK's
+installed original backend sources are input to the licensed GNOME consumer
+build, not a claim of a complete session49 port.

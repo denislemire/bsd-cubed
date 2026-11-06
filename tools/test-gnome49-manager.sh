@@ -15,6 +15,7 @@ cd "$build_root"
 patch -p1 < "$repo_root/packaging/freebsd/gnome-session49/native-manager.patch"
 cat > config.h <<'EOF'
 #define HAVE_BSD3_USER_SESSION 1
+#define BSD3_DIAGNOSTIC_NULL_SYSTEM 1
 #define GETTEXT_PACKAGE "gnome-session-49"
 #define PACKAGE_VERSION "49.0"
 EOF
