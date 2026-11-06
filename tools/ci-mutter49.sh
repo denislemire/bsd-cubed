@@ -8,7 +8,7 @@ repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$repo_root"
 mkdir -p dist/mutter49/packages
 work_root=$(mktemp -d)
-ports_root="$work_root/ports"
+ports_root=${BSD3_CI_PORTS_ROOT:-"$work_root/ports"}
 port="$work_root/overlay/x11-wm/mutter"
 inhibitor_pid=
 finish() {
@@ -53,10 +53,7 @@ case "$revision" in *[!0-9a-f]*|'') exit 1 ;; esac
     git rev-parse HEAD
 } >dist/mutter49/provenance.txt
 # Pin the complete ports framework and consumer port, not just its Makefile.
-git init -q "$ports_root"
-git -C "$ports_root" remote add origin https://git.freebsd.org/ports.git
-git -C "$ports_root" fetch --depth 1 origin "$revision"
-git -C "$ports_root" checkout --detach FETCH_HEAD
+sh tools/ci-ports-tree.sh "$ports_root" "$revision"
 # Recursive dependency enumeration still needs the origin even with its package installed.
 cp -R packaging/freebsd/bsd-cubed "$ports_root/sysutils/bsd-cubed"
 mkdir -p "$(dirname "$port")"
@@ -118,7 +115,7 @@ tar --exclude "$source_name/_build" -C "${wrksrc%/*}" -czf \
     "$repo_root/dist/mutter49/$source_name-bsd3-source.tar.gz" "$source_name"
 tar -C "$work_root/overlay" -czf "$repo_root/dist/mutter49/$source_name-bsd3-port.tar.gz" \
     x11-wm/mutter -C "$repo_root" packaging/freebsd/bsd-cubed \
-    tools/ci-mutter49.sh tests/native-mutter49.py tests/native-window.c \
+    tools/ci-mutter49.sh tools/ci-ports-tree.sh tests/native-mutter49.py tests/native-window.c \
     tests/test-mutter49-drm.py tests/test-mutter49-frame-swap.py \
     tests/test-mutter49-background.py tests/native-inhibit.c
 (cd dist/mutter49/packages/All && sha256 -r mutter-*.pkg) >dist/mutter49/MUTTER_SHA256SUMS

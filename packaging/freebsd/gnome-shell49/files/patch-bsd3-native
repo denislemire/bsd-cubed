@@ -1,0 +1,332 @@
+--- data/00_org.gnome.shell.gschema.override.orig
++++ data/00_org.gnome.shell.gschema.override
+@@ -4,3 +4,6 @@
+ dynamic-workspaces=true
+ workspaces-only-on-primary=true
+ focus-change-on-pointer-rest=true
++
++[org.gnome.shell]
++favorite-apps=['org.gnome.Settings.desktop', 'org.gnome.Terminal.desktop', 'org.gnome.Music.desktop', 'org.gnome.Nautilus.desktop']
+--- data/gnome-shell-dbus-interfaces.gresource.xml.orig
++++ data/gnome-shell-dbus-interfaces.gresource.xml
+@@ -6,6 +6,8 @@
+     <file preprocess="xml-stripblanks">org.freedesktop.background.Monitor.xml</file>
+     <file preprocess="xml-stripblanks">org.freedesktop.bolt1.Device.xml</file>
+     <file preprocess="xml-stripblanks">org.freedesktop.bolt1.Manager.xml</file>
++    <file preprocess="xml-stripblanks">org.freedesktop.ConsoleKit.Manager.xml</file>
++    <file preprocess="xml-stripblanks">org.freedesktop.ConsoleKit.Session.xml</file>
+     <file preprocess="xml-stripblanks">org.freedesktop.DBus.xml</file>
+     <file preprocess="xml-stripblanks">org.freedesktop.GeoClue2.Agent.xml</file>
+     <file preprocess="xml-stripblanks">org.freedesktop.GeoClue2.Manager.xml</file>
+--- js/dbusServices/screencast/screencastService.js.orig
++++ js/dbusServices/screencast/screencastService.js
+@@ -524,7 +524,7 @@
+ 
+ export const ScreencastService = class extends ServiceImplementation {
+     static canScreencast() {
+-        if (!Gst.init_check(null))
++        if (!Gst.init_check([]))
+             return false;
+ 
+         let elements = [
+--- js/gdm/loginDialog.js.orig
++++ js/gdm/loginDialog.js
+@@ -51,6 +51,10 @@
+ const N_A11Y_MENU_COLUMNS = 2;
+ 
+ Gio._promisify(Gio.File.prototype, 'load_contents_async');
++
++function haveSystemd() {
++    return GLib.access('/run/systemd/seats', 0) >= 0;
++}
+ 
+ export const UserListItem = GObject.registerClass({
+     Signals: {'activate': {}},
+@@ -1266,6 +1270,7 @@
+     }
+ 
+     async _findConflictingSession(startingSessionId) {
++        if (haveSystemd()) {
+         const loginManager = LoginManager.getLoginManager();
+         const sessions = await loginManager.listSessions();
+         const [, , startingSessionOwner, ,] = sessions.find(([id, , , ,]) => id === startingSessionId);
+@@ -1285,6 +1290,7 @@
+                 continue;
+ 
+             return sessionProxy;
++        }
+         }
+ 
+         return null;
+--- js/misc/loginManager.js.orig
++++ js/misc/loginManager.js
+@@ -13,6 +13,12 @@
+ const SystemdLoginManager = Gio.DBusProxy.makeProxyWrapper(SystemdLoginManagerIface);
+ const SystemdLoginSession = Gio.DBusProxy.makeProxyWrapper(SystemdLoginSessionIface);
+ const SystemdLoginUser = Gio.DBusProxy.makeProxyWrapper(SystemdLoginUserIface);
++
++const ConsoleKitManagerIface = loadInterfaceXML('org.freedesktop.ConsoleKit.Manager');
++const ConsoleKitSessionIface = loadInterfaceXML('org.freedesktop.ConsoleKit.Session');
++const ConsoleKitManager = Gio.DBusProxy.makeProxyWrapper(ConsoleKitManagerIface);
++const ConsoleKitSession = Gio.DBusProxy.makeProxyWrapper(ConsoleKitSessionIface);
++
+ 
+ function haveSystemd() {
+     return GLib.access('/run/systemd/seats', 0) >= 0;
+@@ -47,7 +53,7 @@
+             -1, null);
+ 
+         let version = result.deepUnpack()[0].deepUnpack();
+-        return haveSystemd() && versionCompare('3.5.91', version);
++        return versionCompare('3.5.91', version);
+     } catch {
+         return false;
+     }
+@@ -83,10 +89,96 @@
+         if (haveSystemd())
+             _loginManager = new LoginManagerSystemd();
+         else
+-            _loginManager = new LoginManagerDummy();
++            _loginManager = new LoginManagerConsoleKit();
+     }
+ 
+     return _loginManager;
++}
++
++class LoginManagerConsoleKit extends Signals.EventEmitter {
++    constructor() {
++        super();
++
++        this._proxy = new ConsoleKitManager(Gio.DBus.system,
++            'org.freedesktop.ConsoleKit',
++            '/org/freedesktop/ConsoleKit/Manager');
++        this._proxy.connectSignal('PrepareForSleep',
++            this._prepareForSleep.bind(this));
++    }
++
++    async getCurrentSessionProxy() {
++        if (this._currentSession)
++            return this._currentSession;
++
++        try {
++            const [objectPath] = await this._proxy.GetCurrentSessionAsync();
++            this._currentSession = new ConsoleKitSession(Gio.DBus.system,
++                'org.freedesktop.ConsoleKit', objectPath);
++            return this._currentSession;
++        } catch (error) {
++            logError(error, 'Could not get a proxy for the current session');
++            return null;
++        }
++    }
++
++    // ConsoleKit has no per-user aggregate idle-state object. Do not
++    // substitute one session for the whole user or claim screen-time support.
++    get supportsUserActivity() {
++        return false;
++    }
++
++    async canRebootToBootLoaderMenu() {
++        return {canRebootToBootLoaderMenu: false, needsAuth: false};
++    }
++
++    setRebootToBootLoaderMenu() {
++        throw new Error('Boot-loader menu selection is unsupported by ConsoleKit');
++    }
++
++    async canSuspend() {
++        let canSuspend, needsAuth;
++
++        try {
++            const [result] = await this._proxy.CanSuspendAsync();
++            needsAuth = result === 'challenge';
++            canSuspend = needsAuth || result === 'yes';
++        } catch {
++            canSuspend = false;
++            needsAuth = false;
++        }
++        return {canSuspend, needsAuth};
++    }
++
++    async listSessions() {
++        try {
++            const [sessions] = await this._proxy.ListSessionsAsync();
++            return sessions;
++        } catch {
++            return [];
++        }
++    }
++
++    getSession(objectPath) {
++        return new ConsoleKitSession(Gio.DBus.system, 'org.freedesktop.ConsoleKit', objectPath);
++    }
++
++    suspend() {
++        this._proxy.SuspendAsync(true);
++    }
++
++    async inhibit(reason, cancellable) {
++        const inVariant = new GLib.Variant('(ssss)',
++            ['sleep', 'GNOME Shell', reason, 'delay']);
++        const [outVariant_, fdList] =
++            await this._proxy.call_with_unix_fd_list('Inhibit',
++                inVariant, 0, -1, null, cancellable);
++        const [fd] = fdList.steal_fds();
++        return new GioUnix.InputStream({fd});
++    }
++
++    _prepareForSleep(proxy, sender, [aboutToSuspend]) {
++        this.emit('prepare-for-sleep', aboutToSuspend);
++    }
+ }
+ 
+ class LoginManagerSystemd extends Signals.EventEmitter {
+@@ -257,16 +349,6 @@
+         }));
+     }
+ 
+-    canRebootToBootLoaderMenu() {
+-        return new Promise(resolve => resolve({
+-            canRebootToBootLoaderMenu: false,
+-            needsAuth: false,
+-        }));
+-    }
+-
+-    setRebootToBootLoaderMenu() {
+-    }
+-
+     listSessions() {
+         return new Promise(resolve => resolve([]));
+     }
+--- js/misc/timeLimitsManager.js.orig
++++ js/misc/timeLimitsManager.js
+@@ -182,6 +182,11 @@
+     }
+ 
+     _updateSettings() {
++        // A per-session idle hint cannot satisfy the user-wide accounting
++        // contract. Leave the state machine disabled on native ConsoleKit.
++        if (this._loginManagerFactory.new().supportsUserActivity === false)
++            return false;
++
+         if (!this._screenTimeLimitSettings.get_boolean('history-enabled')) {
+             if (this._state !== TimeLimitsState.DISABLED) {
+                 this._stopStateMachine().catch(
+--- js/ui/status/keyboard.js.orig
++++ js/ui/status/keyboard.js
+@@ -262,6 +262,19 @@
+                 id += `+${variants[i]}`;
+             sourcesList.push({type: INPUT_SOURCE_TYPE_XKB, id});
+         }
++
++        // fallback: retrieve input source from current locale if we don't
++        // support the org.freedesktop.locale1 interface
++        if (sourcesList.length == 0) {
++            let _keyboardManagerLayout = KeyboardManager.getKeyboardManager()._getLocaleLayout();
++            if (_keyboardManagerLayout) {
++                let _kMLid = _keyboardManagerLayout.layout;
++                if (!!_keyboardManagerLayout.variant)
++                    _kMLid = _kMLid + '+' + _keyboardManagerLayout.variant;
++                sourcesList.push({ type: INPUT_SOURCE_TYPE_XKB, id: _kMLid });
++            }
++        }
++
+         return sourcesList;
+     }
+ 
+--- meson.build.orig
++++ meson.build
+@@ -74,6 +74,7 @@
+ gdk_pixbuf_dep = dependency('gdk-pixbuf-2.0')
+ gi_dep = dependency('girepository-2.0', version: gio_req)
+ gio_dep = dependency('gio-2.0', version: gio_req)
++bsd3_session_dep = dependency('bsd3-user-session', version: '>=0.2.0.a1', static: true)
+ gio_unix_dep = dependency('gio-unix-2.0', version: gio_req)
+ gjs_dep = dependency('gjs-1.0', version: gjs_req)
+ gtk_dep = dependency('gtk4', version: gtk_req)
+@@ -164,11 +165,13 @@
+ cdata.set('HAVE_MALLINFO', cc.has_function('mallinfo'))
+ cdata.set('HAVE_MALLINFO2', cc.has_function('mallinfo2'))
+ cdata.set('HAVE_SYS_RESOURCE_H', cc.has_header('sys/resource.h'))
+-cdata.set('HAVE_EXE_INTROSPECTION',
+-  cc.has_header('elf.h') and
+-  cc.has_header('link.h') and
+-  cc.has_define('__GLIBC__', prefix: '#include <link.h>')
+-)
++if host_machine.system() == 'linux'
++  cdata.set('HAVE_EXE_INTROSPECTION',
++    cc.has_header('elf.h') and
++    cc.has_header('link.h') and
++    cc.has_define('__GLIBC__', prefix: '#include <link.h>')
++  )
++endif
+ cdata.set('HAVE__NL_TIME_FIRST_WEEKDAY',
+   cc.has_header_symbol('langinfo.h', '_NL_TIME_FIRST_WEEKDAY')
+ )
+--- src/main.c.orig
++++ src/main.c
+@@ -458,6 +458,7 @@
+ static void
+ dump_gjs_stack_on_signal (int signo)
+ {
++#if 0 /* this handler is disabled because it triggers malloc mutex recursion */
+   struct sigaction sa = {
+     .sa_flags   = SA_RESETHAND | SA_NODEFER,
+     .sa_handler = dump_gjs_stack_on_signal_handler,
+@@ -467,6 +468,7 @@
+ 
+   sigaction (signo, &sa, NULL);
+   _tracked_signals[signo] = TRUE;
++#endif
+ }
+ 
+ static gboolean
+--- src/meson.build.orig
++++ src/meson.build
+@@ -63,6 +63,7 @@
+ 
+ gnome_shell_deps = [
+   gio_unix_dep,
++  bsd3_session_dep,
+   libxml_dep,
+   atk_bridge_dep,
+   gdk_pixbuf_dep,
+--- src/shell-util.c.orig
++++ src/shell-util.c
+@@ -1,6 +1,7 @@
+ /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
+ 
+ #include "config.h"
++#include <bsd3/user-session.h>
+ 
+ #include <errno.h>
+ #include <math.h>
+@@ -800,7 +801,14 @@
+ {
+   /* We only use NOTIFY_SOCKET exactly once; unset it so it doesn't remain in
+    * our environment. */
+-  sd_notify (1, "READY=1");
++  if (g_getenv ("BSD3_READY_FD"))
++    {
++      int result = bsd3_session_ready ();
++      if (result < 0)
++        g_error ("Native session readiness failed: %s", g_strerror (-result));
++    }
++  else
++    sd_notify (1, "READY=1");
+ }
+ 
+ /**
+--- subprojects/extensions-tool/src/meson.build.orig
++++ subprojects/extensions-tool/src/meson.build
+@@ -2,7 +2,10 @@
+ config_h.set_quoted('GETTEXT_PACKAGE', package_name)
+ config_h.set_quoted('VERSION', meson.project_version())
+ config_h.set_quoted('LOCALEDIR', localedir)
+-config_h.set('HAVE_BIND_TEXTDOMAIN_CODESET', cc.has_function('bind_textdomain_codeset'))
++intl_dep = cc.find_library('intl', required: false)                             
++if cc.has_function('bind_textdomain_codeset', prefix: '#include <libintl.h>', dependencies: intl_dep)
++  config_h.set('HAVE_BIND_TEXTDOMAIN_CODESET', 1)                        
++endif 
+ configure_file(
+   output: 'config.h',
+   configuration: config_h,

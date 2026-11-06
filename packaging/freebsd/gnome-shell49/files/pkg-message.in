@@ -1,0 +1,15 @@
+[
+{ type: install
+  message: <<EOM
+Experimental GNOME Shell 49 for native FreeBSD Wayland.
+
+Use the matching BSD3 user-session launcher and session graph. GNOME 49 no
+longer provides the previous built-in session manager. This package alone
+does not configure a working desktop or login manager.
+
+Headless rendering tests do not establish hardware, VT, input, full-session
+startup or logout acceptance. Preserve a working boot environment until the
+complete candidate has passed native CI and an agreed hardware login trial.
+EOM
+}
+]
