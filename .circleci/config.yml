@@ -40,6 +40,10 @@ jobs:
           name: Real SDDM registration and bounded GNOME trial recovery
           no_output_timeout: 10m
           command: sh tools/ci-sddm.sh
+      - run:
+          name: Build native GDM port and verify seat and VT boundaries
+          no_output_timeout: 30m
+          command: sh tools/ci-gdm.sh
       - store_artifacts:
           path: dist
           destination: freebsd

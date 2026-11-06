@@ -1,0 +1,58 @@
+#!/bin/sh
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2026 Denis Lemire
+# PROVIDE: gdm
+# REQUIRE: LOGIN cleanvar syscons dbus bsddd
+# KEYWORD: shutdown
+. /etc/rc.subr
+name=gdm
+rcvar=gdm_enable
+load_rc_config "$name"
+: ${gdm_enable:=NO}
+: ${gdm_lang:=en_US.UTF-8}
+command=/usr/sbin/daemon
+procname=%%PREFIX%%/sbin/gdm
+pidfile=/var/run/bsd3-gdm.pid
+command_args="-c -f -S -T gdm -p ${pidfile} -- ${procname}"
+start_precmd=gdm_prestart
+start_postcmd=gdm_poststart
+unset DBUS_SYSTEM_BUS_ADDRESS DBUS_SESSION_BUS_ADDRESS
+LANG=$gdm_lang
+PATH=%%PREFIX%%/sbin:%%PREFIX%%/bin:/sbin:/bin:/usr/sbin:/usr/bin
+export LANG PATH
+gdm_prestart()
+{
+    # Stop another login manager explicitly rather than stealing its display.
+    if /usr/bin/pgrep -x sddm >/dev/null; then
+        warn 'SDDM is running; log out and stop it before starting GDM'
+        return 1
+    fi
+    %%PREFIX%%/etc/rc.d/bsddd onestatus >/dev/null 2>&1 || {
+        warn 'BSD3 is not ready on the system bus'
+        return 1
+    }
+}
+gdm_poststart()
+{
+    _gdm_tries=0
+    while [ "$_gdm_tries" -lt 10 ]; do
+        _gdm_pid=$(check_pidfile "$pidfile" "$procname")
+        if [ -n "$_gdm_pid" ]; then
+            _gdm_owner=$(/usr/bin/timeout -k 1 1 %%PREFIX%%/bin/gdbus call --system \
+                --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
+                --method org.freedesktop.DBus.GetConnectionUnixProcessID \
+                org.gnome.DisplayManager 2>/dev/null) || _gdm_owner=
+            if [ "$_gdm_owner" = "(uint32 $_gdm_pid,)" ]; then
+                return 0
+            fi
+        fi
+        _gdm_tries=$((_gdm_tries + 1))
+        sleep 1
+    done
+    warn 'GDM did not acquire its bus name; inspect its log'
+    _gdm_pid=$(check_pidfile "$pidfile" "$procname")
+    [ -z "$_gdm_pid" ] || kill -TERM "$_gdm_pid" 2>/dev/null || :
+    return 1
+}
+# rc.subr stops only the verified daemon PID. Never pkill every X server or user.
+run_rc_command "$1"

@@ -1,0 +1,18 @@
+--- Makefile.orig
++++ Makefile
+@@ -1,5 +1,6 @@
+ PORTNAME=	gnome-session
+ PORTVERSION=	47.0.1
++PORTREVISION=	1
+ CATEGORIES=	x11 gnome
+ MASTER_SITES=	GNOME
+ DIST_SUBDIR=	gnome
+@@ -40,7 +41,7 @@
+ post-patch:
+ # Avoid lots of warnings in gdm log
+ .for f in gnome-wayland.desktop.in.in gnome.desktop.in.in
+-	${REINPLACE_CMD} -e 's|/gnome-session|/gnome-session --disable-acceleration-check|g' \
++	${REINPLACE_CMD} -e '/^Exec=/s|/gnome-session|/gnome-session --disable-acceleration-check|' \
+ 		${WRKSRC}/data/${f}
+ .endfor 
+ 

@@ -1,0 +1,13 @@
+--- daemon/meson.build.orig
++++ daemon/meson.build
+@@ -116,6 +116,10 @@
+   gdm_session_enums,
+   gdm_session_worker_enums,
+ ]
++
++if host_machine.system() == 'freebsd'
++  gdm_session_worker_src += files('gdm-freebsd-vt.c')
++endif
+ 
+ gdm_session_worker_deps = [
+   gdm_daemon_deps,

@@ -1,0 +1,39 @@
+--- Makefile.orig
++++ Makefile
+@@ -1,6 +1,6 @@
+ PORTNAME=	gdm
+ PORTVERSION=	47.0
+-PORTREVISION=	1
++PORTREVISION=	2
+ CATEGORIES=	x11 gnome
+ MASTER_SITES=	GNOME
+ DIST_SUBDIR=	gnome
+@@ -22,7 +22,9 @@
+ 		libcanberra.so:audio/libcanberra \
+ 		libck-connector.so:sysutils/consolekit2 \
+ 		libjson-glib-1.0.so:devel/json-glib
+-RUN_DEPENDS=	gnome-keyring-3:security/gnome-keyring \
++RUN_DEPENDS=	bsd-cubed>=0.1.0.b3:sysutils/bsd-cubed \
++		mutter>=47.10_5:x11-wm/mutter \
++		gnome-keyring-3:security/gnome-keyring \
+ 		gnome-session>0:x11/gnome-session \
+ 		gnome-settings-daemon>0:sysutils/gnome-settings-daemon \
+ 		iso-codes>0:misc/iso-codes
+@@ -86,6 +88,7 @@
+ .include <bsd.port.options.mk>
+ 
+ post-patch:
++	${CP} ${FILESDIR}/gdm-freebsd-vt.c ${FILESDIR}/gdm-freebsd-vt.h ${WRKSRC}/daemon/
+ 	@${REINPLACE_CMD} -e 's|/usr/X11R6|${LOCALBASE}|g' \
+ 		-e 's|/usr/bin/X|${LOCALBASE}/bin/X|g' \
+ 		-e 's|/usr/bin/Xorg|${LOCALBASE}/bin/Xorg|g' \
+@@ -99,9 +102,6 @@
+ 		${WRKSRC}/data/Init.in \
+ 		${WRKSRC}/data/Xsession.in
+ 
+-# Force X11 session (support of Wayland is not yet complete!)
+-	@${REINPLACE_CMD} -e 's|wayland|xorg|' \
+-		${WRKSRC}/data/gdm.schemas.in
+ 
+ pre-install:
+ 	${MKDIR} ${STAGEDIR}/var/cache/gdm
