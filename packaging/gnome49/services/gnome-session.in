@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: BSD-2-Clause
+type = scripted
+command = @PREFIX@/libexec/bsd3-session-initialized
+depends-on = gnome-shell
+depends-on = gsd-a11y-settings
+depends-on = gsd-color
+depends-on = gsd-keyboard
+depends-on = gsd-media-keys
+depends-on = gsd-power
+depends-on = gsd-screensaver-proxy
+depends-on = gsd-sound
+restart = no
+start-timeout = 10

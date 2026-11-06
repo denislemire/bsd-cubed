@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# A process service is intentional: dinitctl waits for supervisor closure.
+# Scripted startup would wait on itself during shutdown.
+type = process
+command = @LOCALBASE@/sbin/dinitctl --user --use-passed-cfd shutdown
+options = pass-cs-fd
+restart = no
+stop-timeout = 2

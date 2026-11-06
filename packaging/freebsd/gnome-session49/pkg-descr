@@ -1,0 +1,3 @@
+GNOME Session49 with an explicit native FreeBSD BSD3/ConsoleKit backend and
+ordinary-user Dinit graph. No systemd daemon or compatibility service manager
+bus is required. Experimental until the complete graph passes native tests.
