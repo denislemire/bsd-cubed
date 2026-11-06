@@ -76,3 +76,14 @@ packages these consumers and repeats the selected actual-GJS tests. Its standard
 executor is15.1-RELEASE; the manual15-STABLE results above are separate evidence.
 Mutter/Shell49, native session/system integration and full desktop acceptance
 remain subsequent work.
+
+## CI correction and bounded scheduling
+
+CI job50 built and packaged GJS successfully, then rejected its version probe:
+the login shell printed a FreeBSD fortune before18600. The saved artifact
+confirmed that this was output contamination, not a GJS version failure.
+The controller now invokes the ordinary user through sudo with an explicit
+minimal environment, without a login shell or inherited credential variables.
+The selected native tests still run as the ordinary user. The workflow orders
+runtime builds after the core job to limit peak VM memory on the shared lab.
+The corrected complete CI run remains required before release.
