@@ -90,6 +90,9 @@ python_cmd=$(make -C "$port" PORTSDIR="$ports_root" -V PYTHON_CMD)
 "$python_cmd" tests/test-mutter-drm.py "$wrksrc/src/backends/native/meta-udev.c" \
     >dist/mutter/drm-discovery-fixtures.txt 2>&1
 cat dist/mutter/drm-discovery-fixtures.txt
+"$python_cmd" tests/test-mutter-frame-swap.py "$wrksrc/src/backends/meta-stage-impl.c" \
+    >dist/mutter/frame-swap-fixtures.txt 2>&1
+cat dist/mutter/frame-swap-fixtures.txt
 source_name=${wrksrc##*/}
 case "$source_name" in mutter-[0-9]*) ;; *) exit 1 ;; esac
 tar --exclude "$source_name/_build" -C "${wrksrc%/*}" -czf \
@@ -97,7 +100,7 @@ tar --exclude "$source_name/_build" -C "${wrksrc%/*}" -czf \
 tar -C "$work_root/overlay" -czf "$repo_root/dist/mutter/$source_name-bsd3-port.tar.gz" \
     x11-wm/mutter -C "$repo_root" packaging/freebsd/bsd-cubed \
     tools/ci-mutter.sh tools/test-native-mutter.sh tests/native-compositor.sh \
-    tests/test-mutter-drm.py
+    tests/test-mutter-drm.py tests/test-mutter-frame-swap.py
 (cd dist/mutter/packages/All && sha256 -r mutter-*.pkg) >dist/mutter/MUTTER_SHA256SUMS
 (cd dist/mutter && sha256 -r "$source_name-bsd3-source.tar.gz" \
     "$source_name-bsd3-port.tar.gz") >>dist/mutter/MUTTER_SHA256SUMS

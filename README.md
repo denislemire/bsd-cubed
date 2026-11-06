@@ -88,3 +88,6 @@ and validated. GNOME 49 and later need a user-session startup solution. A login1
 
 This repository is independent of the private laptop notebook. Public bug reports
 and patches should stand alone and avoid machine-identifying logs or credentials.
+
+The current physical rendering investigation is recorded in
+[native frame presentation](docs/native-frame-presentation-2026-11-05.md).
