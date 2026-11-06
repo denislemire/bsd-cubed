@@ -17,7 +17,19 @@ DINITCTL ?= $(LOCALBASE)/sbin/dinitctl
 all: bsddd bsd3-vt-guard bsd3-session bsd3-sddm-session libbsd3-login.a bsd3-login.pc
 
 # Explicit target; the 0.2 FreeBSD port enables this SDK by default.
-user-session: bsd3-user-session libbsd3-user-session.a bsd3-user-session.pc
+user-session: bsd3-user-session libbsd3-user-session.a bsd3-user-session.pc bsd3-bus-ready bsd3-session-initialized
+
+bsd3-bus-ready: src/bus-ready.c libbsd3-user-session.a
+	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ src/bus-ready.c libbsd3-user-session.a $(BSD3_LIBS) -pthread
+
+bsd3-session-initialized: src/session-initialized.c
+	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ src/session-initialized.c $(BSD3_LIBS)
+
+test-bus-ready-client: tests/bus-ready-client.c
+	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ tests/bus-ready-client.c $(BSD3_LIBS)
+
+test-bus-ready: user-session test-bus-ready-client
+	dbus-run-session --config-file=tests/dbus.conf -- $(PYTHON) tests/test-bus-ready.py
 
 bsd3-user-session: src/user-session.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) -DBSD3_DINIT='"$(DINIT)"' -DBSD3_DINITCTL='"$(DINITCTL)"' $(LDFLAGS) -o $@ src/user-session.c
@@ -40,12 +52,18 @@ test-user-session: user-session test-user-session-client
 install-user-session: user-session
 	$(INSTALL) -d $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/lib $(DESTDIR)$(PREFIX)/include/bsd3 $(DESTDIR)$(PREFIX)/libdata/pkgconfig $(DESTDIR)$(PREFIX)/share/man/man1
 	$(INSTALL) -m 755 bsd3-user-session $(DESTDIR)$(PREFIX)/bin/bsd3-user-session
+	$(INSTALL) -d $(DESTDIR)$(PREFIX)/libexec
+	$(INSTALL) -m 755 bsd3-bus-ready bsd3-session-initialized $(DESTDIR)$(PREFIX)/libexec/
 	$(INSTALL) -m 644 libbsd3-user-session.a $(DESTDIR)$(PREFIX)/lib/libbsd3-user-session.a
 	$(INSTALL) -m 644 include/bsd3/user-session.h $(DESTDIR)$(PREFIX)/include/bsd3/user-session.h
 	$(INSTALL) -m 644 bsd3-user-session.pc $(DESTDIR)$(PREFIX)/libdata/pkgconfig/bsd3-user-session.pc
 	$(INSTALL) -m 644 man/bsd3-user-session.1 $(DESTDIR)$(PREFIX)/share/man/man1/bsd3-user-session.1
 	$(INSTALL) -d $(DESTDIR)$(PREFIX)/share/bsd-cubed/gnome49
 	$(INSTALL) -m 644 src/gnome49-system.c src/gnome49-system.h $(DESTDIR)$(PREFIX)/share/bsd-cubed/gnome49/
+	$(INSTALL) -d $(DESTDIR)$(PREFIX)/share/bsd-cubed/gnome49/services
+	sed 's|@PREFIX@|$(PREFIX)|g; s|@LOCALBASE@|$(LOCALBASE)|g' packaging/gnome49/gnome-session.in > $(DESTDIR)$(PREFIX)/libexec/bsd3-gnome49-session
+	chmod 755 $(DESTDIR)$(PREFIX)/libexec/bsd3-gnome49-session
+	for source in packaging/gnome49/services/*.in; do name=$${source##*/}; name=$${name%.in}; sed 's|@PREFIX@|$(PREFIX)|g; s|@LOCALBASE@|$(LOCALBASE)|g' $$source > $(DESTDIR)$(PREFIX)/share/bsd-cubed/gnome49/services/$$name; done
 
 login.o: src/login.c include/bsd3/sd-login.h
 	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) -fPIC -c src/login.c -o $@
@@ -96,4 +114,4 @@ install: all
 
 clean:
 	rm -f bsddd bsd3-vt-guard bsd3-session bsd3-sddm-session login.o libbsd3-login.a mock-ck test-login bsd3-login.pc
-	rm -f bsd3-user-session user-session-api.o libbsd3-user-session.a bsd3-user-session.pc test-user-session-client
+	rm -f bsd3-user-session user-session-api.o libbsd3-user-session.a bsd3-user-session.pc test-user-session-client bsd3-bus-ready bsd3-session-initialized test-bus-ready-client

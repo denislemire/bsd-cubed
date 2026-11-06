@@ -217,3 +217,30 @@ publication must retain that source and checksum and restore release distinfo
 before the port is submitted or used as an upstream release port. The SDK's
 installed original backend sources are input to the licensed GNOME consumer
 build, not a claim of a complete session49 port.
+
+
+## Foreground readiness and initial production graph
+
+The native FreeBSD helper test now passes exact child-PID bus ownership,
+readiness, preowned-name refusal, early process failure, ordinary SIGTERM exit0,
+and unexpected owner-loss failure. Native compilation first exposed hidden
+FreeBSD typedefs under POSIX feature macros; the macro is now scoped to other
+platforms. Runtime then exposed expected bus-name loss during normal shutdown
+being counted as failure; an already-stopping guard fixes this and the negative
+owner-loss case still fails. No dummy readiness is reported.
+
+Actual Dinit tests pass session-manager SIGTERM and SIGKILL with an independently
+started stubborn service, bounded cleanup and supervisor exit0. A scripted
+shutdown service initially deadlocked: dinitctl waits for Dinit closure while
+Dinit waits for scripted startup. A process shutdown service removes that cycle.
+The explicit graph definitions use this tested form. The ordinary root target
+starts only after required services' readiness, then calls the real Initialized
+method. Compositor and manager loss chain to whole-user-graph teardown.
+
+The GPL consumer patch now includes an explicit FreeBSD-only Meson option and
+real native backend source, skipping Linux launchers and systemd unit install.
+A recipe/checksum/manifest is present for actual49.0, but its full native build
+and production mixed49/SettingsDaemon47.2_1 graph are still open qualification.
+The seven settings services' public names were audited from upstream47.2.
+Their exact desktop IDs are excluded only in the native consumer to prevent
+duplicate autostart; upstream systemd behavior is preserved otherwise.

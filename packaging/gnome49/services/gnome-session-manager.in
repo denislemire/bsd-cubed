@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# Original native graph; manager readiness precedes compositor startup.
+type = process
+command = @LOCALBASE@/libexec/gnome-session-service --session=gnome
+ready-notification = pipevar:BSD3_READY_FD
+restart = no
+start-timeout = 30
+stop-timeout = 10
+chain-to = gnome-session-shutdown
+options = always-chain
