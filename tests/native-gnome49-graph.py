@@ -12,13 +12,14 @@ import time
 
 if os.getuid() == 0 or not sys.platform.startswith('freebsd'):
     raise SystemExit('ordinary native FreeBSD user required')
-if len(sys.argv) != 2:
-    raise SystemExit('usage: native-gnome49-graph.py /path/to/native-window')
+if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and sys.argv[2] != "--system-autostart"):
+    raise SystemExit('usage: native-gnome49-graph.py /path/to/native-window [--system-autostart]')
 window = str(Path(sys.argv[1]).resolve(strict=True))
+system_autostart = len(sys.argv) == 3
 assert os.environ.get('XDG_SESSION_COOKIE'), 'real ConsoleKit session required'
 runtime = Path(os.environ['XDG_RUNTIME_DIR'])
 assert runtime.stat().st_uid == os.getuid() and runtime.stat().st_mode & 0o777 == 0o700
-output = Path('dist/session49')
+output = Path('dist/session49/system-autostart' if system_autostart else 'dist/session49')
 output.mkdir(parents=True, exist_ok=True)
 
 def call(*args, check=True, env=None):
@@ -53,6 +54,8 @@ with tempfile.TemporaryDirectory(prefix='bsd3-graph49-') as directory:
                       ('XDG_DATA_HOME', 'data'), ('XDG_CONFIG_DIRS', 'empty-config')):
         (base / name).mkdir()
         env[key] = str(base / name)
+    if system_autostart:
+        env['XDG_CONFIG_DIRS'] = '/usr/local/etc/xdg:/etc/xdg'
     # An actual ordinary autostart application must receive the compositor's
     # future-service environment and map a real Wayland window.
     autostart = base / 'config' / 'autostart'
@@ -82,6 +85,22 @@ with tempfile.TemporaryDirectory(prefix='bsd3-graph49-') as directory:
                 'ShellVersion', env=env)
             assert b'49.10' in version.stdout, version
             (output / 'shell-version.txt').write_bytes(version.stdout)
+            # The seven definitions own foreground settings processes. System
+            # autostart must not create a second instance of any of them.
+            settings = (('a11y-settings', 'A11ySettings'), ('color', 'Color'),
+                        ('keyboard', 'Keyboard'), ('media-keys', 'MediaKeys'),
+                        ('power', 'Power'), ('screensaver-proxy', 'ScreensaverProxy'),
+                        ('sound', 'Sound'))
+            for slug, bus_name in settings:
+                name = f'org.gnome.SettingsDaemon.{bus_name}'
+                answer = call('--dest', 'org.freedesktop.DBus', '--object-path',
+                    '/org/freedesktop/DBus', '--method',
+                    'org.freedesktop.DBus.GetConnectionUnixProcessID', name, env=env)
+                owner_pid = int(re.search(rb'(?:uint32 )?(\d+)', answer.stdout).group(1))
+                processes = subprocess.run(['/usr/bin/pgrep', '-U', str(os.getuid()),
+                    '-f', f'^/usr/local/libexec/gsd-{slug}([[:space:]]|$)'],
+                    capture_output=True, timeout=5, check=True)
+                assert [int(pid) for pid in processes.stdout.split()] == [owner_pid], (slug, processes.stdout, owner_pid)
             call('--dest', 'org.gnome.SessionManager', '--object-path',
                 '/org/gnome/SessionManager', '--method',
                 'org.gnome.SessionManager.Logout', '1', env=env)

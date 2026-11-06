@@ -276,3 +276,30 @@ with the replacement49 launcher. Candidate deployment retains the existing
 SDDM greeter and needs a separate49 profile without47's --builtin argument.
 Native DRM/VT, physical input, display-manager re-entry, browser workaround
 carryover and successful immutable CI release assets are still acceptance gates.
+
+
+## Clean native logout and real system-autostart followup
+
+The final authenticated SessionOver helper passed the native FreeBSD fixture:
+exact child ownership/readiness, normal stop, premature clean exit denial,
+spoofed signals with/without a legitimate pinned manager, authenticated clean
+exit, and nonzero exit refusal after SessionOver. The complete headless graph
+then passed strict per-service logout validation without failures or forced
+cleanup. A second trial with actual `/usr/local/etc/xdg:/etc/xdg` also passed
+real application rendering, exact one foreground PID per seven graph-owned
+settings bus names, and complete owner/socket cleanup.
+
+That production-directory audit exposed an upstream parser ordering detail:
+GNOME49 rejects non-Application phase metadata before checking disabled apps.
+The narrow consumer followup permits Initialization only for the exact seven
+graph-owned desktop IDs, then marks them disabled for ordinary autostart.
+The actual GsmApp API test passed natively: all seven accepted/disabled,
+ordinary Application enabled, unsupported phases and near-match IDs refused.
+Other optional47 session-service entries remain unsupported and are not claimed
+as automatically provided by this graph. The final rebuilt consumer and
+combined immutable CI candidate remain to be qualified after this last patch.
+
+The diagnostic manager compilation now explicitly defines HAVE_CONFIG_H,
+matching real Meson behavior for upstream files with conditional config includes.
+The actual GDesktopAppInfo API test requires FreeBSD: macOS GLib does not export
+that desktop-specific header/API, and no stand-in header is supplied.

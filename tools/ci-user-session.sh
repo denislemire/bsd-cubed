@@ -130,6 +130,7 @@ else
 fi
 git clone --depth 1 --branch 49.0 https://gitlab.gnome.org/GNOME/gnome-session.git "$work_root/gnome-session"
 sh tools/test-gnome49-util.sh "$work_root/gnome-session"
+sh tools/test-gnome49-app.sh "$work_root/gnome-session"
 make test-bus-ready
 sh tools/test-gnome49-system.sh "$work_root/gnome-session"
 sh tools/test-gnome49-manager.sh "$work_root/gnome-session"

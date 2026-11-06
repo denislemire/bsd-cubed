@@ -31,7 +31,7 @@ for name in gsm-app gsm-client gsm-inhibitor gsm-manager gsm-presence gsm-sessio
 done
 # The selected upstream null backend advertises no supported power operations.
 # Its use here is diagnostic only; no privileged operation is emulated.
-cc -std=gnu11 -Wall -Wextra -Werror=implicit-function-declaration \
+cc -DHAVE_CONFIG_H -std=gnu11 -Wall -Wextra -Werror=implicit-function-declaration \
     -DLOCALE_DIR='"/usr/local/share/locale"' \
     -I. -Ignome-session -I"$repo_root/include" \
     $(pkg-config --cflags gio-unix-2.0 gnome-desktop-4) \
