@@ -139,3 +139,23 @@ the owner continued exploring. Service status confirmed it stopped, and no
 The working47 BE remains the permanent default pending the owner's input/apps,
 Airwave interaction and ordinary logout checks. The greeter remains SDDM/Xorg;
 SettingsDaemon remains the explicitly qualified47.2_1 component set.
+
+## Interactive acceptance and default activation
+
+The owner subsequently confirmed that pointer/keyboard input, applications,
+Airwave interaction and ordinary logout all worked, including return to the
+graphical login screen. The49 environment was then permanently activated:
+`bectl list` reported `stable-15-gnome49-20261106` as `NR`. The previous47
+environment is retained as a fallback. No additional reboot was needed.
+
+The live Shell environment explicitly reported `XDG_SESSION_TYPE=wayland`; its
+actual runtime directory contained `wayland-0`. An initial socket check assumed
+`/var/run/user/1001`; inspection corrected that to the running session's
+`/var/run/xdg/denis`. This was a diagnostic path error, not a compositor failure.
+
+At the owner's request, the screen-reader setting was disabled in the actual
+separate49 profile and read back as `false`; no Orca process remained. A normal
+Screenshot portal request completed successfully and saved a private PNG in the
+owner's home directory. Its contents are not included in source or public assets.
+Wi-Fi performance/resolver diagnosis, camera capture, VT shortcuts and the
+other previously listed limitations remain separate open work.
