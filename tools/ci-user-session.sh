@@ -18,7 +18,8 @@ if [ "$(id -u)" -eq 0 ]; then
     git clone --quiet --no-hardlinks "$repo_root" "$user_root/source"
     chown -R circleci "$user_root"
     set +e
-    sudo -H -u circleci /bin/sh "$user_root/source/tools/ci-user-session.sh"
+    sudo -H -u circleci env BSD3_CI_DNS="${BSD3_CI_DNS:-}" \
+        /bin/sh "$user_root/source/tools/ci-user-session.sh"
     user_status=$?
     set -e
     mkdir -p "$repo_root/dist/user-session"
@@ -52,7 +53,26 @@ trap 'exit 143' TERM
 ck_url=https://packages.ehws.generic.business/FreeBSD:15:amd64/bsd3-beta5/All/consolekit2-2.0.0_5.pkg
 ck_sha=08d42eb5055f6cdf3dd91d3613c24f16fa91a33180b8bee7473e1cd737454fd9
 if [ "$(pkg query '%v' consolekit2)" != 2.0.0_5 ]; then
-    fetch -o "$work_root/consolekit2.pkg" "$ck_url"
+    if [ -n "${BSD3_CI_DNS:-}" ]; then
+        python3 -c 'import ipaddress,sys; ipaddress.ip_address(sys.argv[1])' "$BSD3_CI_DNS"
+        # Query the lab resolver explicitly and scope the answer to this curl
+        # invocation. Never modify /etc/resolv.conf, /etc/hosts or TLS policy.
+        package_ip=$(dig +short +time=3 +tries=1 @"$BSD3_CI_DNS" \
+            packages.ehws.generic.business A | python3 -c '
+import ipaddress,sys
+answers=[]
+for line in sys.stdin:
+    try: ip=ipaddress.ip_address(line.strip())
+    except ValueError: continue
+    if ip.version==4 and ip.is_private: answers.append(str(ip))
+if not answers: raise SystemExit("No internal package mirror address returned")
+print(answers[0])')
+        curl --fail --location --silent --show-error --connect-timeout 10 --max-time 60 \
+            --resolve "packages.ehws.generic.business:443:$package_ip" \
+            -o "$work_root/consolekit2.pkg" "$ck_url"
+    else
+        fetch -o "$work_root/consolekit2.pkg" "$ck_url"
+    fi
     [ "$(sha256 -q "$work_root/consolekit2.pkg")" = "$ck_sha" ]
     sudo pkg add -f "$work_root/consolekit2.pkg"
 fi
@@ -97,6 +117,10 @@ make -C "$port" PORTSDIR="$ports_root" WRKDIRPREFIX="$work_root/work" \
     stage test check-plist stage-qa package
 sudo pkg add "$repo_root/dist/user-session/packages/All/dinit-0.19.4.pkg"
 make clean user-session test-user-session
+# Shell embeds the archive in a --no-undefined shared library. An executable
+# link alone can hide dependencies supplied by FreeBSD's executable CRT.
+cc -fPIC -shared -Wl,-z,defs -Iinclude tests/shared-user-session.c \
+    libbsd3-user-session.a -pthread -o "$work_root/user-session-consumer.so"
 if sudo ./bsd3-user-session /tmp boot; then
     echo 'root session unexpectedly allowed' >&2
     exit 1

@@ -4,6 +4,10 @@ version: 2.1
 # Package artifacts only; no host deployment, boot changes or catalogue publishing.
 jobs:
   freebsd-user-session49:
+    environment:
+      # EhWS edge DNS, declared in ehws-infra/clusters/ehws/lan-dns.
+      # Used only for the pinned artifact's curl --resolve, never host DNS.
+      BSD3_CI_DNS: 192.168.12.153
     machine:
       image: freebsd-15.1:current
     resource_class: freebsd.medium
@@ -11,7 +15,7 @@ jobs:
       - checkout
       - run:
           name: Install native user-session build dependencies
-          command: sudo pkg install -y git pkgconf glib dbus python3 gmake gnome-desktop consolekit2
+          command: sudo pkg install -y git pkgconf glib dbus python3 gmake gnome-desktop consolekit2 bind-tools curl
       - run:
           name: Native Dinit port and real GNOME 49 manager lifecycle
           no_output_timeout: 20m
