@@ -111,3 +111,31 @@ boot/stop path. An active user desktop was detected, so reboot awaits the owner'
 save/logout confirmation. Hardware49 display/input and logout acceptance remain
 open. The documentation-only CI59 run was canceled to preserve lab capacity;
 the candidate remains the exact successful CI58 source and packages.
+
+## First successful hardware49 startup
+
+After the owner saved work and explicitly approved reboot, the candidate was
+activated for one boot. At22:13:43UTC, the machine reported the expected49 root,
+SDK0.2.0.a2, Shell49.10 and the running graphical greeter. The owner logged in,
+reported a working desktop and confirmed the result. Read-only queries against
+the actual user's session bus then returned:
+
+```text
+RUNNING_SHELL=49.10
+PHYSICAL_MONITORS=1
+LOGICAL_MONITORS=1
+SESSION_RUNNING=true
+AIRWAVE_STATE=1
+```
+
+This establishes the first actual hardware49 desktop startup, including display
+discovery and an enabled Airwave extension. It supersedes alpha1's zero-monitor
+failure; it does not establish application coverage, radio throughput, camera
+capture, VT shortcut switching or normal logout acceptance.
+
+The boot guard was marked accepted for this startup, stopped and disabled before
+the owner continued exploring. Service status confirmed it stopped, and no
+`sleep 900` child remained: the revised stop path was exercised successfully.
+The working47 BE remains the permanent default pending the owner's input/apps,
+Airwave interaction and ordinary logout checks. The greeter remains SDDM/Xorg;
+SettingsDaemon remains the explicitly qualified47.2_1 component set.
