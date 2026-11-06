@@ -167,3 +167,22 @@ Shell/Mutter 49 native ports, Shell readiness and session environment updates,
 settings-service graph, application/session lifecycle, GDM49 userdb and login
 integration, native 15-STABLE coverage, and eventual physical acceptance. No
 GNOME49 desktop entry or laptop package is installed by this experiment.
+
+## Publication and shared-library follow-up
+
+Later on November 6, signed commit
+`e7364dc73eaeac55cd0e0de39f0efd00a3d16be0` was published as
+[draft PR23](https://github.com/denislemire/bsd-cubed/pull/23); GitHub verified
+the signature, Denis's author/committer identity and DCO. CI's root controller
+needed a separate ordinary-user checkout, corrected in signed `68b7b6b`.
+
+The actual Shell49 shared-library link exposed an executable-only `environ`
+dependency in the SDK. The helper now receives a minimal explicit PATH/LANG
+environment; it inherits no caller credentials, bus or agent environment.
+Literal set/unset propagation tests and the actual49 consumer passed locally.
+The actual FreeBSD15-STABLE `-shared -Wl,-z,defs` consumer link also passed
+with pthread. Tested API source SHA256:
+`d1c4e2a767d60cf741d61d9944b3584e2ab0677ad0bd881dc5d5fc428fc870c2`.
+The corresponding native test archive hash is
+`5d8e2efaeaa50f37983ef7270ed999558089bf1504f98da5d57d3503d457c94d`.
+This is a library-link qualification, not complete GNOME49 desktop acceptance.
