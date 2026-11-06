@@ -77,6 +77,17 @@ These are VM incidents, not evidence of a laptop or BSD3 device failure.
 
 ## Identified VM prototypes
 
+Combined CI55 passed the ordinary-user SDK and GNOME49 consumer tests but
+failed the later ports target because its controller ran the lifecycle suite
+as root. The intentional root refusal remained correct. The ports controller
+now snapshots inputs into a private build directory and delegates the complete
+stage/test/plist/QA/package sequence to an ordinary account with a minimal
+environment. Root copies the successful regular package artifact back afterward.
+On the same native STABLE VM, this controller passed from a root-only checkout
+using `BSD3_PORTS_TEST_USER=bsd3`, with USERSESSION enabled and no skipped
+lifecycle tests. Package creation and manifest/QA checks passed; existing
+unstripped-binary warnings remain. Combined CI must still repeat this result.
+
 These identify diagnostic native artifacts, not published hardware assets:
 
 | Package | SHA256 |
