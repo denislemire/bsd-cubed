@@ -48,7 +48,22 @@ jobs:
           path: dist
           destination: freebsd
 
+  freebsd-gnome49-runtime:
+    machine:
+      image: freebsd-15.1:current
+    resource_class: freebsd.medium
+    steps:
+      - checkout
+      - run:
+          name: Build GNOME49 runtime dependencies and test the actual new GJS
+          no_output_timeout: 30m
+          command: sh tools/ci-gnome49-runtime.sh
+      - store_artifacts:
+          path: dist/gnome49-runtime
+          destination: freebsd/gnome49-runtime
+
 workflows:
   build:
     jobs:
       - freebsd-build-test-package
+      - freebsd-gnome49-runtime
