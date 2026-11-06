@@ -61,7 +61,14 @@ sort -u "$work_root/direct-origins.raw" >"$work_root/direct-origins"
 while IFS= read -r dependency; do
     case "$dependency" in "$ports_root"/*) ;; *) exit 1 ;; esac
     [ "$dependency" != "$ports_root/sysutils/bsd-cubed" ] || continue
-    package=$(make -C "$dependency" PORTSDIR="$ports_root" BATCH=yes -V PKGBASE)
+    case "$dependency" in
+        *@*)
+            flavor=${dependency##*@}
+            dependency=${dependency%@*}
+            package=$(make -C "$dependency" PORTSDIR="$ports_root" BATCH=yes FLAVOR="$flavor" -V PKGBASE)
+            ;;
+        *) package=$(make -C "$dependency" PORTSDIR="$ports_root" BATCH=yes -V PKGBASE) ;;
+    esac
     case "$package" in mutter|gjs|gsettings-desktop-schemas|gnome-shell|bsd-cubed) continue;; esac
     case "$package" in *[!A-Za-z0-9_+.-]*|'') exit 1 ;; esac
     printf '%s\n' "$package" >>dist/session49/direct-dependencies.txt
