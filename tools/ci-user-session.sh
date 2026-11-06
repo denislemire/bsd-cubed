@@ -114,11 +114,21 @@ if [ ! -f "$ports_root/Mk/bsd.port.mk" ]; then
     git clone --depth 1 https://git.freebsd.org/ports.git "$ports_root"
 fi
 port="$work_root/overlay/sysutils/dinit"
-mkdir -p "$port"
+mkdir -p "$port" "$work_root/distfiles"
 cp -R packaging/freebsd/dinit/. "$port/"
 make -C "$port" PORTSDIR="$ports_root" WRKDIRPREFIX="$work_root/work" \
-    PACKAGES="$repo_root/dist/user-session/packages" DEVELOPER=yes \
+    DISTDIR="$work_root/distfiles" PACKAGES="$repo_root/dist/user-session/packages" DEVELOPER=yes \
     stage test check-plist stage-qa package
+# Dinit is unmodified upstream Apache-2.0 source plus this exact recipe.
+# Preserve it before the private build root is removed.
+cp "$work_root/distfiles/davmac314-dinit-v0.19.4_GH0.tar.gz" \
+    dist/user-session/dinit-0.19.4-upstream.tar.gz
+tar -C packaging/freebsd -czf dist/user-session/dinit-0.19.4-bsd3-port.tar.gz dinit \
+    -C "$repo_root" tools/ci-user-session.sh tests/native-inhibit.c
+(cd dist/user-session && sha256 -r dinit-0.19.4-upstream.tar.gz \
+    dinit-0.19.4-bsd3-port.tar.gz) >dist/user-session/DINIT_SHA256SUMS
+(cd dist/user-session/packages/All && sha256 -r dinit-0.19.4.pkg) \
+    >>dist/user-session/DINIT_SHA256SUMS
 sudo pkg add "$repo_root/dist/user-session/packages/All/dinit-0.19.4.pkg"
 make clean user-session test-user-session
 # Shell embeds the archive in a --no-undefined shared library. An executable
@@ -151,7 +161,7 @@ test -f "$stage/usr/local/libdata/pkgconfig/bsd3-user-session.pc"
     git rev-parse HEAD
     git status --short
     git diff --stat
-    git -C "$ports_root" rev-parse HEAD
+    git -c safe.directory="$ports_root" -C "$ports_root" rev-parse HEAD
     git -C "$work_root/gnome-session" rev-parse HEAD
     pkg query '%n %v' glib dbus gnome-desktop dinit
 } >dist/user-session/provenance.txt
