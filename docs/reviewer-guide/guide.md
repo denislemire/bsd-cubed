@@ -6,7 +6,7 @@ BSD³, the BSD Desktop Daemon project, explores a small native boundary between 
 
 The work has progressed from typed session discovery to authenticated controller lifetimes, descriptor transport, real kernel input revocation and VT switching, a native Mutter port, and full GNOME47 headless startup with a mapped Wayland application and logout. Integrating the actual display manager exposed additional boundaries: seat enumeration must work without an existing session, and the Wayland child needs a verified local registration before execution. Those changes and a separate bounded recovery tool are implemented in focused review branches.
 
-The strongest completed exact-CI artifact checkpoint is CI33 at `dcf9744`. Its downloaded packages also passed real-session, input, VT and GNOME headless tests on a separately identified stable/15 VM. Later SDDM and recovery changes are pinned to `8bfa868`; their focused CI is still running. The exact reusable runner has now passed on the stable/15 VM using the separately identified local package. No physical DRM presentation, laptop login, regular-password authentication, suspend reliability or GNOME49-and-later user-service graph is claimed complete.
+The current released checkpoint is CI36 at `8bfa868`, published as v0.1.0-beta3 after every build/test/upload action passed. The exact downloaded packages independently passed real-session, input/VT and full SDDM/GNOME headless tests on stable/15. A cold-backend test-driver correction was validated separately; it changes no compiled/package inputs. Earlier CI33 identities remain historical evidence in Appendix A. No physical DRM presentation, laptop login, regular-password authentication, suspend reliability or GNOME49-and-later user-service graph is claimed complete.
 
 > Assessment: The implementation is a VM-validated experimental bridge and integration candidate. It is not yet a verified working GNOME Wayland desktop on the laptop.
 
@@ -42,17 +42,18 @@ The project chooses C11 because the relevant interfaces already cross C, GLib/GI
 
 ## 2. Source and environment identities
 
-The report's implementation reference is signed commit `8bfa868f3a1c485954d35b9be28b2347b2e4bf30`, a stack of focused development changes. This is a source identity, not a claim that every test was run at that exact commit. CI33's earlier exact checkpoint is `dcf974485696e40381fa23a44db5a5d47d83ae3a`. Later cases identify their working-tree or focused-commit scope. The last completed verification must be distinguished from a newly edited source tree. [S1, E1]
+The implementation reference and published beta tag target signed commit `8bfa868f3a1c485954d35b9be28b2347b2e4bf30`. CI36 built and tested that exact source. Earlier CI33 is `dcf974485696e40381fa23a44db5a5d47d83ae3a`. The separately corrected external cold-start runner changes no compiled/package inputs; its scope and actual post-reboot identity remain distinct from the original CI execution. [S1, E1, E7, E8]
 
 | Item | Identified version or revision | Meaning |
 | --- | --- | --- |
 | Native CI image | 15.1-RELEASE-p6, Clang19.1.7 | Running, installed and userland versions recorded |
-| Independent VM | stable/15-n286217-84aa3cb3204d GENERIC | All version entries15.2-PRERELEASE |
+| Earlier VM | stable/15-n286217-84aa3cb3204d GENERIC | Pre-reboot tests; all entries 15.2-PRERELEASE |
+| Release qualification VM | stable/15-n286624-646a485c3b2f GENERIC | Post-reboot CI36 packages; all entries 15.2-PRERELEASE |
 | Dependency ports | 2072800715389ae49066946c960e6521bac37e6a | Pinned Mutter/ConsoleKit overlay base |
 | Stock CK | ConsoleKit2 2.0.0_2 | Reproduced locality/device/console problems |
 | Corrected CK | 2.0.0_5 | Locality, revoke/state and console fallback patches |
 | Stock / native Mutter | 47.10_2 / 47.10_3 | Native backend disabled / explicitly enabled |
-| BSD³ candidate | 0.1.0-beta3; pkg0.1.0.b3 | Unreleased iteration; hash/commit required |
+| BSD³ release | 0.1.0-beta3; pkg0.1.0.b3 | Published exact CI36 hashes; physical acceptance open |
 | SDDM used in VM | 0.21.0.36_7 | Real FreeBSD port, autologin/PAM helper path |
 | Wi-Fi trial environment | 16.0-CURRENT for all version entries | Separate ongoing work; not the ABI15 target |
 
@@ -197,7 +198,7 @@ After teardown it reopens console descriptors, verifies their device identities,
 
 An initial fixture incorrectly reused a revoked session-tty handle for global recovery. That test failed to restore the active console and an existing root console explicitly restored VT1. The corrected fixture uses independent ttyv0 control and reopens handles after session teardown. Its negative stock-backend scenario then reported recovery=PASS before the positive backend scenario was accepted. A configured recovery idea was not counted as tested recovery.
 
-The new guard's successful producer test observed both ready markers, streaming producer-start without producer-finished, and a live supervisor before completion. It ended with child0, no interventions, recovery=PASS and final PASS. A deadline test ended child124 and restored all consoles but remained FAIL_OR_ASSISTED. Direct SDDM runs also restored the original console at their bounds; that later greeter termination is separate from normal GNOME logout.
+The new guard's successful producer test observed both ready markers, streaming producer-start without producer-finished, and a live supervisor before completion. It ended with child status 0, no interventions, recovery=PASS and final PASS. A deadline test ended child124 and restored all consoles but remained FAIL_OR_ASSISTED. Direct SDDM runs also restored the original console at their bounds; that later greeter termination is separate from normal GNOME logout.
 
 The reusable runner waits for GNOME's result, the production launcher's final zero status and the original CK inventory before requesting greeter stop. A command-exit file is an intermediate record; complete.txt is the final recovery barrier. Failed/partial exports are labelled explicitly. An initial run was blocked during preparation by OIDC discovery503 and a separate macOS-xattr extraction error; neither attempt counts as a pass. After access recovered, a fresh immutable root-owned snapshot of 8bfa868 passed the complete runner with exit0. Streaming completed PASS; deliberate timeout and requested greeter stop remained FAIL_OR_ASSISTED with recovery PASS/original VT1. The final stop required descendant escalation (child137, three terminated and one killed), so this is verified requested recovery, not unassisted greeter shutdown. Physical DRM/input remains unverified. [E4]
 
@@ -221,7 +222,7 @@ The expanded private suite has18 groups. On the native VM17 applicable groups pa
 
 CI25 established that commands on this executor actually run as root. Ownership-denial tests therefore explicitly use the existing nobody account, while session/GNOME acceptance uses the existing circleci account. A previous test described as ordinary-user execution had actually acquired the name as root and timed out. The revised procedure measures identity rather than inferring it from an executor label. No new passwordless-sudo account was created.
 
-CI33 completed overall-success, including service, actual CK/input/VT, Mutter, full GNOME and upload. CI32 passed individual actions but ended infrastructure_fail and was quarantined. Downloading its files or observing green steps did not make it a release gate. Later focused branch CI must qualify the new SDDM/launcher/recovery source, not inherit CI33's result by proximity. [E1, E5]
+CI36 completed overall-success at 8bfa868, including service, real CK/input/VT, Mutter, full GNOME, SDDM/recovery and upload. Its exact packages then passed independent stable/15 qualification. CI33 is the earlier successful checkpoint; CI32 ended infrastructure_fail and was quarantined despite individual green actions. Neither downloaded files nor nearby green source establishes a release gate. [E1, E5, E7]
 
 ## 14. Native packaging, service lifecycle and release gate
 
@@ -245,7 +246,7 @@ make DESTDIR=/tmp/bsd3-stage PREFIX=/usr/local install
 
 The final release must come from successful native CI at the exact candidate source. Publish a signed beta tag with its package, source, checksums and provenance; include complete corresponding modified Mutter/CK sources and exact recipes. Download the published assets again and verify them. A package catalogue must preserve unrelated entries and make the corresponding sources available to its recipients. No failed-CI or ad hoc VM build is a laptop release substitute.
 
-The old v0.1.0-beta1 remains the read-only preview. Candidate beta3 has not been published at this report's checkpoint. CI33's exact historical binary identities are preserved in the appendix, but those earlier binaries do not contain the new SDDM launcher/recovery solution. Package versions alone are insufficient when unreleased iterations use the same candidate version.
+The old v0.1.0-beta1 remains the read-only preview. v0.1.0-beta3 is published from the signed exact CI36 implementation tag, with three packages, complete corresponding sources/recipes, provenance and checksums. All eleven payloads were downloaded again and hash-verified. CI33's historical binaries lack the new launcher/recovery solution. Versions alone cannot distinguish those earlier same-version development iterations. [E7]
 
 [pagebreak]
 
@@ -281,7 +282,7 @@ Review the minimal dependency patches against original source and measured behav
 [pagebreak]
 ## Appendix A. Historical artifact ledger
 
-These are verified CI33 checkpoint identities, not the manifest for a later SDDM-capable release. The matching source is dcf9744, ABI FreeBSD:15:amd64. All three downloaded packages were installed and exercised in the identified STABLE VM. Later source at8bfa868 needs its own complete CI and release manifest. [E1, E6]
+These are verified CI33 checkpoint identities, not the manifest for a later SDDM-capable release. The matching source is dcf9744, ABI FreeBSD:15:amd64. All three downloaded packages were installed and exercised in the identified STABLE VM. Later source at 8bfa868 needs its own complete CI and release manifest. [E1, E6]
 
 | CI33 artifact | SHA256 |
 | --- | --- |
@@ -340,6 +341,25 @@ Preserve the exact source/patches, package and compiler identities, kernel/modul
 | Prepared source extraction is a run | macOS xattrs made extraction error | Clean archive; no false completion marker |
 
 [pagebreak]
+## Appendix D. Published beta3 qualification
+
+Release: https://github.com/denislemire/bsd-cubed/releases/tag/v0.1.0-beta3 . The verified signed tag targets 8bfa868. CI36 completed every build/test/upload action, and all eleven published payloads were downloaded and hash-verified. [E7]
+
+| Published binary | SHA256 |
+| --- | --- |
+| bsd-cubed-0.1.0.b3.pkg | 2aa539c7c2e7901e278408a8d63530951fa2c0d774e829ddba623eb943bda043 |
+| consolekit2-2.0.0_5.pkg | 08d42eb5055f6cdf3dd91d3613c24f16fa91a33180b8bee7473e1cd737454fd9 |
+| mutter-47.10_3.pkg | 97e52f05b57087904d06952161cb414e90272780389e5a5e112a2984da5eaac9 |
+
+Independent qualification used all version entries 15.2-PRERELEASE and GENERIC stable/15-n286624-646a485c3b2f after reboot. The on-disk kernel predated this trial; these packages install no kernel. This is distinct from earlier pre-reboot 84aa3cb3204d evidence.
+
+The exact packages passed ordinary-user CK registration/control, actual inactive input revoke, VT refusal/pause/fresh-FD resume/release and VT1 recovery. Full SDDM UID 1002 / VT9 local registration, GNOME RequiredComponents, mapped headless Wayland window and normal session logout passed. Launcher final status 0 and original CK inventory preceded requested greeter stop: child status 0, signal 15, seven terminated and zero killed descendants, no outer deadline. Recovery PASS and final FAIL_OR_ASSISTED are separate results.
+
+The first cold-backend attempt failed before SDDM because CK was absent and the SDK inventory deliberately does not activate it. A corrected external runner recorded backend=false and discovered real seats before inventory, matching SDDM startup; it then passed against these exact binaries. PR15 changes no compiled/package inputs. The failed/partial attempt was retained. [E8]
+
+The corrected runner hash is 2e5bc00087364b89c89d9fb41c6449548eb06c5024b9b9983d5cf1a1269b9bf0. The protected complete qualification export hash is a2c85ad5295d7af80fab0948bc4042f45dae825ad4f7cb2697ba778abda63f1e. Raw evidence remains private. Physical display/input, password login and GNOME49+ startup remain open.
+
+[pagebreak]
 ## References and evidence index
 
 [S1] BSD³ implementation reference and focused changes: https://github.com/denislemire/bsd-cubed/tree/8bfa868f3a1c485954d35b9be28b2347b2e4bf30 ; PR11 https://github.com/denislemire/bsd-cubed/pull/11 ; PR12 https://github.com/denislemire/bsd-cubed/pull/12 ; PR13 https://github.com/denislemire/bsd-cubed/pull/13 .
@@ -381,3 +401,7 @@ Preserve the exact source/patches, package and compiler identities, kernel/modul
 [E5] Service and identity correction: docs/service-integration-2026-11-05.md and tools/ci-service.sh. Failed CI32: https://circle.ehws.generic.business/gh/denislemire/bsd-cubed/32 .
 
 [E6] Current hardware gate and exact artifact identities: docs/hardware-handoff-2026-11-05.md. The laptop remains reserved for coordinated kernel/Wi-Fi work until a separate STABLE desktop window is opened.
+
+[E7] Current release/build: https://github.com/denislemire/bsd-cubed/releases/tag/v0.1.0-beta3 and https://circle.ehws.generic.business/gh/denislemire/bsd-cubed/36 . SHA256SUMS, BUILD-PROVENANCE.txt and VALIDATION.txt accompany the release.
+
+[E8] Cold-backend test ordering: https://github.com/denislemire/bsd-cubed/pull/15 . Distinct immutable driver and post-reboot STABLE qualification, without compiled input changes.

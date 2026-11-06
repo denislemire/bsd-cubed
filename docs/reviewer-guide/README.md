@@ -7,8 +7,10 @@ acceptance. It is a review draft, not a desktop-readiness certificate.
 
 The implementation reference is commit
 8bfa868f3a1c485954d35b9be28b2347b2e4bf30. The November 5 final reusable runner
-passed on stable/15 with the recorded local package; release CI and physical
-hardware acceptance remain separate gates. Historical CI33 hashes in Appendix A
+passed on stable/15 with the recorded local package; CI36 and exact-package STABLE
+qualification now pass. The signed beta3 is published and its downloads verified;
+physical acceptance remains a separate gate. Appendix D identifies the current
+release and external cold-test correction. Historical CI33 hashes in Appendix A
 must not be used as the final SDDM candidate manifest.
 
 ## Sources and build

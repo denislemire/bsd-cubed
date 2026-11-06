@@ -63,9 +63,11 @@ version. Consumer ports must explicitly opt in once the interfaces they use
 are implemented. Linking both libraries that export the same `sd_*` symbols is
 unsupported.
 
-The published v0.1.0-beta1 remains the earlier read-only discovery preview.
-Controller work is validated separately and must receive a new version before
-release; never replace the existing beta assets.
+The signed [v0.1.0-beta3 prerelease](https://github.com/denislemire/bsd-cubed/releases/tag/v0.1.0-beta3)
+contains the exact CI36 package set and corresponding sources/recipes. Native CI
+and independent stable/15 session/input/VT and SDDM/GNOME headless qualification
+pass; physical display/input and password login remain unverified. The earlier
+beta1 remains a read-only preview. Published beta assets are immutable.
 
 ## What a working desktop still requires
 

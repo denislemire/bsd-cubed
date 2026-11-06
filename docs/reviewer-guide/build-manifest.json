@@ -3,8 +3,8 @@
   "author": "Denis Lemire",
   "date": "5 November 2026",
   "implementation_reference": "8bfa868f3a1c485954d35b9be28b2347b2e4bf30",
-  "source_sha256": "c230b373e33720964004507026359a077d7dbed57769c26ebb76c761a7fc8b5f",
-  "pdf_sha256": "602a5cb90b3861f64144f9a4109c3484e17db160bf69786305a6b500c70a08a5",
+  "source_sha256": "687b8117aeffccefac52115f72bd061c53a9981e15134a67d6b75b678107f03b",
+  "pdf_sha256": "ad3ec77de758638709ad879bc2314c40fd6e4c61e4250c66c3b5ee709c2e7008",
   "renderer": "ReportLab 4.4.9",
   "fonts": [
     "NotoSerif-Regular.ttf",
