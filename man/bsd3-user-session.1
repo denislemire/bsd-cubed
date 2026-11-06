@@ -1,0 +1,70 @@
+.\" SPDX-License-Identifier: BSD-2-Clause
+.Dd November 6, 2026
+.Dt BSD3-USER-SESSION 1
+.Os
+.Sh NAME
+.Nm bsd3-user-session
+.Nd run an explicitly selected native user service graph
+.Sh SYNOPSIS
+.Nm
+.Ar /absolute/services-directory root-service
+.Sh DESCRIPTION
+.Nm
+starts Dinit in ordinary-user, container mode with only the selected service
+directory. It creates a mode 0700 session directory beneath an owned, private
+.Ev XDG_RUNTIME_DIR .
+Root and mismatched real/effective user IDs are refused.
+No system init service or machine shutdown facility is enabled.
+.Pp
+The process waits for Dinit and forwards interrupt, terminate and hangup as
+a session shutdown. Dinit performs dependency-ordered stopping using each
+service's explicit stop timeout. On FreeBSD the launcher additionally acquires
+a process reaper and kills/reaps remaining descendants after Dinit exits.
+This is scoped to this login, not all processes owned by the user.
+Other operating systems have no additional orphan cleanup guarantee.
+.Pp
+Startup requires both the manager control socket and an acknowledged root
+service start, including dependency readiness. The whole graph has a 120 second
+startup deadline. Manager shutdown has a 30 second deadline; expiry is an error
+and triggers forced manager/FreeBSD descendant cleanup. The manager's exit status
+alone is insufficient evidence of a successful graph start.
+.Pp
+The experimental library
+.Pa libbsd3-user-session.a
+provides
+.Fn bsd3_session_ready
+and
+.Fn bsd3_session_setenv .
+Both return zero or a negative errno value.
+Readiness writes one notification and closes the inherited pipe described by
+.Ev BSD3_READY_FD .
+Configure Dinit services with
+.Li ready-notification = pipevar:BSD3_READY_FD .
+The environment operation uses an owned socket in a private directory and
+the configured dinitctl executable, with a five second response bound.
+A NULL value removes a variable. Updates affect future services; existing
+processes keep their environment. Arguments are passed directly, without a shell.
+BSD3 control variables and DINIT_ variables cannot be changed by this API.
+The pinned backend limits a name=value assignment to 1020 bytes; larger
+updates fail with E2BIG instead of silently truncating the environment.
+.Pp
+The service directory is trusted executable configuration for the same user.
+Every service must explicitly choose restart policy and finite startup/stop
+timeouts. Session services must depend on the session-manager lifetime;
+an independently started unbound service keeps the manager instance alive.
+This program does not parse systemd units, provide sd_notify or
+expose org.freedesktop.systemd1. These interfaces are experimental and do not
+by themselves provide a GNOME 49 desktop.
+.Sh ENVIRONMENT
+.Bl -tag -width BSD3_SESSION_SOCKET
+.It Ev XDG_RUNTIME_DIR
+Owned private runtime directory required for each login.
+.It Ev BSD3_SESSION_SOCKET
+Private per-login control socket set by the launcher.
+.It Ev BSD3_READY_FD
+Readiness pipe assigned by Dinit to an individual service.
+.El
+.Sh SEE ALSO
+.Xr dinit 8 ,
+.Xr dinitctl 8 ,
+.Xr dinit-service 5
