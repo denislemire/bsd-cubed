@@ -55,9 +55,9 @@ The implementation reference and published beta tag target signed commit `8bfa86
 | Stock / native Mutter | 47.10_2 / 47.10_3 | Native backend disabled / explicitly enabled |
 | BSD³ release | 0.1.0-beta3; pkg0.1.0.b3 | Published exact CI36 hashes; physical acceptance open |
 | SDDM used in VM | 0.21.0.36_7 | Real FreeBSD port, autologin/PAM helper path |
-| Wi-Fi trial environment | 16.0-CURRENT for all version entries | Separate ongoing work; not the ABI15 target |
+| Earlier Wi-Fi trial | 16.0-CURRENT for all version entries | Separate ongoing work; not the ABI15 target |
 
-The current laptop environment was initially described incorrectly as a CURRENT kernel with STABLE userland. A fresh coordinating-session audit corrected all `freebsd-version -kru` entries to CURRENT. The desktop trial therefore continues to require a separate verified STABLE boot environment. No package ABI override is an acceptable substitute for that separation. The desktop work does not change the Wi-Fi experiment's kernel or boot selection.
+An earlier laptop trial was incorrectly described as a CURRENT kernel with STABLE userland; a fresh audit showed all three version entries were CURRENT. That historical correction illustrates why ABI15 packages require an independently verified matching STABLE environment. Obtain the current device and boot-environment identity from the coordinating operator, not this report. A package ABI override is no substitute for that verification. Desktop validation preserves network startup, kernel/module sets and the normal fallback.
 
 ## 3. Architecture and ownership boundaries
 
@@ -252,7 +252,7 @@ The old v0.1.0-beta1 remains the read-only preview. v0.1.0-beta3 is published fr
 
 ## 15. Controlled hardware acceptance and newer GNOME
 
-No laptop installation, reboot, display-manager/backend change or desktop workload is authorized by this report. The coordinating Wi-Fi work retains the device until it opens a concrete window. The latest report says the current environment is all CURRENT; ABI15 packages require a separate verified STABLE boot environment, with matching kernel/modules/userland and the persistent normal fallback unchanged. [E6]
+No laptop installation, reboot, display-manager/backend change or desktop workload is authorized by this report. The coordinating Wi-Fi work retains the device until it opens a concrete window. An earlier trial was entirely CURRENT. ABI15 packages require a freshly verified matching STABLE boot environment, with kernel/modules/userland and the persistent normal fallback preserved. Current device state comes from the coordinating operator, not this dated guide. [E6]
 
 The future procedure is to clone the verified STABLE base, confirm which datasets contain /etc, /boot, /usr/local and the package database, and boot the trial once with SDDM disabled. Shared home/log/tmp datasets are not restored by a BE rollback. Save baseline packages/configuration, fetch the published beta, verify hashes/ABI/dependencies and install only the exact candidate changes. No mass upgrade, forced ABI override, kernel replacement or network tuning belongs in this trial.
 
