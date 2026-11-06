@@ -20,12 +20,13 @@
      <file preprocess="xml-stripblanks">org.freedesktop.GeoClue2.Manager.xml</file>
 --- js/dbusServices/screencast/screencastService.js.orig
 +++ js/dbusServices/screencast/screencastService.js
-@@ -524,7 +524,7 @@
+@@ -524,7 +524,8 @@
  
  export const ScreencastService = class extends ServiceImplementation {
      static canScreencast() {
 -        if (!Gst.init_check(null))
-+        if (!Gst.init_check([]))
++        const [initialized] = Gst.init_check([]);
++        if (!initialized)
              return false;
  
          let elements = [

@@ -88,6 +88,24 @@ using `BSD3_PORTS_TEST_USER=bsd3`, with USERSESSION enabled and no skipped
 lifecycle tests. Package creation and manifest/QA checks passed; existing
 unstripped-binary warnings remain. Combined CI must still repeat this result.
 
+CI56 subsequently passed that packaging step, service policy, CK registration,
+input revoke/resume and the production VT bootstrap. Its nested production
+launcher reuse check failed at ConsoleKit GetSessionForUnixProcess; the captured
+VT recovery passed. This remains an investigated regression, not a successful
+combined candidate. The pipeline stopped before building the49 consumers.
+
+A separate real GJS probe showed GStreamer init_check returns a two-element
+GI tuple. The Shell adaptation now checks its first boolean explicitly. The
+new extracted-method test failed against the prior source for a false tuple,
+then passed with the correction, including missing-element and complete-pipeline
+fixtures and the actual installed GI return shape. This establishes capability
+handling, not a working screencast or PipeWire capture implementation.
+
+The prepared49 hardware profile wrapper uses its own bsd3-gnome49 directory
+because the laptop shares its home dataset between boot environments. It retains
+the verified WebKit fallback and launches the packaged49 session entry point.
+Only syntax has been checked for this wrapper; hardware integration remains open.
+
 These identify diagnostic native artifacts, not published hardware assets:
 
 | Package | SHA256 |
