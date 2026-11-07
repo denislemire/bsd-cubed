@@ -1,0 +1,102 @@
+# Queued navigation cleanup at logical window removal.
+# Consumer source and changes retain GPL-3.0-or-later licensing.
+--- src/ephy-window.c.orig
++++ src/ephy-window.c
+@@ -2108,6 +2108,46 @@
+   g_free (data);
+ }
+ 
++static void
++disconnect_filters_initialized (EphyWindow         *window,
++                                EphyFiltersManager *manager)
++{
++  gulong handler_id = window->filters_initialized_id;
++
++  /* Clear our ownership before disconnecting any closure. */
++  window->filters_initialized_id = 0;
++  if (manager && handler_id && g_signal_handler_is_connected (manager, handler_id))
++    g_signal_handler_disconnect (manager, handler_id);
++}
++
++static void
++cancel_pending_decisions_on_window_removed (GtkApplication *application,
++                                            GtkWindow      *removed,
++                                            EphyWindow     *window)
++{
++  EphyFiltersManager *manager;
++  GList *pending;
++
++  if (removed != GTK_WINDOW (window))
++    return;
++
++  /* The application is still alive during window-removed; its existing
++   * filter manager may already have been cleared during application teardown.
++   * Steal the list before any disconnect/decision callback can reenter us. */
++  pending = g_steal_pointer (&window->pending_decisions);
++  manager = ephy_embed_shell_get_filters_manager (EPHY_EMBED_SHELL (application));
++  disconnect_filters_initialized (window, manager);
++
++  for (GList *item = pending; item; item = item->next) {
++    VerifyUrlAsyncData *data = item->data;
++
++    /* Releasing a deferred decision must not resume navigation in a window
++     * that has ended its logical lifetime. */
++    webkit_policy_decision_ignore (data->decision);
++  }
++  g_list_free_full (pending, (GDestroyNotify)verify_url_async_data_free);
++}
++
+ static gboolean
+ accept_navigation_policy_decision (EphyWindow           *window,
+                                    WebKitPolicyDecision *decision,
+@@ -2471,6 +2511,14 @@
+ static void
+ resolve_pending_decision (VerifyUrlAsyncData *async_data)
+ {
++  /* Resolving an earlier queued decision can reenter window removal. The
++   * detached batch still owns its entries, but a removed window must not
++   * resume any remaining decisions. */
++  if (!gtk_window_get_application (GTK_WINDOW (async_data->window))) {
++    webkit_policy_decision_ignore (async_data->decision);
++    return;
++  }
++
+   decide_navigation_policy (async_data->web_view, async_data->decision, async_data->decision_type, async_data->window);
+ }
+ 
+@@ -2479,14 +2527,16 @@
+                         GParamSpec         *pspec,
+                         EphyWindow         *window)
+ {
++  GList *pending;
++
+   /* This function is only ever invoked after initialization has completed. */
+   g_assert (ephy_filters_manager_get_is_initialized (filters_manager));
+ 
+-  g_signal_handler_disconnect (filters_manager, window->filters_initialized_id);
+-
+-  g_list_foreach (window->pending_decisions, (GFunc)resolve_pending_decision, NULL);
+-  g_list_free_full (window->pending_decisions, (GDestroyNotify)verify_url_async_data_free);
+-  window->pending_decisions = NULL;
++  pending = g_steal_pointer (&window->pending_decisions);
++  disconnect_filters_initialized (window, filters_manager);
++
++  g_list_foreach (pending, (GFunc)resolve_pending_decision, NULL);
++  g_list_free_full (pending, (GDestroyNotify)verify_url_async_data_free);
+ }
+ 
+ static gboolean
+@@ -4542,6 +4592,13 @@
+   gtk_window_group_add_window (window_group, GTK_WINDOW (window));
+   ephy_shell_register_window (shell, window);
+ 
++  /* Queued policy data owns the window. Dispose/finalize cannot break that
++   * cycle, and can-close is only a cancellable preflight. The weak object
++   * connection releases queued work only on actual application removal. */
++  g_signal_connect_object (shell, "window-removed",
++                           G_CALLBACK (cancel_pending_decisions_on_window_removed),
++                           window, 0);
++
+ #if TECH_PREVIEW
+   gtk_widget_add_css_class (GTK_WIDGET (window), "devel");
+ #endif

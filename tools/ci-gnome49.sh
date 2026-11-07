@@ -93,7 +93,7 @@ if ! make -C "$port" PORTSDIR="$ports_root" BATCH=yes DEVELOPER=yes \
 fi
 wrksrc=$(make -C "$port" PORTSDIR="$ports_root" WRKDIRPREFIX="$work_root/work" -V WRKSRC)
 source_name=${wrksrc##*/}
-case "$source_name" in gnome-session-49.0) ;; *) exit 1 ;; esac
+case "$source_name" in gnome-session-49.3) ;; *) exit 1 ;; esac
 tar --exclude "$source_name/_build" -C "${wrksrc%/*}" -czf \
     "$repo_root/dist/session49/$source_name-bsd3-source.tar.gz" "$source_name"
 tar -C "$work_root/overlay" -czf "$repo_root/dist/session49/$source_name-bsd3-port.tar.gz" \

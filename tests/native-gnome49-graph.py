@@ -58,12 +58,19 @@ with tempfile.TemporaryDirectory(prefix='bsd3-graph49-') as directory:
                XDG_SESSION_DESKTOP='gnome', GNOME_SHELL_SESSION_MODE='user',
                LIBGL_ALWAYS_SOFTWARE='true', GSETTINGS_BACKEND='memory',
                PULSE_SERVER='unix:/tmp/bsd3-graph49-no-pulse')
-    for key, name in (('XDG_CONFIG_HOME', 'config'), ('XDG_CACHE_HOME', 'cache'),
+    for key, name in (('HOME', 'home'), ('XDG_CONFIG_HOME', 'config'), ('XDG_CACHE_HOME', 'cache'),
                       ('XDG_DATA_HOME', 'data'), ('XDG_CONFIG_DIRS', 'empty-config')):
         (base / name).mkdir()
         env[key] = str(base / name)
     if system_autostart:
         env['XDG_CONFIG_DIRS'] = '/usr/local/etc/xdg:/etc/xdg'
+    # D-Bus activated helpers must use this fixture's private home/config too.
+    # This updates only the enclosing disposable session bus, without systemd.
+    subprocess.run(['/usr/local/bin/dbus-update-activation-environment',
+                    'HOME', 'XDG_RUNTIME_DIR', 'XDG_CONFIG_HOME', 'XDG_CACHE_HOME',
+                    'XDG_DATA_HOME', 'XDG_CONFIG_DIRS', 'GSETTINGS_BACKEND',
+                    'XDG_SESSION_TYPE', 'XDG_CURRENT_DESKTOP'],
+                   env=env, capture_output=True, check=True, timeout=5)
     # An actual ordinary autostart application must receive the compositor's
     # future-service environment and map a real Wayland window.
     autostart = base / 'config' / 'autostart'

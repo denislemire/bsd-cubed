@@ -939,9 +939,11 @@ include/evolution/calendar/gui/comp-util.h
 include/evolution/calendar/gui/e-alarm-list.h
 include/evolution/calendar/gui/e-bulk-edit-tasks.h
 include/evolution/calendar/gui/e-cal-component-preview.h
+include/evolution/calendar/gui/e-cal-component-widget.h
 include/evolution/calendar/gui/e-cal-config.h
 include/evolution/calendar/gui/e-cal-data-model-subscriber.h
 include/evolution/calendar/gui/e-cal-data-model.h
+include/evolution/calendar/gui/e-cal-day-column.h
 include/evolution/calendar/gui/e-cal-dialogs.h
 include/evolution/calendar/gui/e-cal-event.h
 include/evolution/calendar/gui/e-cal-list-view.h
@@ -950,6 +952,7 @@ include/evolution/calendar/gui/e-cal-model-memos.h
 include/evolution/calendar/gui/e-cal-model-tasks.h
 include/evolution/calendar/gui/e-cal-model.h
 include/evolution/calendar/gui/e-cal-ops.h
+include/evolution/calendar/gui/e-cal-range-model.h
 include/evolution/calendar/gui/e-calendar-view.h
 include/evolution/calendar/gui/e-cell-date-edit-text.h
 include/evolution/calendar/gui/e-cell-estimated-duration.h
@@ -1381,7 +1384,6 @@ include/evolution/mail/e-mail-display.h
 include/evolution/mail/e-mail-enums.h
 include/evolution/mail/e-mail-enumtypes.h
 include/evolution/mail/e-mail-folder-create-dialog.h
-include/evolution/mail/e-mail-folder-pane.h
 include/evolution/mail/e-mail-folder-sort-order-dialog.h
 include/evolution/mail/e-mail-folder-tweaks.h
 include/evolution/mail/e-mail-free-form-exp.h
@@ -6763,4 +6765,4 @@ share/locale/zh_CN/LC_MESSAGES/evolution.mo
 share/locale/zh_HK/LC_MESSAGES/evolution.mo
 share/locale/zh_TW/LC_MESSAGES/evolution.mo
 share/man/man1/evolution.1.gz
-share/metainfo/org.gnome.Evolution.appdata.xml
+share/metainfo/org.gnome.Evolution.metainfo.xml

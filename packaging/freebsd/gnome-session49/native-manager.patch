@@ -486,8 +486,8 @@ diff --git a/meson.build b/meson.build
 index b10c945..fcf1dba 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -90,20 +90,25 @@ session_deps = [
-   dependency('json-glib-1.0', version: '>= 0.10')
+@@ -88,20 +88,25 @@ session_deps = [
+   dependency('gnome-desktop-4'),
  ]
  
 -libsystemd_dep = dependency('libsystemd', version: '>= 209', required: true)

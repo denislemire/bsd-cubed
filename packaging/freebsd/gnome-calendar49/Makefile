@@ -14,6 +14,7 @@ LICENSE_FILE=	${WRKSRC}/COPYING
 BUILD_DEPENDS=	blueprint-compiler>0:devel/blueprint-compiler \
 		gsettings-desktop-schemas>=0:devel/gsettings-desktop-schemas
 LIB_DEPENDS=	libical.so:devel/libical \
+		libgraphene-1.0.so:graphics/graphene \
 		libsoup-3.0.so:devel/libsoup3 \
 		libgweather-4.so:net/libgweather4 \
 		libgeoclue-2.so:net/geoclue

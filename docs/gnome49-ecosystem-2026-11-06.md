@@ -79,3 +79,10 @@ Changes are published as signed, DCO commits and reviewable PR updates. Matching
 native CI packages, consumer source/recipes, hashes and provenance precede laptop
 rollout. Repository-publication review runs in parallel. A Wayland-native greeter
 and removal of the Xorg server are explicitly queued after these packages.
+
+
+The later [second-batch native record](gnome49-app-overlay-batch2-2026-11-06.md)
+now documents all23 ecosystem package builds, Session49.3 and all15 actual app
+window fixtures in both session modes, the fixed browser navigation ownership
+cycle, PDF backend rendering and the separate WebKit DOM/pixel probe. Combined
+CI and release/hardware acceptance remain distinct next gates.

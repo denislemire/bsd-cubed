@@ -33,7 +33,7 @@ PORTSCOUT=	limit:^49\.
 
 MESON_ARGS=	-Dpackagekit=false \
 		-Dselinux=false \
-		-Dtests=none
+		-Dtests=headless
 BINARY_ALIAS=	python3=${PYTHON_VERSION}
 CPE_VENDOR=	gnome
 
