@@ -42,7 +42,7 @@ COMPONENTS = [
  ('gnome-console49','x11/gnome-console'), ('gnome-maps49','deskutils/gnome-maps'),
  ('papers49','graphics/papers'), ('gnome-shell-extensions49','x11/gnome-shell-extensions'),
  ('evolution49','mail/evolution')]
-BASE = ['ConsoleKit2','dinit','bsd-cubed','gjs','gsettings-desktop-schemas','mutter','gnome-shell','gnome-session']
+BASE = ['consolekit2','dinit','bsd-cubed','gjs','gsettings-desktop-schemas','mutter','gnome-shell','gnome-session']
 CLOCK = float('inf')
 INHIBITOR = None
 
@@ -414,7 +414,8 @@ def root_main(repo):
         require(identity, 'preceding qualified provider missing: '+name)
         run(['pkg','lock','-y',name],timeout=30)
         protected[name] = identity
-    require(re.search(r'^ConsoleKit2-2\.0\.0_5 ',protected['ConsoleKit2']), 'native CK2_5 required')
+    require(protected['consolekit2'] == 'consolekit2-2.0.0_5 sysutils/consolekit2',
+            'native consolekit2-2.0.0_5 required')
     (output/'initial-providers.json').write_text(json.dumps(protected,indent=2)+'\n')
     (output/'framework-overlay.diff').write_text(run(['git','-C',ports,'diff','HEAD','--'],timeout=60))
     # Compile only trusted, snapshotted BSD fixtures under root provisioning.

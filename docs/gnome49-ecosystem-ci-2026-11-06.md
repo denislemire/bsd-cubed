@@ -198,3 +198,12 @@ source/recipe/upstream/package/provenance list, plus both Papers Cargo inputs,
 and nonempty regular copies of each. Offline checks remove and truncate every
 required input and reject actor attempts to shorten the contract. The release
 curator independently requires the same corresponding-source inventory.
+
+### CI67 provider handoff
+
+CI67 passed the core build and native Session49.3 tests, then stopped before
+building ecosystem ports because its provider check used ConsoleKit2, the
+upstream source name. The actual CI67 package manifest and a native installed
+package query report `consolekit2-2.0.0_5 sysutils/consolekit2`. The controller
+now uses that exact package identity for lookup, locking and provider protection.
+The failed combined run is evidence for diagnosis only, not a release candidate.
