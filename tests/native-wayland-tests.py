@@ -92,7 +92,8 @@ def main():
         env = os.environ.copy()
         for key in ('DISPLAY', 'BSD3_SESSION_SOCKET', 'BSD3_READY_FD', 'XDG_SESSION_COOKIE'):
             env.pop(key, None)
-        env.update(XDG_RUNTIME_DIR=directory, WAYLAND_DISPLAY='bsd3-tests',
+        # Some upstream tests use fixed names under GLib's temporary directory.
+        env.update(TMPDIR=directory, XDG_RUNTIME_DIR=directory, WAYLAND_DISPLAY='bsd3-tests',
                    GDK_BACKEND='wayland', LIBGL_ALWAYS_SOFTWARE='true',
                    GSETTINGS_BACKEND='memory', MESON_TESTTHREADS='2')
         for key, subdir in [('HOME', 'home'), ('XDG_CONFIG_HOME', 'config'),
@@ -102,7 +103,7 @@ def main():
         # The private bus predates this runtime. Publish the future display and
         # private directories before either Mutter or GTK can activate GVfs.
         subprocess.run(['/usr/local/bin/dbus-update-activation-environment',
-            'HOME','XDG_RUNTIME_DIR','XDG_CONFIG_HOME','XDG_CACHE_HOME','XDG_DATA_HOME',
+            'HOME','TMPDIR','XDG_RUNTIME_DIR','XDG_CONFIG_HOME','XDG_CACHE_HOME','XDG_DATA_HOME',
             'WAYLAND_DISPLAY','GDK_BACKEND','GSETTINGS_BACKEND'], env=env,
             capture_output=True, timeout=5, check=True)
         with (output / 'compositor.log').open('wb') as log:

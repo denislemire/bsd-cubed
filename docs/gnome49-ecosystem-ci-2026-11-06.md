@@ -327,3 +327,27 @@ including Web's two-window quit test, plus Settings 49.9 About and normal sessio
 logout and ownership cleanup. These were development checks against the VM's
 locally built stack, not qualification of the final CI package bytes, a graphical
 greeter, or laptop hardware.
+
+### November 7: final desktop replay
+
+CI79 and CI82 built the eight core packages and all 23 ecosystem ports. Both
+stopped at the first Web window on 15.1-RELEASE-p6. The exact CI79 packages
+passed integrity and dependency checks and both full 15-app graphs on
+15-STABLE, including Settings 49.9 About and normal logout. A separate VM
+using the CI image reproduced the failure with the CI82 packages. Its
+backtrace reaches GIO's D-Bus cancellation source during Web initialization.
+The underlying cause remains open.
+
+The target VM's first complete rebuild stopped in Evolution Data Server.
+Earlier test runs left fixed-name cache directories in `/tmp` under another
+account. The same binaries passed all 100 upstream tests with a private
+temporary directory, and all 100 passed again with the updated Wayland test
+helper providing that directory. The helper also passes it to services
+activated by the private session bus.
+
+The native controller then completed on 15-STABLE `646a485c3b2f` at
+`43b1659` plus the private temp-directory fix. It used the eight verified
+CI79 core packages and rebuilt all 23 ecosystem ports. Both full Wayland
+graphs passed, including Web's two-window quit check, Settings About, and
+session logout. The controller emitted a qualification receipt and full
+artifact hashes. The existing CircleCI runner still uses 15.1-RELEASE-p6.
