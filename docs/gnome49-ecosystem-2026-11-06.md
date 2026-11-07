@@ -60,11 +60,20 @@ fixture. Laptop rollout awaits the published, natively qualified package.
 
 ## Remaining work and publication
 
-Nine initial app overlays have verified upstream hashes and carried-patch source
-preflight; see the [app source audit](gnome49-app-overlay-audit-2026-11-06.md).
-Native apps, UI behavior and wallpaper decoding still need qualification. Further
-installed GNOME apps and integration services remain in the requested ecosystem
-upgrade scope; this first batch is not called a complete ecosystem.
+Nine initial app overlays now pass native packaging checks; eight GUI launches
+and background decoding have also passed their bounded VM checks. See the
+[app validation record](gnome49-app-overlay-audit-2026-11-06.md) for corrections
+and feature limits. The [second batch](gnome49-app-overlay-batch2-2026-11-06.md)
+adds the remaining app candidates and records native map/account dependency
+results. Further application operations and integration services remain in scope;
+the first batch is not a complete ecosystem.
+
+The next SDK source snapshot uses alpha3 (package/pkg-config version0.2.0.a3),
+preserving the immutable published alpha2 source key. Its explicit source inputs
+now include THIRD_PARTY.md. The ordinary-user native ports stage/test/plist/QA/
+package sequence passed, and the actual source archive contains that license
+boundary document. This is a manual VM checkpoint, not a combined CI or release
+claim; no alpha3 package has been installed on the laptop.
 
 Changes are published as signed, DCO commits and reviewable PR updates. Matching
 native CI packages, consumer source/recipes, hashes and provenance precede laptop
