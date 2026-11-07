@@ -203,7 +203,7 @@ def worker(control, ports, work, key, origin):
     buildlog = receipts/'build.log'
     run(command+['stage','check-plist','stage-qa','package'], log=buildlog, timeout=4800)
     qa_ok(buildlog)
-    build = Path(query('CONFIGURE_WRKSRC'))
+    build = Path(query('TEST_WRKSRC'))
     if key in ('gnome-calculator49','gnome-system-monitor49','libshumate49','nautilus49'):
         expected = {'gnome-calculator49':7,'gnome-system-monitor49':3,'libshumate49':16,'nautilus49':19}[key]
         tests = json.loads(run(['meson','introspect','--tests',build], timeout=30))

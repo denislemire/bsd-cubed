@@ -182,3 +182,12 @@ a local time zone. CI now provisions UTC with tzsetup -s UTC **only when
 zoneinfo receipt. An existing file or symlink is preserved, even if invalid and
 requiring a separate diagnosis. No configured timezone or timedate1 service is
 replaced or impersonated. This provisioning has not been run by the agent.
+
+### Preflight controller correction
+
+Review against the exact pinned ports framework caught a controller integration
+error before the ecosystem phase: Meson places tests in TEST_WRKSRC (_build),
+while CONFIGURE_WRKSRC is the source tree. The controller now queries TEST_WRKSRC
+for both Meson and CMake tests; CMake sets it to its configured .build directory.
+CI61 was superseded before reaching this phase to avoid consuming the rest of a
+known-invalid run. This corrects test orchestration, not a consumer build.

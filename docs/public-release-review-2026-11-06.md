@@ -49,3 +49,19 @@ preserved during VM development.
 The owner explicitly queued the Wayland-native greeter after the remaining
 GNOME49 packages. The current SDDM greeter still uses Xorg. Xwayland compatibility
 for older apps is a separate dependency from the Xorg server/greeter.
+
+## Ecosystem candidate audit update
+
+Signed candidate `5a680405523106a12212d4d7717f97166698ad14` adds the manually
+verified 23 ecosystem ports and their serial CI controller. CI61 is running;
+this does not qualify an alpha3 release or hardware installation. The source
+export scan found only the previously reviewed documented source digest and
+EDS's `GSSAPI_NONE_CMAKE_ON=-DWITH_KRB5=OFF` build option. Neither is a credential.
+The 78-commit all-ref history scan found that same EDS option in its original
+source-preparation commit. Only its exact historical fingerprint is added to
+`.gitleaksignore`; the generic API-key rule remains enabled.
+
+The existing draft PR description now reflects Session49.3, the native ecosystem
+results, the corrected browser ownership path and the actual alpha2 hardware
+acceptance. It explicitly keeps new CI/release/hardware work open. No repository
+visibility change or history rewrite has occurred.
