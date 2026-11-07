@@ -193,6 +193,8 @@ def worker(control, ports, work, key, origin):
     work.mkdir(mode=0o700)
     receipts = work/'receipts'
     receipts.mkdir()
+    # bsd.port.mk enables repository output only if PACKAGES already exists.
+    (work/'packages').mkdir()
     command = make(ports/origin, ports, work)
     query = lambda name: run(command+['-V',name], timeout=120).strip()
     wrksrc = Path(query('WRKSRC'))
@@ -272,9 +274,9 @@ def worker(control, ports, work, key, origin):
     shutil.copyfile(package, receipts/'package.pkg')
     (receipts/'provenance.json').write_text(json.dumps({'key':key,'origin':origin,
         'framework':REVISION,'pkgname':query('PKGNAME'),'source':source_name,
-        'make_command':command,'meson_args':query('MESON_ARGS'), 'cmake_args':query('CMAKE_ARGS'),
+        'make_command':[str(arg) for arg in command],'meson_args':query('MESON_ARGS'), 'cmake_args':query('CMAKE_ARGS'),
         'compiler':run(['cc','--version'],timeout=20),'freebsd':run(['freebsd-version','-kru'],timeout=20),
-        'abi':run(['pkg','config','ABI'],timeout=20),
+        'abi':run(['/usr/local/sbin/pkg','config','ABI'],timeout=20),
         'native_tests':'recorded separately; no hardware acceptance claim'},indent=2)+'\n')
     names = ['source.tar.xz','recipe.tar.gz','upstream-distfiles.tar.xz','package.pkg','provenance.json']
     if key == 'papers49': names += ['locked-crates.tar.xz','Cargo.lock']
