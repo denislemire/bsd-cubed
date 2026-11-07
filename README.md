@@ -70,13 +70,17 @@ version. Consumer ports must explicitly opt in once the interfaces they use
 are implemented. Linking both libraries that export the same `sd_*` symbols is
 unsupported.
 
-The published v0.1.0-beta1 remains the earlier read-only discovery preview.
-Later native controller/session work is included in the alpha2 candidate.
-Historical beta assets remain immutable; use a coherent tested release set.
+The signed [v0.2.0-alpha3 prerelease](https://github.com/denislemire/bsd-cubed/releases/tag/v0.2.0-alpha3)
+is the GNOME 49 candidate qualified on FreeBSD 15-STABLE. Hardware login and
+logout passed on November 7 with the SDDM greeter on labwc and the standalone
+Xorg server removed. Xwayland remains available for legacy applications.
+The [physical console redraw issue](https://github.com/denislemire/bsd-cubed/issues/27)
+and the 15.1-RELEASE CircleCI Web startup failure remain open.
 
 ## What a working desktop still requires
 
-See the [guarded SDDM trial](docs/guarded-sddm-trial-2026-11-05.md),
+See the [historical reviewer guide](docs/reviewer-guide/README.md) for the
+initial architecture and beta3 validation, the [guarded SDDM trial](docs/guarded-sddm-trial-2026-11-05.md),
 [strict local bootstrap](docs/local-session-bootstrap-2026-11-05.md),
 [gated hardware handoff](docs/hardware-handoff-2026-11-05.md),
 [real VT/device regression](docs/native-vt-regression-2026-11-05.md),

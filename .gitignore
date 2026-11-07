@@ -25,3 +25,5 @@
 /bsd3-bus-ready
 /bsd3-session-initialized
 /test-bus-ready-client
+
+/tmp/pdfs/

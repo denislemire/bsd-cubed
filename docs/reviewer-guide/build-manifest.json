@@ -1,0 +1,18 @@
+{
+  "document": "BSD³ reviewer guide",
+  "author": "Denis Lemire",
+  "date": "5 November 2026",
+  "implementation_reference": "8bfa868f3a1c485954d35b9be28b2347b2e4bf30",
+  "source_sha256": "a18307f88e8d7faceb1773f4e58f1c49c4652d026fb4c48bcdede87e03e7c761",
+  "pdf_sha256": "80c678d9b052e1ba1e69f00929c92970a9914505409786914b4c8c23a4cac593",
+  "renderer": "ReportLab 4.4.9",
+  "fonts": [
+    "NotoSerif-Regular.ttf",
+    "NotoSerif-Bold.ttf",
+    "NotoSerif-Italic.ttf",
+    "DejaVuSans.ttf",
+    "DejaVuSans-Bold.ttf",
+    "DejaVuSansMono.ttf"
+  ],
+  "status": "author-review draft; physical hardware validation pending"
+}
