@@ -279,3 +279,51 @@ and unmapped-boundary reads returned the exact29 synthetic bytes successfully.
 This directly verifies that the actual unchanged laptop kernel does not exhibit
 this specific defect; it does not explain its separate resume/input freeze.
 The STABLE VM also correctly rejects the explicit legacy expectation.
+
+### CI76: Papers toolchain selection (November 7 follow-up)
+
+CI76 classified its RELEASE kernel as affected by PR297512 (mapped control
+succeeded, unmapped boundary returned ENOMEM), then passed the unchanged core,
+VT, compositor, Shell and Session checks. The ecosystem controller built,
+checked, installed and collected complete receipts for the first20 ports,
+including the actual upstream suites and WebKit DOM/pixel probe. The remaining
+Papers, Shell Extensions and Evolution stages and final graph were not reached.
+The downloaded20 inventories verified328 nonempty files; CircleCI omitted only
+28 empty diagnostic logs, recognizable by their exact empty-file digest. Required
+package/source/test receipts remain nonempty and independently enforced.
+
+Papers stopped before compiling: pinned cargo.mk requires Rust >=1.99.0, while
+the ordinary quarterly resolver installed1.98.1. Signed FreeBSD latest exposes
+rust1.99.1_1; its only runtime package dependency is curl8.23.0, already present
+in CI76. The controller checks the toolchain before rebuilding20 other ports.
+It uses a root-private, fingerprint-verified latest catalogue to fetch exactly
+one Rust archive and installs that local file with repositories disabled. The
+normal dependency repo remains unchanged. It verifies package identity, records
+archive SHA256 and compiler version, and rejects any non-Rust package change.
+
+A native rehearsal showed that installing directly from the scoped latest repo
+still upgraded pkg itself; that approach was discarded. Fetch output can use
+All/Hashed rather than the plain All path, so the final helper selects exactly
+one regular archive inside its trusted fetch root and validates its manifest.
+No Rust minimum, source checksum, package signature, QA or session test was
+relaxed. These changes affect CI toolchain provisioning, not laptop software.
+
+On the native 15-STABLE rehearsal VM, the final helper installed signed Rust
+1.99.1_1 from an absent compiler state and kept every other installed package
+identity unchanged. The ordinary worker then compiled Papers 49.8 from scratch,
+passed stage QA and check-plist, and produced the package and all seven required
+receipts. Its provenance reports rustc 1.99.1. The locked-crate archive contains
+253 unique crates matching the Cargo.lock checksum count, and the patched source
+contains the vendored dependencies and their license files. This rehearsal used
+cached, checksum-verified distfiles; a combined successful CI run remains the
+release gate.
+
+The same native worker then staged, checked and packaged GNOME Shell Extensions
+49.1 and Evolution 3.58.3, with complete package, recipe, patched-source,
+upstream-distfile and provenance receipts for each. Separately, the existing
+VM stack (BSD³ SDK alpha2, Session 49.3, Shell 49.10, Settings Daemon 49.1)
+passed the current headless integration fixture in both startup modes: 15 apps,
+including Web's two-window quit test, plus Settings 49.9 About and normal session
+logout and ownership cleanup. These were development checks against the VM's
+locally built stack, not qualification of the final CI package bytes, a graphical
+greeter, or laptop hardware.

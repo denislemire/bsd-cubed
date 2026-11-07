@@ -277,6 +277,7 @@ def worker(control, ports, work, key, origin):
         'make_command':[str(arg) for arg in command],'meson_args':query('MESON_ARGS'), 'cmake_args':query('CMAKE_ARGS'),
         'compiler':run(['cc','--version'],timeout=20),'freebsd':run(['freebsd-version','-kru'],timeout=20),
         'abi':run(['/usr/local/sbin/pkg','config','ABI'],timeout=20),
+        'rustc':run(['/usr/local/bin/rustc','--version'],timeout=20).strip() if key=='papers49' else None,
         'native_tests':'recorded separately; no hardware acceptance claim'},indent=2)+'\n')
     names = ['source.tar.xz','recipe.tar.gz','upstream-distfiles.tar.xz','package.pkg','provenance.json']
     if key == 'papers49': names += ['locked-crates.tar.xz','Cargo.lock']
@@ -348,6 +349,67 @@ def provision_timezone(output, localtime=Path('/etc/localtime'), zoneinfo=Path('
     if localtime.is_file(): timezone['localtime_sha256'] = digest(localtime)
     if zoneinfo.is_file(): timezone['zoneinfo'] = zoneinfo.read_text().strip()
     (output/'timezone.json').write_text(json.dumps(timezone,indent=2)+'\n')
+
+
+def provision_papers_rust(control, directory):
+    # The pinned cargo.mk requires Rust >= 1.99.0; the executor's quarterly
+    # catalogue supplied 1.98.1 in CI76. Scope latest to this toolchain request.
+    minimum = '1.99.0'
+    pkg = '/usr/local/sbin/pkg'
+    current = installed('rust')
+    if current:
+        require(re.fullmatch(r'rust-[A-Za-z0-9_.,+-]+ lang/rust',current),
+                'unexpected installed Rust provider')
+        version = current.split()[0][len('rust-'):]
+        if run([pkg,'version','-t',version,minimum],timeout=20).strip() in ('=','>'):
+            (directory/'toolchain.json').write_text(json.dumps({'minimum':minimum,
+                'provider':current,'source':'already installed',
+                'rustc':run(['/usr/local/bin/rustc','--version'],timeout=20).strip()},indent=2)+'\n')
+            return
+    keys = '/usr/share/keys/pkg'
+    require((Path(keys)/'trusted').is_dir(), 'official FreeBSD package trust unavailable')
+    repo_dir = control/'papers-rust-repo'
+    repo_dir.mkdir(mode=0o700)
+    repo_name = 'BSD3_Papers_Rust'
+    url = 'pkg+https://pkg.FreeBSD.org/${ABI}/latest'
+    (repo_dir/'FreeBSD-latest.conf').write_text(repo_name+' {\n'
+        '  url: "'+url+'",\n  mirror_type: "srv",\n'
+        '  signature_type: "fingerprints",\n  fingerprints: "'+keys+'",\n'
+        '  enabled: yes\n}\n')
+    command = [pkg,'-o','REPOS_DIR='+str(repo_dir)]
+    run(command+['update','-f','-r',repo_name],log=directory/'latest-catalogue.log',timeout=600)
+    selected = run(command+['rquery','-r',repo_name,'%n %v %o','rust'],timeout=30).split()
+    require(len(selected)==3 and selected[0]=='rust' and selected[2]=='lang/rust' and
+            re.fullmatch(r'[A-Za-z0-9_.,+-]+',selected[1]),'unexpected signed Rust catalogue identity')
+    require(run([pkg,'version','-t',selected[1],minimum],timeout=20).strip() in ('=','>'),
+            'signed latest Rust cannot satisfy pinned cargo.mk')
+    # A latest-repo install can upgrade pkg itself. Fetch only the compiler
+    # through the signed catalogue, then install that file without any repo.
+    fetch_dir = control/'papers-rust-fetch'
+    fetch_dir.mkdir(mode=0o700)
+    run(command+['fetch','-y','-U','-r',repo_name,'-o',fetch_dir,'rust'],
+        log=directory/'toolchain-fetch.log',timeout=600)
+    # pkg releases use either plain or hashed paths under the fetch root.
+    packages = [path for path in fetch_dir.rglob('*.pkg') if path.is_file() and not path.is_symlink()]
+    require(len(packages)==1, 'expected exactly one signed Rust package')
+    package = packages[0]
+    trusted(package)
+    expected = 'rust-'+selected[1]+' lang/rust'
+    require(run([pkg,'query','-F',package,'%n-%v %o'],timeout=30).strip()==expected,
+            'fetched Rust differs from signed catalogue selection')
+    checksum = digest(package)
+    def other_packages():
+        return {line for line in run([pkg,'query','-a','%n %v %o'],timeout=60).splitlines()
+                if not line.startswith('rust ')}
+    before = other_packages()
+    run([pkg,'-o','REPOS_DIR=/var/empty','-o','HANDLE_RC_SCRIPTS=false',
+         'add','-A','-f',package],log=directory/'toolchain-install.log',timeout=900)
+    require(installed('rust')==expected,'installed Rust differs from signed catalogue selection')
+    require(other_packages()==before,'toolchain install changed a non-Rust package')
+    (directory/'toolchain.json').write_text(json.dumps({'minimum':minimum,
+        'provider':expected,'source':url,'signature_type':'fingerprints','package_sha256':checksum,
+        'rustc':run(['/usr/local/bin/rustc','--version'],timeout=20).strip()},indent=2)+'\n')
+    shutil.rmtree(fetch_dir)
 
 
 def root_main(repo):
@@ -460,6 +522,12 @@ def root_main(repo):
         for name,identity in protected.items():
             require(installed(name)==identity,'custom provider replaced: '+name)
         run(['pkg','check','-s']+list(protected),timeout=180)
+    toolchain = output/'papers-toolchain'
+    toolchain.mkdir()
+    with inhibited(toolchain):
+        preserve_providers()
+        provision_papers_rust(control,toolchain)
+        preserve_providers()
     for key,origin in COMPONENTS:
         directory = output/key
         directory.mkdir()
