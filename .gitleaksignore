@@ -1,5 +1,9 @@
 # Reviewed 2026-11-06: documented SHA256 of tested API source, not a credential.
 ddca2b0fc9b243d660ddea068a2f47016dfd66ee:docs/gnome49-native-session-2026-11-06.md:generic-api-key:184
 
-# Reviewed 2026-11-06: EDS GSSAPI_NONE_CMAKE_ON=-DWITH_KRB5=OFF is a build option.
+# Reviewed 2026-11-06: EDS Kerberos disable switch is a build option.
 a3a779e3a178caffec3b99011b7e501874894e32:packaging/freebsd/evolution-data-server49/Makefile:generic-api-key:79
+
+# Reviewed build-option text repeated in the historical audit itself.
+52ecc25acd5bd3b0262c053a6349fef70dc624dd:.gitleaksignore:generic-api-key:4
+52ecc25acd5bd3b0262c053a6349fef70dc624dd:docs/public-release-review-2026-11-06.md:generic-api-key:59
