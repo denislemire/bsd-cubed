@@ -12,7 +12,7 @@ upstream files changed by consumer patches.
 | ConsoleKit2 | Existing GPL-2.0-or-later session/device service with native FreeBSD control fixes. Its implementation is not BSD³-original or relicensed BSD. |
 | Dinit0.19.4 | Separately packaged Apache-2.0 user-service supervisor. BSD³ supplies an original launcher/API and native service definitions, not a replacement PID1. |
 | bsdisks0.41 | Existing BSD-3-Clause UDisks2 implementation. The swap-visibility consumer patch retains that license; its original regression fixture is BSD-2-Clause. |
-| FreeBSD port recipes and patches | Derived from the immutable ports revision recorded in `PORTS_REVISION` and retained with their applicable attribution and licenses. These custom overlays are not official accepted FreeBSD ports submissions. |
+| FreeBSD port recipes and patches | Derived from the immutable ports revision recorded in `PORTS_REVISION` and retained with their applicable attribution and licenses. These overlays are maintained in this tree. |
 | GLib, D-Bus, graphics/input libraries and other packages | Separately packaged dependencies with their respective upstream licenses. |
 
 The project audit records no systemd implementation copied, translated, linked or

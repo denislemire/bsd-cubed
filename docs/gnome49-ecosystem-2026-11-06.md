@@ -76,7 +76,7 @@ boundary document. This is a manual VM checkpoint, not a combined CI or release
 claim; no alpha3 package has been installed on the laptop.
 
 Changes are published as signed, DCO commits and reviewable PR updates. Matching
-native CI packages, consumer source/recipes, hashes and provenance precede laptop
+native package packages, consumer source/recipes, hashes and provenance precede laptop
 rollout. Repository-publication review runs in parallel. A Wayland-native greeter
 and removal of the Xorg server are explicitly queued after these packages.
 

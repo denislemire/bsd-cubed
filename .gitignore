@@ -15,7 +15,7 @@
 /bsd3-sddm-session
 /bsd3-vt-guard
 
-/output/pdf/bsd3-architecture.pdf
+/output/
 /bsd3-user-session
 /user-session-api.o
 /libbsd3-user-session.a
@@ -25,3 +25,5 @@
 /bsd3-bus-ready
 /bsd3-session-initialized
 /test-bus-ready-client
+
+/tmp/pdfs/

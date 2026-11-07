@@ -17,5 +17,5 @@ The same real-class fixture failed the three swap cases against pristine upstrea
 and passed all eight cases with the correction. Its first link attempt lacked
 production configuration definitions; including the actual upstream entry-point
 source under a renamed, uncalled main supplied those definitions without a mock
-implementation. Native CI release qualification and verified-release installation
+implementation. Native release qualification and verified-release installation
 remain required before laptop integration. The partition has not been changed.

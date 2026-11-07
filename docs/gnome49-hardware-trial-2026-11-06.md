@@ -55,7 +55,7 @@ Upstream implementation/generated code is not copied into BSD source files.
 
 ## Other observations and remaining acceptance
 
-Wi-Fi associated after boot and mDNS resolved hpbsd.local from the Mac. Airwave's
+Wi-Fi associated after boot and mDNS resolved the lab mDNS name from another host on the LAN. Airwave's
 service ran and its49 extension reported active. This does not qualify radio
 performance or an actual interactive Airwave connection change. Later band and
 throughput concerns remain separate from the desktop blocker. Cheese is included
@@ -107,16 +107,16 @@ The candidate's separate profile symlink and enabled desktop, Airwave, mDNS,
 webcam and bounded recovery services were checked. Its recovery guard now kills
 its background sleep when stopped, avoiding the orphaned pidfile lock seen in
 the earlier trial; this correction has a shell syntax check but awaits the real
-boot/stop path. An active user desktop was detected, so reboot awaits the owner's
+boot/stop path. An active user desktop was detected, so reboot waited on
 save/logout confirmation. Hardware49 display/input and logout acceptance remain
 open. The documentation-only CI59 run was canceled to preserve lab capacity;
 the candidate remains the exact successful CI58 source and packages.
 
 ## First successful hardware49 startup
 
-After the owner saved work and explicitly approved reboot, the candidate was
-activated for one boot. At22:13:43UTC, the machine reported the expected49 root,
-SDK0.2.0.a2, Shell49.10 and the running graphical greeter. The owner logged in,
+After work was saved and reboot was approved, the candidate was
+activated for one boot. At 22:13:43 UTC, the machine reported the expected 49 root,
+SDK 0.2.0.a2, Shell 49.10 and the running graphical greeter. The trial user logged in,
 reported a working desktop and confirmed the result. Read-only queries against
 the actual user's session bus then returned:
 
@@ -134,28 +134,28 @@ failure; it does not establish application coverage, radio throughput, camera
 capture, VT shortcut switching or normal logout acceptance.
 
 The boot guard was marked accepted for this startup, stopped and disabled before
-the owner continued exploring. Service status confirmed it stopped, and no
+interactive use continued. Service status confirmed it stopped, and no
 `sleep 900` child remained: the revised stop path was exercised successfully.
-The working47 BE remains the permanent default pending the owner's input/apps,
+The working 47 boot environment remains the permanent default pending input/apps,
 Airwave interaction and ordinary logout checks. The greeter remains SDDM/Xorg;
 SettingsDaemon remains the explicitly qualified47.2_1 component set.
 
 ## Interactive acceptance and default activation
 
-The owner subsequently confirmed that pointer/keyboard input, applications,
+Hardware testing subsequently confirmed that pointer/keyboard input, applications,
 Airwave interaction and ordinary logout all worked, including return to the
 graphical login screen. The49 environment was then permanently activated:
 `bectl list` reported `stable-15-gnome49-20261106` as `NR`. The previous47
 environment is retained as a fallback. No additional reboot was needed.
 
 The live Shell environment explicitly reported `XDG_SESSION_TYPE=wayland`; its
-actual runtime directory contained `wayland-0`. An initial socket check assumed
-`/var/run/user/1001`; inspection corrected that to the running session's
-`/var/run/xdg/denis`. This was a diagnostic path error, not a compositor failure.
+actual runtime directory contained `wayland-0`. An initial socket check assumed a Linux-style `/var/run/user/<uid>` path;
+inspection corrected that to FreeBSD's session XDG runtime directory. This was
+a diagnostic path error, not a compositor failure.
 
-At the owner's request, the screen-reader setting was disabled in the actual
-separate49 profile and read back as `false`; no Orca process remained. A normal
-Screenshot portal request completed successfully and saved a private PNG in the
-owner's home directory. Its contents are not included in source or public assets.
+The screen-reader setting was disabled in the actual separate 49 profile and
+read back as `false`; no Orca process remained. A normal Screenshot portal
+request completed successfully and saved a private PNG under the session
+home directory. Its contents are not included in source or public assets.
 Wi-Fi performance/resolver diagnosis, camera capture, VT shortcuts and the
 other previously listed limitations remain separate open work.

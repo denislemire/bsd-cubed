@@ -22,5 +22,5 @@ and ports framework package manifests are preserved.
 Native FreeBSD15-STABLE build/stage/check-plist/stage-qa/package passed in the
 primary VM, followed by bounded ordinary-user Wayland launch checks (or actual
 GdkPixbuf decoding for Backgrounds). See the [dated validation record](../../../docs/gnome49-app-overlay-audit-2026-11-06.md)
-for upstream regression results, corrections and feature limits. Combined CI,
-release publication and laptop installation remain pending.
+for regression results, corrections and feature limits. Release publication
+and hardware installation remain pending.

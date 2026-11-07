@@ -68,4 +68,4 @@ repeated stage-QA now pass; the package was rebuilt with explicit dependencies.
 Both real GNOME49 session modes opened the actual49.9 About UI on Wayland,
 observed a committed surface, quit through the normal action, and then completed
 ordinary session logout and cleanup. No laptop installation is claimed by these
-VM results; the next published CI candidate remains required.
+VM results; the next published package candidate remains required.

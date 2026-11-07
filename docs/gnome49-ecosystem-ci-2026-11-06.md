@@ -4,7 +4,7 @@ State: controller prepared and checked offline; the generic Wayland fixture has
 passed a native Nautilus run; the combined ecosystem pipeline has not run.
 All 23 ecosystem ports have now passed manual native package validation, and
 the real session passes all 15 app fixtures in both startup modes. The controller
-is wired after the existing core job in CircleCI; its complete native run remains
+is wired after the existing core job; its complete native run remains
 pending. Manual component verification is distinct from that combined CI result.
 
 `tools/ci-ecosystem49.sh` is intended to follow `tools/ci-gnome49.sh` on the same
@@ -47,7 +47,7 @@ packages below a source-required version still need an explicit reviewed depende
 update; this controller does not mask such a failure by lowering a check.
 
 Only root performs trusted package/service provisioning. Builds, upstream tests,
-source archiving and recipe archiving run as ordinary circleci with private
+source archiving and recipe archiving run as an ordinary test account with private
 home/work/dist/package directories and a minimal environment. Rust has two Cargo
 jobs and MAKE_JOBS_NUMBER=2; other builds use three jobs. All 23 components are
 serial. Each component/graph phase obtains a bounded idle/sleep inhibitor, verifies
@@ -288,7 +288,7 @@ VT, compositor, Shell and Session checks. The ecosystem controller built,
 checked, installed and collected complete receipts for the first20 ports,
 including the actual upstream suites and WebKit DOM/pixel probe. The remaining
 Papers, Shell Extensions and Evolution stages and final graph were not reached.
-The downloaded20 inventories verified328 nonempty files; CircleCI omitted only
+The downloaded20 inventories verified328 nonempty files; the job omitted only
 28 empty diagnostic logs, recognizable by their exact empty-file digest. Required
 package/source/test receipts remain nonempty and independently enforced.
 
@@ -350,4 +350,4 @@ The native controller then completed on 15-STABLE `646a485c3b2f` at
 CI79 core packages and rebuilt all 23 ecosystem ports. Both full Wayland
 graphs passed, including Web's two-window quit check, Settings About, and
 session logout. The controller emitted a qualification receipt and full
-artifact hashes. The existing CircleCI runner still uses 15.1-RELEASE-p6.
+artifact hashes. The native runner still uses 15.1-RELEASE-p6.

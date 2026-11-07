@@ -78,7 +78,7 @@ preserving the remaining feature limits.
 
 ## Native qualification checkpoint
 
-On 2026-11-06 (America/Edmonton), the primary generic EhWS FreeBSD15-STABLE VM
+On 2026-11-06, the primary generic FreeBSD 15-STABLE VM
 built and staged all nine recipes, passed check-plist and stage-qa, and produced
 packages. Stage QA output was checked for errors explicitly; its command exit
 status alone is insufficient. The VM reports15.2-PRERELEASE, stable/15 revision

@@ -8,7 +8,7 @@ kernel, Wi-Fi configuration or boot selection changed during this qualification.
 ## Exact native environment
 
 FreeBSD15.2-PRERELEASE, stable/15-n286624-646a485c3b2f, clang21.1.8,
-GLib2.88.3. The generic KubeVirt VM has no DRM device. The selected consumers
+GLib 2.88.3. The generic lab VM has no DRM device. The selected consumers
 are GNOME Session49.0, Shell49.10, Mutter49.8, GJS1.86.0, desktop schemas49.1,
 and the installed FreeBSD GNOME Settings Daemon47.2_1. Settings services are
 qualified at that exact47 version; this is not a claim that all settings or
@@ -77,7 +77,7 @@ These are VM incidents, not evidence of a laptop or BSD3 device failure.
 
 ## Identified VM prototypes
 
-Combined CI55 passed the ordinary-user SDK and GNOME49 consumer tests but
+Native job 55 passed the ordinary-user SDK and GNOME49 consumer tests but
 failed the later ports target because its controller ran the lifecycle suite
 as root. The intentional root refusal remained correct. The ports controller
 now snapshots inputs into a private build directory and delegates the complete
@@ -86,7 +86,7 @@ environment. Root copies the successful regular package artifact back afterward.
 On the same native STABLE VM, this controller passed from a root-only checkout
 using `BSD3_PORTS_TEST_USER=bsd3`, with USERSESSION enabled and no skipped
 lifecycle tests. Package creation and manifest/QA checks passed; existing
-unstripped-binary warnings remain. Combined CI must still repeat this result.
+unstripped-binary warnings remain. The same result still needs repeating.
 
 CI56 subsequently passed that packaging step, service policy, CK registration,
 input revoke/resume and the production VT bootstrap. Its nested production
@@ -130,7 +130,7 @@ freebsd-15.1:current; that must not be mislabeled as the separate15-STABLE VM.
 
 ## Remaining hardware boundary
 
-Publish successful native CI assets and corresponding source/recipes before
+Publish successful native package assets and corresponding source/recipes before
 hardware installation. Preserve the working kernel/Wi-Fi packages, recovery
 boot environment, desktop applications and per-user profile. The existing
 SDDM greeter uses Xorg; the native49 launcher currently supports the user
@@ -139,14 +139,14 @@ Xorg removal is claimed by this candidate.
 
 The next accepted device trial must establish actual DRM/input/VT behavior,
 login/logout to the greeter, browser rendering and normal boot in a separate
-candidate environment. Avahi still needs enabling there for hpbsd.local.
-Airwave alpha2 is separately published from successful native CI15 and tested
+candidate environment. Avahi still needs enabling there for the lab mDNS name.
+Airwave alpha2 is separately published from successful native job 15 and tested
 with the49 VM libraries; its real-radio reliability remains a separate test.
 
-## First combined CI followup
+## First combined follow-up
 
-CI54 at03b6419 failed in the native user-session consumer tests. After
-1Password was restarted, the actual CI log confirmed: dbus-run-session failed
+CI54 at 03b6419 failed in the native user-session consumer tests. The actual
+CI log confirmed: dbus-run-session failed
 to exec python3 because that executable was absent. The job installs python312
 and selects its versioned executable, but two actual-GNOME diagnostic controllers
 and their initialization child still hardcoded python3. They now honor PYTHON

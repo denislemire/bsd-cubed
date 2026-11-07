@@ -70,8 +70,8 @@ metadata required a clean schema rebuild before the corrected QA pass.
 | gsettings-desktop-schemas-49.1.pkg |1c68333e503910e08c5e157dcce53e7d411a4471c9eb996d491a40d2379992e2|
 
 These hashes identify the local native diagnostic artifacts, not a GitHub beta.
-Only successful CI artifacts with corresponding source/recipe manifests may be
-used for a published hardware candidate. The separate CircleCI job rebuilds and
+Only successful package artifacts with corresponding source/recipe manifests may be
+used for a published hardware candidate. A separate native job rebuilds and
 packages these consumers and repeats the selected actual-GJS tests. Its standard
 executor is15.1-RELEASE; the manual15-STABLE results above are separate evidence.
 Mutter/Shell49, native session/system integration and full desktop acceptance

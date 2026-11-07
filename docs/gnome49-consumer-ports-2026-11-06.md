@@ -59,7 +59,7 @@ the actual0.2.0.a1 SDK package, with the same package QA and runtime tests.
 A clean CI rebuild of these final bytes remains required before publication.
 The actual-source fixture exercises absent user-accounting capability,
 boot-menu denial and GStreamer argv initialization in real GJS.
-An ordinary UID1002, private-bus headless Shell reached D-Bus ShellVersion49.10,
+An ordinary an ordinary test UID, private-bus headless Shell reached D-Bus ShellVersion49.10,
 served a real Wayland GTK window and exited normally with status0. The test
 waits separately for the Wayland socket and Shell D-Bus initialization;
 a socket alone was initially too early to query ShellVersion.
@@ -78,5 +78,5 @@ results. No laptop, kernel, Wi-Fi or boot environment was changed.
 
 Remaining: coherent native session/settings graph, real CK ownership and
 activity integration, normal full-session startup/logout, extension compatibility,
-successful serialized native CI, matching source/recipe beta artifacts, catalogue
+successful serialized native package, matching source/recipe beta artifacts, catalogue
 publication and an agreed laptop login trial with recovery preserved.

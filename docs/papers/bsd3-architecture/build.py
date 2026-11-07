@@ -148,7 +148,7 @@ sections = [
  ]),
 ('10', 'A reproducible FreeBSD deployment', [
  ('h','Packages first, hardware second'),
- ('p','The workflow builds and tests on native FreeBSD CI in the EhWS KubeVirt lab. The existing CI image is15.1-based, so a separate15-STABLE VM qualifies the exact candidate packages against the intended running system. A package building successfully under one image does not establish runtime compatibility with another. [2,6]'),
+ ('p','The workflow builds and tests on native FreeBSD CI. The existing CI image is 15.1-based, so a separate 15-STABLE VM qualifies the exact candidate packages against the intended running system. A package building successfully under one image does not establish runtime compatibility with another. [2,6]'),
  ('p','Published beta5 has signed source/tag provenance, the native Mutter package, matching source/recipe artifacts and checksums. The unchanged BSD3 and ConsoleKit dependencies use the exact already released CI 36 bytes, not a silent rebuild with the same version. Hardware receives the downloaded release assets, verified before installation. Modified dependencies retain their own licenses and matching source distribution. [2,4]'),
  ('h','Turn the working session into a bootable system'),
  ('p','The desktop environment is cloned from the working STABLE system rather than assembled with a new kernel. FreeBSD\'s existing rc.conf switches enable dbus, bsddd and sddm. The optional helper verifies actual service ordering and backs up configuration first. The one-shot boot keeps the former normal environment as the persistent fallback until combined acceptance passes. [6,7]'),

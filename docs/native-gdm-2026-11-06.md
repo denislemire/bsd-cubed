@@ -3,7 +3,7 @@
 State: still open. GNOME47 beta5 already works through SDDM. This work ports the
 GDM47 greeter lifecycle to FreeBSD; it is not GNOME49 desktop acceptance.
 The laptop remains with the Wi-Fi/app-cleanup chat. All experiments below use
-the disposable bsd3-stable KubeVirt VM, with an independent root serial console.
+the disposable bsd3-stable VM, with an independent root serial console.
 
 ## Source and environment
 
@@ -130,23 +130,20 @@ persistently. Hardware and full authentication/logout acceptance remain open.
 
 Add the guarded runtime greeter fixture to reproducible CI; the manual VM
 qualification above does not establish CI or hardware acceptance.
-Add reproducible native CI source/recipe artifacts before publication. Physical
+Add reproducible native package source/recipe artifacts before publication. Physical
 GPU greeter and a complete user login/logout cycle require a separately agreed
 hardware window after the VM tests pass. No laptop package or service changed.
 
 ## Laptop provisioning handoff received November 6
 
-The provisioning owner reports stable-15-desktop-20261105 is now the persistent
+Workstation notes record stable-15-desktop-20261105 is now the persistent
 NR default, with stable-15-desktop-before-apps-20261105 retained for recovery.
 GNOME-focused applications were installed and84 legacy XFCE/Plasma packages
 removed after protected-core checks. Working GNOME47/Mutter/ConsoleKit/BSD3/SDDM
 and kernel/radio/WPA identities were unchanged. A native read-only Qt battery
-adapter replaced the SDDM theme's Plasma import; the owner reports actual-SDDM
+adapter replaced the SDDM theme's Plasma import; notes record actual-SDDM
 and offscreen checks passed. Xorg/Xwayland remain installed.
 
 This is an attributed handoff, not a fresh inspection by this GDM investigation.
-The authoritative provisioning record is hpbsd-lab's dated
-docs/desktop-workstation-2026-11-06.md. Wi-Fi roaming remains unresolved. Cursor
-CLI works under Linux compatibility; its persistent GUI sandbox exception awaits
-Denis's approval and the keyring workflow remains open. This handoff authorizes
-no additional laptop mutation; GDM and GNOME49 work continue in separate VMs.
+Wi-Fi roaming remains unresolved. This handoff authorizes no additional laptop
+mutation; GDM and GNOME 49 work continue in separate VMs.

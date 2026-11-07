@@ -71,7 +71,7 @@ The actual FreeBSD wallpaper load function was compiled against real GdkPixbuf
 and GTask. RGB and RGBA decoded pixels/alpha, cancellation, malformed input and
 missing-file errors passed. This does not claim testing every image codec.
 
-As ordinary UID1002 on a private session bus, the installed49 compositor created
+As ordinary an ordinary test UID on a private session bus, the installed49 compositor created
 a native headless Wayland socket, accepted wayland-info and a real GTK Wayland
 window, then exited0 on requested termination. The test waits/reaps normal exit;
 a deadline or forced kill fails. Existing desktop settings were isolated through

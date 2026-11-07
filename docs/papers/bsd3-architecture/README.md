@@ -12,7 +12,7 @@ Build with Python3 and ReportLab:
 python3 docs/papers/bsd3-architecture/build.py output/pdf/bsd3-architecture.pdf
 ```
 
-The final PDF was rendered and visually checked across all13 pages, including
+Generated PDFs are not committed. Render locally; the draft was checked across all 13 pages, including
 its split rendering/control diagram. Text extraction and page-bound checks pass.
 Original build code is BSD-2-Clause. The paper cites primary project source and
 records; dependency licenses remain unchanged. Raw cores, network identifiers,

@@ -6,7 +6,7 @@ physical laptop acceptance remain open.
 ## What actually ran
 
 A patched Mutter 47.10, matching the existing GNOME generation, compiled and
-linked on an EhWS FreeBSD KubeVirt development VM. Running/installed kernel and
+linked on a FreeBSD development VM. Running/installed kernel and
 userland all reported 15.1-RELEASE-p6; compiler was FreeBSD clang19.1.7 and ABI
 FreeBSD:15:amd64. The image alias `current` means the current image, not the
 FreeBSD CURRENT source branch. This is not a 15-STABLE runtime test.

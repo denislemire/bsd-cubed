@@ -43,5 +43,5 @@ backend validation/correction before hardware acceptance.
 The earlier installed service test in CI25 independently passed root-only
 ownership denial, onestart/quietstart/faststart/status/stop and foreign-owner
 refusal. Its recorded build UID was zero, explaining CI22's mistaken ordinary-user
-assumption. GNOME acceptance explicitly uses the existing non-root circleci
+assumption. GNOME acceptance explicitly uses the existing non-root test
 account and private test payload, without adding administrative grants.

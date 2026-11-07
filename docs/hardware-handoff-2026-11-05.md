@@ -1,6 +1,63 @@
 # GNOME Wayland hardware handoff — November 5, 2026
 
-State: preparation only; **not cleared for installation or login**. The Wi-Fi coordinator reports complete CURRENT IPv4/IPv6 VHT/HE cohorts
+## November 5 checkpoint: beta3 release ready, hardware window closed
+
+Later coordinator report: `stable-15-he-usable-20261105` is the proposed clone
+origin and selected normal default, with all version entries15.2-PRERELEASE.
+Its final ordinary-reboot traffic check is still underway and the coordinator
+has **not** released the device. Verify the actual BE identity/dataset layout
+at handoff; do not infer permission from this candidate name. Preserve its
+rc.conf/wpa_supplicant network ownership and the existing start_if.wlan0 HE-before-WPA
+hook and the IPv6 HE helper helper. This supersedes earlier CURRENT assumptions
+for planning only; no laptop inspection or change was made by the desktop work.
+
+The signed [v0.1.0-beta3](https://github.com/denislemire/bsd-cubed/releases/tag/v0.1.0-beta3)
+now exists at implementation8bfa868f3a1c485954d35b9be28b2347b2e4bf30.
+CI36 passed
+every build/test/upload action. All11 published payloads were downloaded again
+and verified against the published manifest and original build outputs. Complete
+modified dependency sources, exact recipes and provenance accompany the binaries.
+
+| Current beta3 binary | SHA256 |
+| --- | --- |
+| bsd-cubed-0.1.0.b3.pkg | 2aa539c7c2e7901e278408a8d63530951fa2c0d774e829ddba623eb943bda043 |
+| consolekit2-2.0.0_5.pkg | 08d42eb5055f6cdf3dd91d3613c24f16fa91a33180b8bee7473e1cd737454fd9 |
+| mutter-47.10_3.pkg | 97e52f05b57087904d06952161cb414e90272780389e5a5e112a2984da5eaac9 |
+
+Independent exact-package qualification passed real CK registration/control,
+actual inactive input revocation and production-launcher VT pause/switch/fresh-FD
+resume/release, then full SDDM ordinary-user registration, GNOME47 RequiredComponents,
+a mapped headless Wayland window and normal session logout. The production
+launcher exited0, original CK inventory returned and VT1 recovery passed.
+The requested greeter stop remains an assisted outcome, not an unassisted pass.
+
+The post-reboot VM identity is GENERIC stable/15-n286624-646a485c3b2f,
+all three version entries15.2-PRERELEASE. Earlier pre-reboot84aa3cb3204d results
+remain separate. The cold-backend external test driver correction is
+[PR15](https://github.com/denislemire/bsd-cubed/pull/15); it changes no compiled
+or package inputs. The failed initial attempt and complete corrected evidence
+were preserved. Protected qualification archive SHA256:
+a2c85ad5295d7af80fab0948bc4042f45dae825ad4f7cb2697ba778abda63f1e.
+
+These VM/package/release gates are now satisfied. The device remains reserved
+for Wi-Fi: no laptop connection, install, boot selection, session-manager change
+or desktop workload has been performed. Physical DRM/display/input and ordinary
+password login remain unverified. Use the separate verified STABLE BE procedure
+below only when the coordinator explicitly opens the window. GNOME49+ startup
+and GNOME51 acceptance remain later work.
+
+The existing GNOME Wayland entry should use the installed strict adapter,
+with an opt-in temporary SDDM snippet based on the packaged example. Preserve
+the stock X11 greeter, normal fallback and existing PAM. `bsd3-vt-guard` is the
+implemented root-only bounded recovery tool; its positive, timeout and actual
+SDDM paths passed in VM. Its hardware flag is explicit, and its restoration
+still cannot recover a frozen kernel. The original prose below is historical:
+CI33 is not the current payload and its earlier missing release/runner claims
+are superseded by this checkpoint.
+
+## Historical preparation record
+
+State: preparation only; **not cleared for installation or login**. Parallel Wi-Fi notes report complete CURRENT IPv4/IPv6 VHT/HE cohorts
 passed, evidence preservation is in progress, and a STABLE validation reboot
 is next. No desktop window is open. No laptop
 connection, installation, reboot, service change or desktop workload was performed
@@ -11,11 +68,11 @@ while preparing this document. Keep implementation and GNOME evidence here.
 Source: `dcf974485696e40381fa23a44db5a5d47d83ae3a`, signed/DCO,
 [PR10](https://github.com/denislemire/bsd-cubed/pull/10), stacked on PR9.
 
-[CI33](https://circle.ehws.generic.business/gh/denislemire/bsd-cubed/33) is
+CI33 is
 **overall success** at that exact commit. Every build/test/upload step passed,
 including real VT switching, input revoke/fresh-FD resume, full GNOME47
 RequiredComponents, a mapped Wayland window and clean logout.
-[CI32](https://circle.ehws.generic.business/gh/denislemire/bsd-cubed/32) passed its
+CI32 passed its
 individual actions but ended infrastructure_fail with a task-agent error. Its
 artifacts remain quarantined; the table below supersedes the earlier CI32 table.
 The v1 retry endpoint returned404; the v2 workflow rerun succeeded as CI33.
@@ -35,7 +92,7 @@ Within CI33's `freebsd` artifact directory, the binary paths are
 `packages/All/bsd-cubed-0.1.0.b3.pkg`,
 `consolekit/packages/All/consolekit2-2.0.0_5.pkg`, and
 `mutter/packages/All/mutter-47.10_3.pkg`. The authenticated
-[artifact inventory](https://circle.ehws.generic.business/api/v1.1/project/github/denislemire/bsd-cubed/33/artifacts)
+artifact inventory
 provides their actual download locations. No credential-bearing URL is saved here.
 
 Corresponding source/recipe SHA256 identities, using flattened filenames:
@@ -59,7 +116,7 @@ was captured. The strict full GNOME47 session/window/logout test then passed
 with these same installed packages, including five mapped GTK frame ticks.
 No laptop or physical GPU acceptance is established by those tests.
 
-The Wi-Fi coordinator's fresh live check reports16.0-CURRENT for **all**
+Parallel Wi-Fi notes fresh live check reports16.0-CURRENT for **all**
 `freebsd-version -kru` entries in its current-16-he-lock-20261105 environment,
 including userland. The earlier mixed CURRENT/STABLE description was incorrect.
 Do not force ABI15 packages onto that CURRENT environment; use a matching known
@@ -84,7 +141,7 @@ Logs and home directories may be shared between BEs and are not rolled back.
 
 ## Delivery gate before arranging the trial
 
-Require overall-success native CI at the exact candidate commit, verified
+Require overall-success native package at the exact candidate commit, verified
 package/source checksums, and exact-artifact validation on stable/15. Publish a
 signed `v0.1.0-beta3` GitHub prerelease first, with the three binary packages,
 matching BSD3 source, complete modified ConsoleKit/Mutter corresponding source,
@@ -97,7 +154,7 @@ separate; do not update the shared package repository while this gate is open.
 ## Coordinated boot-environment preparation
 
 The following is the agreed **future procedure**, not actions already performed.
-The Wi-Fi coordinator must first finish its evidence barriers and IPv6 work,
+Parallel Wi-Fi work must first finish its evidence barriers and IPv6 work,
 release its inhibitor at handoff, identify the known STABLE base BE and persistent
 normal fallback, and explicitly open the desktop test window. Historical BE
 names are not authoritative. Recheck `bectl list` immediately before changes.
@@ -203,6 +260,6 @@ is PR12. Real SDDM registration and full GNOME47 headless window/logout passed
 direct VM trials. A [bounded recovery tool and reusable runner](guarded-sddm-trial-2026-11-05.md)
 are the next focused change. The CI33 packages above identify the earlier
 candidate and **do not contain these new features**. Do not install them as if
-they supplied the SDDM bootstrap/recovery solution. Final exact-source native CI,
+they supplied the SDDM bootstrap/recovery solution. Final exact-source native package,
 release/checksum refresh and the coordinated window remain gates. No hardware
 readiness or beta3 publication is claimed.

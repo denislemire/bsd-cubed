@@ -27,7 +27,7 @@ file even if a nonactivatable mock already owns the name. Checking NameHasOwner
 before activation fixed discovery without bypassing the private bus or changing
 its assertions. Native FreeBSD passed17 applicable groups plus the deliberate
 missing-credential skip out of18. macOS passed9 applicable groups and9 credential
-skips. Final native CI is still required.
+skips. Final native package is still required.
 
 On the isolated stable/15 VM at84aa3cb3204d, a daemon with this correction returned
 the actual seat0 before any user session. With a separately tested opt-in session

@@ -54,26 +54,24 @@ category validation is skipped outside PORTSDIR. The port's intended category is
 sysutils; an eventual in-tree/poudriere check is still required. Recursive clean
 also warned about omitted dependency directories in that sparse copy; actual
 installed runtime dependencies were independently checked in the package manifest
-(ConsoleKit2, GLib and gettext-runtime). A full-tree CI build is still needed.
+(ConsoleKit2, GLib and gettext-runtime). A full-tree package build is still needed.
 No package was
 installed. Local snapshot distinfo is not a release distinfo.
 
-The CircleCI configuration validated successfully against the configured EhWS
-server. Configuration validation does not establish a completed pipeline run.
-The project was then enabled on that server. Automatic build #1 succeeded:
-https://circle.ehws.generic.business/gh/denislemire/bsd-cubed/1
+Configuration validation does not establish a completed pipeline run.
+The project was then enabled on that server. Automatic build #1 succeeded.
 
 It tested commit ff84228be649b018e4259f4e6400bafeca26d223 in a generic
-FreeBSD KubeVirt VM, including the full-tree ports path, stage/test/check-plist/QA,
+FreeBSD VM, including the full-tree ports path, stage/test/check-plist/QA,
 package creation and artifact upload. Cancellation was requested for duplicate pipeline #2, but the job finished
 successfully before cancellation took effect; the authoritative job result is
 success. The same occurred for duplicate job #4. Neither is a failed test. The current CLI watch
 command could not read the legacy server response; direct server-compatible API
-monitoring confirmed job success. No CI credentials were added to this project.
+monitoring confirmed job success. No pipeline credentials were added to this project.
 
 ## Failed paths and corrections
 
-1. `ssh hpbsd` did not resolve. Recalled the prior private address and verified it
+1. SSH to the trial host did not resolve. Recalled the prior private address and verified it
    live. No identifying network address was added to project source.
 2. Initial service-script checks were misleading; process and typed bus checks
    established running backend services independently.

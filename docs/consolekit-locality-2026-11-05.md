@@ -21,7 +21,7 @@ builds/stages/checks/packages it, preserves complete patched source before build
 products are added, and supplies the exact modified port recipe and checksums.
 Before the long Mutter rebuild it exercises real ConsoleKit creation, child
 session UID/type/class discovery and authenticated BSD3 control as the existing
-non-root circleci account. Original BSD3 code remains BSD-2-Clause; the modified
+non-root test account. Original BSD3 code remains BSD-2-Clause; the modified
 ConsoleKit dependency retains its GPL license.
 
 This does not fix the separately documented TakeDevice inactivity reply, verify

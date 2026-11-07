@@ -38,8 +38,8 @@ platform adaptations; a successful build still needs native VM runtime testing,
 real device/VT ownership, GNOME session startup and final hardware acceptance.
 A headless compositor test alone will not establish device/VT correctness.
 
-Working packages compatible with 15-STABLE are authorized for Denis's existing
-EhWS package catalogue as well as GitHub beta assets. Verify actual ABI, dependency
+Working packages compatible with 15-STABLE may be published as GitHub release
+assets after native qualification. Verify actual ABI, dependency
 closure and appropriate native runtime results first. Do not publish failed or
 untested candidates, overwrite unrelated catalogue entries, or call a CURRENT
 build proof of 15-STABLE runtime compatibility. Package publication remains pending.
@@ -65,7 +65,7 @@ toolchains used to produce those already-built binary dependencies.
 
 ## Native build iteration: Python generator dependency
 
-[CI17](https://circle.ehws.generic.business/gh/denislemire/bsd-cubed/17), source
+CI17, source
 a05da8f15104c6ec8ab45adfb93229b06b8eec49, passed the selected-library shared consumer
 link, native bridge tests and ports stage/manifest/QA/package. Mutter configured
 against BSD3 with its native backend enabled, then compilation failed generating

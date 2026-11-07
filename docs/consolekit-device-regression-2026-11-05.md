@@ -43,7 +43,7 @@ Complete modified dependency source and the exact port recipe accompany packages
 
 ## November 5 verified follow-up
 
-PR9 native CI31 passed the corrected backend's strict locality and actual kernel
+PR9 native job 31 passed the corrected backend's strict locality and actual kernel
 inactive-input regression, then full GNOME47 session/window/logout. PR8 CI30
 also passed strict full GNOME. These are headless session results. The subsequent
 [real VT/device regression](native-vt-regression-2026-11-05.md) verifies active

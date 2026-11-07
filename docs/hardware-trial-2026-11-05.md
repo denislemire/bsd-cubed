@@ -2,7 +2,7 @@
 
 State: exact packages installed in an isolated clone; physical login pending.
 
-The Wi-Fi coordinator explicitly released the laptop after its final normal-boot
+Parallel Wi-Fi work released the laptop after its final normal-boot
 and data/integrity evidence. The desktop experiment created a separate
 stable-15-bsd3-beta3-20261105 clone from the verified HE-usable STABLE environment.
 The original remains the persistent normal default. Its old CK/Mutter versions

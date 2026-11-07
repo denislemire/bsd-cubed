@@ -25,4 +25,4 @@ GNOME49 session graphs passed with all seven processes mapping the installed
 `gnome-settings-daemon-49/libgsd.so`, a real Wayland app, normal logout and owner
 cleanup. The integration fixture now reports the queried installed package
 version rather than its former hardcoded47 label. This is headless VM evidence;
-CI release qualification and new hardware acceptance remain separate gates.
+release qualification and new hardware acceptance remain separate gates.

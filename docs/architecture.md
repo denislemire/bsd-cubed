@@ -1,4 +1,4 @@
-# Architecture and acceptance boundaries
+# Architecture
 
 ## Decision: C11 and a small native bridge
 
@@ -21,12 +21,14 @@ ConsoleKit/PAM              native broker or libseat   per-user supervisor
 FreeBSD sessions            DRM/input/devfs/VT         ordinary processes
 ```
 
-Session discovery, authenticated controller lifetime and experimental descriptor
-transport/pause-resume protocol now exist. Real device revocation/VT switching
-and session startup remain unverified. Reuse
-ConsoleKit2 as the initial source of session truth; independently assess whether
-its device controller works on the target build before selecting it for handoff.
-Do not run ConsoleKit, seatd and BSD³ as competing DRM/VT owners.
+Session discovery, controller lifetime, Seat objects, descriptor
+transport/pause-resume and a GNOME 49 user-service graph exist. KVM can revoke
+input and switch VTs; my laptop drew real frames. ConsoleKit2 is the session
+source of truth. Do not run ConsoleKit, seatd and BSD³ as competing DRM/VT
+owners.
+
+What I actually use day to day is in [STATUS.md](STATUS.md). The numbered
+list below is how the work was planned, including items that later landed.
 
 ## Milestones
 
@@ -56,10 +58,10 @@ Do not run ConsoleKit, seatd and BSD³ as competing DRM/VT owners.
 
 ## Current protocol limits
 
-The daemon owns login1 but intentionally exposes a small read-only interface.
-It does not yet export Seat/User objects. Device descriptor transport,
-pause/resume and Active change signals are experimental protocol support,
-not verified hardware revocation.
+The daemon owns login1 and exports a selected Manager, Seat and Session
+interface. It is not a complete logind. Device descriptor transport,
+pause/resume and Active change signals exist; whether your GPU and input
+stack honor them is between you and the hardware.
 TakeControl/ReleaseControl authenticate the original peer and isolate backend
 lifetimes; see [controller design](controller-lifecycle.md).
 ListSessions resolves local usernames where available. Session IDs are ConsoleKit
@@ -84,11 +86,8 @@ backend connections or a native device broker, revocation and disconnect handlin
 Never accept a client-supplied UID as authorization. Do not gain device access by
 making all input devices world-readable or running the desktop as root.
 
-## Development environment boundary — November 4, 2026
+## Development environment
 
-Denis clarified that this project is hardware-independent until final acceptance.
-Use generic FreeBSD VMs in EhWS KubeVirt, preferably provisioned by the existing
-CircleCI native machine executor. The physical laptop has parallel kernel work;
-reserve it for final VT/DRM/input integration trials with a recorded recovery plan.
-Early prototype validation on that laptop used only ordinary-user temporary files
-and private buses, with no installed package, kernel, boot or service changes.
+I build and test on disposable FreeBSD VMs. The laptop is where I find out
+whether a session is actually pleasant. A headless VM passing tests is not
+the same thing.

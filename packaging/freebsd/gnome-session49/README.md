@@ -7,7 +7,7 @@ It follows GNOME49 BuildStream commit
 with fuzz disabled; the only context rebase accounts for upstream removing the
 unused JSON-GLib dependency. Native49.3 build/stage/plist/QA/package and full private-bus session graphs
 now pass with GSD49.1, Settings49.9 and14 app fixtures, including normal
-autostart/logout/cleanup. Combined CI and hardware49.3 qualification remain pending.
+autostart/logout/cleanup. Hardware 49.3 qualification remains pending.
 The previously accepted49.0 source and package remain preserved in alpha2.
 Upstream consumer modifications retain GPL-2.0-or-later. The original
 BSD3 backend/helper/graph sources remain BSD-2-Clause; their linked GNOME
@@ -43,6 +43,6 @@ The first actual settings graph rendered an autostart Wayland window and
 logged out with all owners gone; a per-service teardown error triggered the
 authenticated SessionOver correction and strict negative retest. Clean strict headless logout and real system-autostart tests now pass.
 The narrow exact-ID Initialization metadata followup also passed the actual
-native GsmApp API test. Its final consumer rebuild, combined CI qualification
+native GsmApp API test. Its final consumer rebuild, package qualification
 and physical display-manager re-entry remain acceptance gates. GDM49 userdb and
 physical49 desktop acceptance remain separate open work.

@@ -11,7 +11,7 @@ State: bridge protocol milestones merged; native GNOME desktop goal still open.
 - [PR2](https://github.com/denislemire/bsd-cubed/pull/2): device descriptor transport,
   pause/ack/resume, active notifications, descriptor validation, limits and cleanup.
 - Final combined code revision: `e7210136d4e524766adfe402a12efb4a1e73f449`.
-  [Native FreeBSD CI13](https://circle.ehws.generic.business/gh/denislemire/bsd-cubed/13)
+  native FreeBSD CI13
   passed direct and ports-framework tests: twelve applicable groups passed, with
   the Mac-only missing-peer-PID negative group skipped. Stage/check-plist/QA,
   package creation and artifact upload passed. The same source passed local strict
@@ -35,7 +35,7 @@ reserved while a separate Wi-Fi/kernel investigation repeatedly reboots it.
 Do not retry or reuse that investigation's SSH control masters for routine work.
 When a real desktop candidate is ready: publish successful CI artifacts as a
 GitHub beta, verify a fresh download, then install that exact artifact for the
-laptop's final test. The existing EhWS package catalogue is also requested for
+laptop's final test. The existing lab package catalogue is also requested for
 later tested upgrades; publication is not wired into this project yet and must
 preserve unrelated packages, metadata, checksums and recoverability.
 

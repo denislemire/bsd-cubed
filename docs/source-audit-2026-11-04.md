@@ -79,6 +79,6 @@ now run the actual49 manager and Shell49.10 on15-STABLE, with seven actual
 SettingsDaemon47.2_1 services, a real autostarted Wayland app, exact service
 PID ownership and strict normal logout cleanup. See the
 [dated candidate validation record](gnome49-native-candidate-2026-11-06.md).
-These are headless VM results. A coherent native CI release and actual49
+These are headless VM results. A coherent native package release and actual49
 DRM/input/VT/login-manager/laptop acceptance remain distinct open gates.
 The working physical47 installation and its kernel/Wi-Fi remain unchanged.

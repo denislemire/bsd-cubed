@@ -98,7 +98,7 @@ The Wi-Fi chat now owns all laptop mutations for proper automatic AP selection
 and roaming; the GNOME work continues in the primary VM. The user's expanded
 combined target includes a GNOME/Wayland GDM greeter, removing old Xorg/XFCE/Plasma
 app selections after validating replacement dependencies, native Signal, and
-IPv6 link-local hpbsd.local discovery. No app removals or GDM laptop switch have
+IPv6 link-local the lab mDNS name discovery. No app removals or GDM laptop switch have
 yet occurred. The existing SDDM greeter needs Xorg, and its optional battery
 component currently needs a Plasma plugin, so deleting those dependencies first
 would break accepted behavior.

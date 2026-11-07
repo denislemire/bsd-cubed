@@ -46,11 +46,10 @@ The latest VM-only SDK package identity is
 It is not a release artifact or a permitted laptop payload. Native CI must create
 and validate the final release binaries and corresponding sources.
 
-The final reusable-runner validation was interrupted at preparation by loss of
-EhWS API authentication. A supported forced OIDC refresh diagnosed discovery503
-“No available server”; 1Password is not the demonstrated cause. No generic-runner
-completion is claimed. Earlier direct trial barriers completed and recovered.
-A macOS-xattr extraction attempt also returned errors before execution; a new
+The final reusable-runner validation was interrupted at preparation by a
+temporary CI authentication failure. No generic-runner completion is claimed
+from that attempt. Earlier direct trial barriers completed and recovered.
+An archive extraction attempt also returned errors before execution; a new
 metadata-clean source archive was created instead, SHA256
 6edbdb918b4d753c98f98b0386d4da856955198773cc612f7ab1428e37fd94a8.
 The partially extracted tree is not counted as a successful experiment. The
@@ -61,6 +60,39 @@ The manually staged VM-only SDDM config/probe entry remain disabled and require
 cleanup once access returns. They are not present on the laptop. The CI runner
 uses distinct names and refuses pre-existing inputs. Physical i915/DRM recovery,
 regular login and fallback-BE boot remain the coordinated hardware acceptance.
+
+## November 5 update: reusable runner verified
+
+CI authentication recovered without a code change in this repository. No
+unrelated live state was overwritten.
+
+A fresh archive of published commit8bfa868f3a1c485954d35b9be28b2347b2e4bf30,
+SHA256 e999715df58c833560a8930357064aa2a8c9e82de5cbd8ee67ce8ad5c3867c88,
+was extracted into a new root-owned VM source tree. The exact runner script,
+SHA256 7313a1eb93f35a88c3b55399031c89f78e270a816b38b135113fbd4201302bfc,
+was made read-only and launched detached. The separately observed final exit
+status was0, after its evidence/cleanup barrier.
+
+The streaming-readiness case completed PASS. The deliberate timeout recorded
+child124, recovery PASS and complete FAIL_OR_ASSISTED. Actual SDDM then launched
+ordinary an ordinary test UID on VT9 with seat0 active and own-session control. Full GNOME47
+RequiredComponents, mapped headless Wayland window and normal session logout
+passed. The runner observed the production launcher exit0 and original CK
+inventory before requesting termination of the remaining greeter.
+
+That final requested stop recorded signal15, child137, three terminated
+and one killed descendant, no outer-deadline intervention, recovery PASS and
+original VT1. Its final barrier remained FAIL_OR_ASSISTED, as required; the
+aggregate runner label was ACCEPTANCE_PASS_WITH_REQUESTED_GREETER_STOP.
+This proves the requested recovery path, not an unassisted greeter shutdown.
+
+The earlier manual config/probe entries were removed before the run. The runner
+removed its own inputs afterward. Root originals and a protected private export
+were preserved; export SHA256
+bd9cda21be0d8171d2edbdda27164c2f328e50685a7bb21939b02ba2dd6518c0.
+These are VM-only local package results. CI36 must still qualify the exact release
+artifacts; physical DRM/input, normal password login and the hardware window
+remain open. Earlier interruption records above remain historical evidence.
 
 ## Cold backend ordering correction
 

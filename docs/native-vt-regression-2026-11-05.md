@@ -1,6 +1,6 @@
 # Real VT/device lifecycle — November 5, 2026
 
-State: verified on the isolated stable/15 KVM; native CI integration pending.
+State: verified on the isolated stable/15 KVM; native package integration pending.
 No laptop changes or physical GPU presentation are claimed.
 
 The test VM runs FreeBSD15.2-PRERELEASE,

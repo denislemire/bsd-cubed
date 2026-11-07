@@ -1,13 +1,14 @@
 version: 2.1
 
-# One disposable EhWS FreeBSD executor: bound peak RAM and preserve one coherent
+# One disposable FreeBSD executor: bound peak RAM and preserve one coherent
 # candidate/source set. Hardware rollout and catalogue publication are separate.
 jobs:
   freebsd-build-test-package:
     environment:
       BSD3_USERSESSION: "yes"
       PYTHON: /usr/local/bin/python3.12
-      BSD3_CI_DNS: 192.168.12.153
+      # Optional lab DNS used only to resolve the private package catalogue.
+      # Set BSD3_CI_DNS in the executor/project environment; do not commit RFC1918 addresses.
       BSD3_CI_PORTS_ROOT: /var/tmp/bsd3-ci-ports
       PORTSDIR: /var/tmp/bsd3-ci-ports
     machine:

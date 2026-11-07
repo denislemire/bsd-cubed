@@ -154,13 +154,12 @@ immutable controllers, complete source, artifacts and SHA256 manifest were
 exported privately and verified. Critical tested source files were compared
 byte-for-byte with this worktree.
 
-The separate `freebsd-user-session49` CircleCI job is prepared but has not run.
-Commit signing failed twice through the configured 1Password signer; signing
-was not bypassed and no PR was published. The guest also resolved the package
-mirror through external DNS and received 403 while the Mac's internal route
-served the anonymous artifact. The qualified published ConsoleKit package was
-transferred and checksum-verified for this VM. CI needs the lab's correct
-resolver/artifact route. These results do not establish 15-STABLE coverage.
+Commit signing failed twice through the configured signer; signing was not
+bypassed and no PR was published. The guest also resolved the package
+mirror through public DNS and received 403; an internal route served the
+anonymous artifact. The qualified published ConsoleKit package was
+transferred and checksum-verified for this VM. These results do not establish
+15-STABLE coverage.
 
 Still open: native GsmSystem tracking and privilege-operation backend,
 Shell/Mutter 49 native ports, Shell readiness and session environment updates,
@@ -211,10 +210,10 @@ production GNOME49 graph or hardware acceptance.
 The next candidate version is `0.2.0-alpha1` (`0.2.0.a1` in pkg/pkg-config),
 with USERSESSION enabled by default so the normal port supplies Shell49's SDK
 dependency. The existing beta3/beta5 artifacts remain immutable. There is no
-release distinfo for the unpublished alpha: CI generates a checksum for its
+release distinfo for the unpublished alpha: the package job generates a checksum for its
 exact source snapshot via makesum and exports `dist/snapshot.distinfo`. Release
 publication must retain that source and checksum and restore release distinfo
-before the port is submitted or used as an upstream release port. The SDK's
+The SDK's
 installed original backend sources are input to the licensed GNOME consumer
 build, not a claim of a complete session49 port.
 

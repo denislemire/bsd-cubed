@@ -2,10 +2,10 @@
 
 State: the laptop has a working GNOME47 Wayland desktop, input, webpages and
 normal logout to its graphical login screen. This is a beta milestone, not
-validation of GNOME49+ or a completed upstream ports submission.
+validation of GNOME49+.
 
 The installed candidate is the published beta5 release at b61cbb6313084e02dd28f77ff6eb0cb9cf7883db:
-Mutter47.10_5 from native CI45, with the unchanged exact beta3 BSD3 0.1.0.b3
+Mutter47.10_5 from native job 45, with the unchanged exact beta3 BSD3 0.1.0.b3
 and ConsoleKit2.0.0_5 artifacts from CI36. The generic 15-STABLE VM passed
 its package/session/device/recovery checks before hardware installation.
 All hardware package payloads were downloaded from the GitHub release and

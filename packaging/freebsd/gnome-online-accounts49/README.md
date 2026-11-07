@@ -27,4 +27,4 @@ Native checkpoint: build/stage/check-plist/stage-qa/package passed in the primar
 generic FreeBSD15-STABLE VM. Removed stale MSN icons and the absent schema from
 the packaging declarations after inspecting the actual upstream install. The
 package is installed only in the VM. Account/provider/authentication behavior,
-combined CI and release deployment remain unqualified.
+package and release deployment remain unqualified.

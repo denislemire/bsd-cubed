@@ -49,7 +49,7 @@ peer-PID contract cannot be exercised on that host. On the warm FreeBSD VM,
 `make clean all test` passed fourteen groups, including correct-owner/non-owner
 checks and all controller/device protocol groups; the deliberate missing-PID
 case was skipped because the native bus provides credentials. Shell syntax and
-`git diff --check` passed. Installed rc/policy checks are pending native CI.
+`git diff --check` passed. Installed rc/policy checks are pending native package build.
 
 ## Next integration experiment
 

@@ -1,8 +1,7 @@
 PORTNAME=	bsd-cubed
 DISTVERSION=	0.2.0-alpha3
 CATEGORIES=	sysutils
-MASTER_SITES=	https://packages.ehws.generic.business/sources/bsd-cubed/v${DISTVERSION}/ \
-		https://github.com/denislemire/bsd-cubed/releases/download/v${DISTVERSION}/
+MASTER_SITES=	https://github.com/denislemire/bsd-cubed/releases/download/v${DISTVERSION}/
 
 MAINTAINER=	denis@lemire.name
 COMMENT=	Experimental native BSD desktop session compatibility bridge

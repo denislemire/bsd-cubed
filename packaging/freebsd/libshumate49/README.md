@@ -48,7 +48,7 @@ display fixture. After qualifying this library, Maps still needs its own native
 launch, tile rendering and ordinary-user integration tests. No geolocation,
 network service or desktop-readiness capability is inferred from this recipe.
 
-No build, VM, root/laptop, CI, signing, push or deployment action was performed
+No build, VM, root/laptop, signing, push or deployment action was performed
 for this source-preparation task.
 
 ## Native checkpoint
@@ -57,5 +57,5 @@ Native build/stage/check-plist/QA/package passed on the primary generic
 FreeBSD15-STABLE VM with DOCS and vector rendering enabled. The plist was
 reconciled with actual staged documentation. All16 upstream suites passed under
 an isolated headless Mutter49 Wayland display, including map/marker and vector
-suites. The package is installed only in that VM. Maps runtime and combined CI/
+suites. The package is installed only in that VM. Maps runtime and package/
 release qualification remain pending; see the dated second-batch audit above.

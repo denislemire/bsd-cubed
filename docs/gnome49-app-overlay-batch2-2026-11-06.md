@@ -150,7 +150,7 @@ USE_PACKAGE_DEPENDS_ONLY to prohibit source fallback. Initial process-selection
 checks refused to signal anything because the FreeBSD suppressed-header format
 did not produce the expected fields; using the verified header-bearing format
 selected only that build's same-user descendants. This was tooling correction,
-not a package, kernel or hardware failure. Combined CI and desktop integration
+not a package, kernel or hardware failure. Desktop integration
 remain open.
 
 ## Remaining native package and session checkpoint
@@ -255,9 +255,5 @@ Session49.3/GSD49.1 normal logout/cleanup, in both isolated and system-autostart
 modes. Page-content execution in the actual browser remains outside these window
 checks; the independent WebKit DOM/pixel test is recorded separately.
 
-The complete pipeline configuration validates against the actual EhWS CircleCI
-Server using the official Server-compatible v0 CLI. The existing global CLI v1
-was left unchanged; a checksum-verified temporary v0 executable is used only by
-the task wrapper. This is configuration validation, not a successful combined
-pipeline or a published alpha3 release. The source packaging and native CI
-candidate are ready for that next validation step.
+This is not a published alpha3 release. The source packaging and native
+candidate remain the next validation step.

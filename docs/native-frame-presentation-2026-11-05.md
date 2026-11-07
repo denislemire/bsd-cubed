@@ -5,7 +5,7 @@ State: proposed correction; physical desktop acceptance remains open.
 ## Observation and preserved identities
 
 Published beta4 used signed source58b802fd8d8f0e0813cffc68f92b15cda1e8e951,
-all-success native CI44 and independent15.2-PRERELEASE STABLE qualification.
+all-success native job 44 and independent15.2-PRERELEASE STABLE qualification.
 The new Mutter47.10_4 package SHA256 is
 `7c3508611b9209c57fffd22dee739ade8d85df447ed3b9ff0bde5c9487d929e5`.
 SDKb3 and ConsoleKit2.0.0_5 were the exact unchanged released CI36 packages.
