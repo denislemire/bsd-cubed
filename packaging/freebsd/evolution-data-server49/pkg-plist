@@ -86,7 +86,6 @@ include/evolution-data-server/camel/camel-filter-driver.h
 include/evolution-data-server/camel/camel-filter-input-stream.h
 include/evolution-data-server/camel/camel-filter-output-stream.h
 include/evolution-data-server/camel/camel-filter-search.h
-include/evolution-data-server/camel/camel-folder-search.h
 include/evolution-data-server/camel/camel-folder-summary.h
 include/evolution-data-server/camel/camel-folder-thread.h
 include/evolution-data-server/camel/camel-folder.h
@@ -142,7 +141,6 @@ include/evolution-data-server/camel/camel-network-settings.h
 include/evolution-data-server/camel/camel-nntp-address.h
 include/evolution-data-server/camel/camel-null-output-stream.h
 include/evolution-data-server/camel/camel-object-bag.h
-include/evolution-data-server/camel/camel-object.h
 include/evolution-data-server/camel/camel-offline-folder.h
 include/evolution-data-server/camel/camel-offline-settings.h
 include/evolution-data-server/camel/camel-offline-store.h
@@ -163,12 +161,14 @@ include/evolution-data-server/camel/camel-sasl-xoauth2-yahoo.h
 include/evolution-data-server/camel/camel-sasl-xoauth2.h
 include/evolution-data-server/camel/camel-sasl.h
 include/evolution-data-server/camel/camel-search-private.h
-include/evolution-data-server/camel/camel-search-sql-sexp.h
+include/evolution-data-server/camel/camel-search-utils.h
 include/evolution-data-server/camel/camel-service.h
 include/evolution-data-server/camel/camel-session.h
 include/evolution-data-server/camel/camel-settings.h
 include/evolution-data-server/camel/camel-sexp.h
 include/evolution-data-server/camel/camel-smime-context.h
+include/evolution-data-server/camel/camel-store-db.h
+include/evolution-data-server/camel/camel-store-search.h
 include/evolution-data-server/camel/camel-store-settings.h
 include/evolution-data-server/camel/camel-store-summary.h
 include/evolution-data-server/camel/camel-store.h
@@ -189,7 +189,6 @@ include/evolution-data-server/camel/camel-url-scanner.h
 include/evolution-data-server/camel/camel-url.h
 include/evolution-data-server/camel/camel-utf8.h
 include/evolution-data-server/camel/camel-utils.h
-include/evolution-data-server/camel/camel-vee-data-cache.h
 include/evolution-data-server/camel/camel-vee-folder.h
 include/evolution-data-server/camel/camel-vee-message-info.h
 include/evolution-data-server/camel/camel-vee-store.h
@@ -255,6 +254,7 @@ include/evolution-data-server/libecal/e-cal-component-alarm-trigger.h
 include/evolution-data-server/libecal/e-cal-component-alarm.h
 include/evolution-data-server/libecal/e-cal-component-alarms.h
 include/evolution-data-server/libecal/e-cal-component-attendee.h
+include/evolution-data-server/libecal/e-cal-component-bag.h
 include/evolution-data-server/libecal/e-cal-component-datetime.h
 include/evolution-data-server/libecal/e-cal-component-id.h
 include/evolution-data-server/libecal/e-cal-component-organizer.h
@@ -451,8 +451,8 @@ lib/girepository-1.0/EDataCal-%%CAL_API_VERSION%%.typelib
 lib/girepository-1.0/EDataServer-%%EVO_VERSION%%.typelib
 lib/girepository-1.0/EDataServerUI-%%EVO_VERSION%%.typelib
 lib/libcamel-%%EVO_VERSION%%.so
-lib/libcamel-%%EVO_VERSION%%.so.64
-lib/libcamel-%%EVO_VERSION%%.so.64.0.0
+lib/libcamel-%%EVO_VERSION%%.so.66
+lib/libcamel-%%EVO_VERSION%%.so.66.0.0
 lib/libebackend-%%EVO_VERSION%%.so
 lib/libebackend-%%EVO_VERSION%%.so.11
 lib/libebackend-%%EVO_VERSION%%.so.11.0.0
@@ -555,6 +555,7 @@ share/locale/hi/LC_MESSAGES/evolution-data-server.mo
 share/locale/hr/LC_MESSAGES/evolution-data-server.mo
 share/locale/hu/LC_MESSAGES/evolution-data-server.mo
 share/locale/id/LC_MESSAGES/evolution-data-server.mo
+share/locale/ie/LC_MESSAGES/evolution-data-server.mo
 share/locale/is/LC_MESSAGES/evolution-data-server.mo
 share/locale/it/LC_MESSAGES/evolution-data-server.mo
 share/locale/ja/LC_MESSAGES/evolution-data-server.mo

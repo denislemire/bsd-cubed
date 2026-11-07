@@ -125,3 +125,30 @@ The compositor exited normally afterward. This qualifies those library tests,
 not Maps tile/network/geolocation behavior. Consumer builds and the remaining
 second-batch runtime checks are still open; no new release or laptop deployment
 is implied by this checkpoint.
+
+## Evolution Data Server native checkpoint
+
+EDS3.58.3 now passes native build/stage/check-plist/stage-qa/package and all100
+upstream CTest cases. Tests ran serially as the ordinary VM actor with a fresh
+private home and session bus, without personal accounts/data. The new package
+has not been installed in the VM or on the laptop; consumers must be upgraded
+coherently for the new Camel66 ABI.
+
+The first native stage exposed missing GTK3 files. Correcting an inherited
+misspelled CMake option had unintentionally made GTK4 disable GTK3, although
+Evolution still requires the GTK3 UI API. The corrected recipe explicitly keeps
+GTK3 and adds GTK4 independently. With OAuth enabled, both corresponding WebKit
+interfaces are declared and enabled. The tested CMake cache confirms all four
+switches are on. Camel66, changed public headers and the new locale were also
+reconciled with actual staged files; existing UI files were restored by fixing
+the build configuration rather than deleting required APIs from the manifest.
+
+The missing WebKit41 binary initially led the ports framework into a source
+Ruby/WebKit dependency build. That build was stopped, the declared binary
+prerequisite was installed, and the successful repeat used a bounded timeout and
+USE_PACKAGE_DEPENDS_ONLY to prohibit source fallback. Initial process-selection
+checks refused to signal anything because the FreeBSD suppressed-header format
+did not produce the expected fields; using the verified header-bearing format
+selected only that build's same-user descendants. This was tooling correction,
+not a package, kernel or hardware failure. Combined CI and desktop integration
+remain open.
