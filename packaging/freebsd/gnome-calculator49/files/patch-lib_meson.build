@@ -1,0 +1,10 @@
+--- lib/meson.build.orig
++++ lib/meson.build
+@@ -27,6 +27,7 @@
+ ]
+ 
+ libcalculator_deps = [
++  meson.get_compiler('c').find_library('m', required: true),
+   gio,
+   glib,
+   gobject,

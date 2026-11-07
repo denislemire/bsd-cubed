@@ -1,0 +1,81 @@
+--- lib/number.vala.orig
++++ lib/number.vala
+@@ -554,15 +554,21 @@
+     {
+         uint64 p;
+         var z = new Number ();
++        z.num.@set (num);
++        // Real values use the upper side of the negative-real branch cut.
++        // Unary negation can leave an incidental -0 imaginary component.
++        // Normalize only that zero, before reciprocating for negative degrees;
++        // genuinely complex inputs retain their original branch side.
++        if (!is_complex ())
++            z.num.get_imag ().val.set_unsigned_integer (0);
+         if (n < 0)
+         {
+-            z.num.unsigned_integer_divide (1, num);
++            z.num.unsigned_integer_divide (1, z.num);
+             if (n == int64.MIN)
+                 p = (uint64) int64.MAX + 1;
+             else
+                 p = -n;
+         } else if (n > 0) {
+-            z.num.@set (num);
+             p = n;
+         } else {
+             error = _("The zeroth root of a number is undefined");
+--- tests/test-number.vala.orig
++++ tests/test-number.vala
+@@ -581,6 +581,44 @@
+         }
+     }
+ 
++    pass ();
++}
++
++private void test_real_root_branch ()
++{
++    Number[] real_inputs = {
++        new Number.double (-4.0, 0.0),
++        new Number.double (-4.0, -0.0),
++        new Number.integer (4).invert_sign ()
++    };
++    foreach (var input in real_inputs)
++    {
++        var positive = input.root (2);
++        var negative = input.root (-2);
++        var power = input.xpowy (new Number.double (0.5));
++        if (!double_matches (positive.real_component (), 0.0) ||
++            !double_matches (positive.imaginary_component (), 2.0) ||
++            !double_matches (negative.real_component (), 0.0) ||
++            !double_matches (negative.imaginary_component (), -0.5) ||
++            !double_matches (power.real_component (), 0.0) ||
++            !double_matches (power.imaginary_component (), 2.0))
++        {
++            fail ("Real roots must use the principal branch for either sign of imaginary zero");
++            return;
++        }
++    }
++
++    // Nonzero imaginary components must retain their own side of the cut.
++    foreach (var sign in new int[] { -1, 1 })
++    {
++        var complex_root = new Number.double (-3.0, 4.0 * sign).root (2);
++        if (!double_matches (complex_root.real_component (), 1.0) ||
++            !double_matches (complex_root.imaginary_component (), 2.0 * sign))
++        {
++            fail ("Complex roots must preserve the side of the branch cut");
++            return;
++        }
++    }
+     pass ();
+ }
+ 
+@@ -1120,6 +1158,7 @@
+     test_xpowy_integer ();
+     test_root3 (); // FIXME: should check other roots
+     test_sqrt ();
++    test_real_root_branch ();
+     test_ln ();
+     test_logarithm2 (); // FIXME: Should check other bases
+     test_logarithm10 (); // FIXME: Should check other bases
