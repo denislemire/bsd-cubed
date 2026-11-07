@@ -13,7 +13,7 @@ The current greeter still uses SDDM/Xorg; Settings47 and SettingsDaemon47 remain
 in that accepted package set. The next candidate upgrades the remaining GNOME49
 components and apps. See the [hardware acceptance record](docs/gnome49-hardware-trial-2026-11-06.md)
 and [alpha2 release](https://github.com/denislemire/bsd-cubed/releases/tag/v0.2.0-alpha2).
-Wi-Fi performance, camera capture and physical VT shortcuts remain separate open
+Wi-Fi performance, sleep/unlock reliability, camera capture and physical VT shortcuts remain separate open
 checks. These results establish the identified laptop trial, not every FreeBSD
 machine or all GNOME features.
 

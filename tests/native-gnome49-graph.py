@@ -140,6 +140,12 @@ with tempfile.TemporaryDirectory(prefix='bsd3-graph49-') as directory:
                         'quit', '[]', '{}', env=ui_env)
                     assert settings_ui.wait(timeout=10) == 0
                 print('PASS: actual Settings49.9 About UI maps a Wayland surface and quits normally')
+            if os.environ.get('BSD3_TEST_GNOME_APPS') == 'yes':
+                apps_env = env.copy()
+                apps_env.update(WAYLAND_DISPLAY='bsd3-graph49', GDK_BACKEND='wayland')
+                subprocess.run([sys.executable,
+                    str(Path(__file__).with_name('native-gnome49-apps.py')),
+                    str(output / 'applications')], env=apps_env, check=True, timeout=300)
             call('--dest', 'org.gnome.SessionManager', '--object-path',
                 '/org/gnome/SessionManager', '--method',
                 'org.gnome.SessionManager.Logout', '1', env=env)
