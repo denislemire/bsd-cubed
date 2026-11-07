@@ -207,3 +207,35 @@ upstream source name. The actual CI67 package manifest and a native installed
 package query report `consolekit2-2.0.0_5 sysutils/consolekit2`. The controller
 now uses that exact package identity for lookup, locking and provider protection.
 The failed combined run is evidence for diagnosis only, not a release candidate.
+
+### CI70 package collection and native worker reproduction
+
+CI70 passed all preceding core stages, then built/staged/checked/packaged Online
+Accounts successfully. The worker failed collecting its package because PACKAGES
+did not exist when make first parsed bsd.port.mk. The pinned framework only
+enables repository output when that directory already exists; the package was
+created under WRKDIR/pkg instead of the expected repository. The worker now
+creates its private package directory before evaluating make metadata or targets.
+
+A focused ordinary-user reproduction on the preserved generic 15-STABLE VM
+then exposed PosixPath arguments in the JSON build-command receipt. Those are
+now explicitly normalized to strings, and the provenance query names the native
+package executable by its absolute path. The first lab harness mistakenly
+trimmed PATH below the real controller's environment, generating false unowned-
+library QA errors. Repeating with the controller's actual full system path
+restored valid QA; no QA check was weakened.
+
+The corrected real worker now emits complete packages, patched source, recipes,
+upstream distfiles and provenance for Online Accounts3.56.5 and Shumate1.5.5.
+Shumate's16 actual Meson results are all OK/returncode0. Completion manifests,
+nonempty artifacts, ABI and serialized command arguments were read back from
+those native receipts. The lab probe used existing source overlays directly; it
+is not a successful combined CI run or a release.
+
+The same actual worker subsequently passed EDS3.58.3 stage/plist/QA/package and
+all100 CTest cases under the isolated Wayland fixture, with complete nonempty
+source/recipe/provenance receipts. A separate actual Papers extraction using
+the worker's WRKSRC/vendor layout populated that directory and checksum-verified
+all253 original registry archives against Cargo.lock; this was not a second
+Rust compile or a full Papers-worker claim. The transferred worker script's
+checksum matched the final locally checked source.
