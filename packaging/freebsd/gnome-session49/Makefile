@@ -1,6 +1,5 @@
 PORTNAME= gnome-session
-DISTVERSION= 49.0
-PORTREVISION= 1
+DISTVERSION= 49.3
 CATEGORIES= x11 gnome
 MASTER_SITES= GNOME
 DIST_SUBDIR= gnome
@@ -13,7 +12,6 @@ LICENSE= GPLv2+
 LICENSE_FILE= ${WRKSRC}/COPYING
 
 BUILD_DEPENDS= ${LOCALBASE}/libdata/pkgconfig/bsd3-user-session.pc:sysutils/bsd-cubed
-LIB_DEPENDS= libjson-glib-1.0.so:devel/json-glib
 RUN_DEPENDS= bsd-cubed>=0.2.0.a1:sysutils/bsd-cubed \
              gnome-settings-daemon>=47.2:sysutils/gnome-settings-daemon \
              gnome-shell>=49:x11/gnome-shell \

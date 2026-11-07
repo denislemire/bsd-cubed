@@ -152,3 +152,112 @@ did not produce the expected fields; using the verified header-bearing format
 selected only that build's same-user descendants. This was tooling correction,
 not a package, kernel or hardware failure. Combined CI and desktop integration
 remain open.
+
+## Remaining native package and session checkpoint
+
+On 2026-11-06 (America/Edmonton), the remaining eleven second-batch recipes all
+passed native build/stage/check-plist/stage-qa/package on the same generic
+15-STABLE VM. That includes Files49.6, Web49.9.1, Calendar49.1, Console49.2,
+Maps49.7, Papers49.8, extensions49.1 and Evolution3.58.3, plus the three
+previously recorded dependencies. The 23 ecosystem overlays are now packaged
+manually; the complete CI controller has not yet run and no alpha3 hardware
+rollout has occurred.
+
+Files required real FreeBSD filesystem adaptation: native sys/param.h and
+sys/mount.h, O_PATH/fstatfs, and f_fstypename classification instead of Linux
+superblock magic. A runtime-extracted actual-function probe failed before the
+classification fix and passed six native descriptor/error/classification cases
+afterward. Synthetic autofs metadata is explicit; no real automount is claimed.
+The upstream headless tests are now enabled. Their thumbnail case also needs a
+real display, and its Linux-only bubblewrap prerequisite incorrectly skipped
+FreeBSD's actual non-bwrap GNOME Desktop thumbnailer. With that prerequisite
+limited to Linux, all19 upstream suites pass under isolated Mutter Wayland,
+including actual thumbnails, without skipped suites or warning suppression.
+
+Maps, Web and extensions inventories were reconciled with staged icon/help/
+metadata changes. Calendar's stage QA caught a missing direct Graphene dependency;
+it is declared now. Papers completed its locked Rust build with two jobs and
+now packages document ABI6/view ABI5, backend directory6, new public headers
+and actual renamed metadata. Optional backend naming retains the option markers.
+Evolution's new public headers and metadata were similarly reconciled. Native
+stage-QA Error lines are checked independently of make's return status.
+
+The installed VM packages pass the real Session49.3/Shell49.10/GSD49.1 graph
+with14 GUI apps plus Settings49.9 About, in both isolated and normal system-
+autostart modes, followed by normal session logout and owner/socket cleanup.
+Files, Maps, Calendar and Evolution quit through their actual public app actions;
+Console proves a real child terminal/PTY. Papers loads a generated private PDF
+through its real document backend and renders a PNG thumbnail before its GUI
+maps. Calculator, Console, Tecla and Papers use bounded fixture cleanup where
+a normal remotely addressable quit contract is absent; interactive exit is not
+claimed for them. Papers intentionally uses G_APPLICATION_NON_UNIQUE.
+
+Two environment/contract corrections are retained: activated helpers initially
+inherited the enclosing bus's old home/runtime, producing fatal GVfs path
+mismatches; the private bus activation environment now follows the fixture's
+private directories. Nautilus app.quit closes windows while retaining its
+background service; its public app.kill action calls g_application_quit and is
+used for actual process exit. No POSIX kill is substituted for a normal quit.
+Calendar initially failed because this generic image had neither /etc/localtime
+nor /var/db/zoneinfo. Native tzsetup -s UTC configured only this disposable VM;
+Calendar then launched and quit normally, and prior default-timezone warnings
+were absent in the new graph. No fictitious timedate1 service was introduced.
+
+## Browser investigation before the correction below
+
+Web49.9.1 maps a real Wayland window but aborts during normal quit from a fresh
+about:blank page with the existing !shell->windows assertion. At the ten-second
+quit deadline, procstat showed sigexit/elf64_coredump before test cleanup; a
+large core write had disguised the abort as a timeout. Matching installed and
+unstripped executable/libraries, package and patched source are preserved
+privately with the possibly interrupted core. No complete-core claim is made.
+Subsequent app tests disable core output so aborts report promptly without
+exhausting VM disk. Raw memory and identifying diagnostics remain uncommitted.
+
+The initial test mistakenly used only WEBKIT_DISABLE_DMABUF_RENDERER. The actual
+working hardware profile uses WEBKIT_DISABLE_COMPOSITING_MODE=1. Matching that
+setting still reproduces the blank-page failure. Changing only the page to
+internal ephy-about:overview passes actual normal browser quit and complete
+Session49.3 logout. An independent original C11 WebKit6 probe, with the matched
+profile setting, executes unique local HTML/JavaScript tokens and validates a
+nonuniform two-color visible snapshot; normal GTK cleanup passes. This verifies
+the underlying library renderer, not actual browser page execution.
+
+A separate original GTK held-reference probe confirms logical window removal
+can precede disposal and finalization. It does not identify the browser's actual
+retained owner. Pending-navigation/filter references are a falsifiable hypothesis;
+a private diagnostics-only source variant was subsequently compared to select the
+consumer fix recorded below. Assertions, form warnings and filter policy have not been disabled.
+Tracker/miner startup still emits a SQLite nco:creator error in fresh VM search
+fixtures; simple-search tests pass, which does not qualify the indexer.
+
+## Browser ownership correction verified
+
+The private trace established the retained owner: two queued navigation-policy
+records each owned the same window while filters were uninitialized. They
+remained when GTK removed the logical window; no dispose/finalize occurred before
+Shell finalized with one tracked window. The internal overview case had no queue
+and finalized normally. This distinguishes the concrete self-reference cycle
+from the separate GTK held-reference lifetime demonstration.
+
+The GPL consumer patch now cancels queued decisions on removal of that exact
+application window. It detaches the queue before callbacks, disconnects and
+resets the filter-handler ID, explicitly ignores ended navigation requests, and
+frees the real owning records. The normal initialized callback similarly detaches
+its batch and avoids resuming later entries after reentrant window removal.
+It preserves the strict Shell assertion, form warnings and filter policy.
+
+Private instrumentation was reversed before rebuilding the clean package.
+The original blank-page case now quits normally, the internal overview still
+quits normally, and a two-window blank/overview case also passes. The final clean
+package passes all15 GUI app fixtures plus Settings49.9 About and complete
+Session49.3/GSD49.1 normal logout/cleanup, in both isolated and system-autostart
+modes. Page-content execution in the actual browser remains outside these window
+checks; the independent WebKit DOM/pixel test is recorded separately.
+
+The complete pipeline configuration validates against the actual EhWS CircleCI
+Server using the official Server-compatible v0 CLI. The existing global CLI v1
+was left unchanged; a checksum-verified temporary v0 executable is used only by
+the task wrapper. This is configuration validation, not a successful combined
+pipeline or a published alpha3 release. The source packaging and native CI
+candidate are ready for that next validation step.

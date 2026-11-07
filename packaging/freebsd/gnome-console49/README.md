@@ -22,3 +22,8 @@ sources with fuzz disabled. Candidate plists retain the pinned inventory with
 source-supported catalog/selection changes. Native configure/build/stage,
 check-plist/QA/package, meaningful tests and ordinary-user runtime checks are
 **pending**; no source-only recipe is claimed as a qualified desktop package.
+
+Native checkpoint: build/stage/check-plist/stage-qa/package passed in the
+primary generic FreeBSD15-STABLE VM. See the [dated second-batch record](../../../docs/gnome49-app-overlay-batch2-2026-11-06.md)
+for actual app/test results, corrections and remaining limits. Combined CI,
+release publication and hardware rollout are still pending.

@@ -76,6 +76,10 @@ jobs:
           name: Build GNOME49 session and verify real CK, settings, apps and logout
           no_output_timeout: 30m
           command: sh tools/ci-gnome49.sh
+      - run:
+          name: Build remaining GNOME49 apps and verify the complete native session
+          no_output_timeout: 30m
+          command: sh tools/ci-ecosystem49.sh
       - store_artifacts:
           path: dist
           destination: freebsd
@@ -83,4 +87,5 @@ jobs:
 workflows:
   build:
     jobs:
-      - freebsd-build-test-package
+      - freebsd-build-test-package:
+          serial-group: denislemire/ehws-freebsd-heavy

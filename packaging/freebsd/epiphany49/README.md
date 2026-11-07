@@ -22,3 +22,16 @@ sources with fuzz disabled. Candidate plists retain the pinned inventory with
 source-supported catalog/selection changes. Native configure/build/stage,
 check-plist/QA/package, meaningful tests and ordinary-user runtime checks are
 **pending**; no source-only recipe is claimed as a qualified desktop package.
+
+Native checkpoint: build/stage/check-plist/stage-qa/package passed in the
+primary generic FreeBSD15-STABLE VM. See the [dated second-batch record](../../../docs/gnome49-app-overlay-batch2-2026-11-06.md)
+for actual app/test results, corrections and remaining limits. Combined CI,
+release publication and hardware rollout are still pending.
+
+The additional GPL consumer patch binds queued navigation-policy ownership to
+actual matching-window removal. A fresh blank-page quit previously retained two
+policy records and aborted at Shell finalization; the fixed clean package passes
+normal quit, an internal overview control, a two-window check and both full
+session modes with all15 app fixtures. Filter and form-warning policy remains
+intact. Independent WebKit DOM/rendering verification passes, while these actual
+browser window tests do not claim page-content execution coverage.
