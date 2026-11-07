@@ -281,6 +281,20 @@ def worker(control, ports, work, key, origin):
     (receipts/'complete.json').write_text(json.dumps(names)+'\n')
 
 
+def complete_receipts(receipt, key):
+    # The controller defines the contract; an actor manifest cannot weaken it.
+    expected = ['source.tar.xz','recipe.tar.gz','upstream-distfiles.tar.xz',
+                'package.pkg','provenance.json']
+    if key == 'papers49': expected += ['locked-crates.tar.xz','Cargo.lock']
+    require(json.loads((receipt/'complete.json').read_text()) == expected,
+            'source/package completion receipt differs')
+    for name in expected:
+        path = receipt/name
+        info = path.lstat()
+        require(stat.S_ISREG(info.st_mode) and info.st_size > 0,
+                'required source/package receipt missing or empty: '+name)
+
+
 def installed(name):
     answer = subprocess.run(['/usr/local/sbin/pkg','query','%n-%v %o',name],
                             capture_output=True, text=True, timeout=30)
@@ -487,6 +501,7 @@ def root_main(repo):
                 inventory(directory)
                 raise failure
             receipt = directory/'receipts'
+            complete_receipts(receipt,key)
             qa_ok(receipt/'build.log')
             expected = run(metadata+['-V','PKGNAME'],timeout=60).strip()
             require(re.fullmatch(r'[A-Za-z0-9_+.,-]+',expected),'invalid expected package name')
@@ -612,6 +627,27 @@ def self_test():
         try: ctest_results(junit,2)
         except RuntimeError: pass
         else: raise AssertionError('CTest skipped summary accepted')
+        receipt = root/'receipts'; receipt.mkdir()
+        required = ['source.tar.xz','recipe.tar.gz','upstream-distfiles.tar.xz',
+                    'package.pkg','provenance.json','locked-crates.tar.xz','Cargo.lock']
+        (receipt/'complete.json').write_text(json.dumps(required))
+        for name in required: (receipt/name).write_bytes(b'fixture')
+        complete_receipts(receipt,'papers49')
+        for name in required:
+            path = receipt/name
+            path.write_bytes(b'')
+            try: complete_receipts(receipt,'papers49')
+            except RuntimeError: pass
+            else: raise AssertionError('empty required source receipt accepted: '+name)
+            path.unlink()
+            try: complete_receipts(receipt,'papers49')
+            except FileNotFoundError: pass
+            else: raise AssertionError('missing required source receipt accepted: '+name)
+            path.write_bytes(b'fixture')
+        (receipt/'complete.json').write_text(json.dumps(required[:-2]))
+        try: complete_receipts(receipt,'papers49')
+        except RuntimeError: pass
+        else: raise AssertionError('actor removed required Cargo source contract')
         actor = root/'actor'; actor.mkdir()
         (actor/'log').write_text('safe failed-build log')
         copy_output(actor,'log',root/'copy',os.getuid())

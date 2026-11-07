@@ -191,3 +191,10 @@ while CONFIGURE_WRKSRC is the source tree. The controller now queries TEST_WRKSR
 for both Meson and CMake tests; CMake sets it to its configured .build directory.
 CI61 was superseded before reaching this phase to avoid consuming the rest of a
 known-invalid run. This corrects test orchestration, not a consumer build.
+
+The final receipt review also found that root collected complete.json without
+enforcing it. Before installation, root now requires the exact controller-defined
+source/recipe/upstream/package/provenance list, plus both Papers Cargo inputs,
+and nonempty regular copies of each. Offline checks remove and truncate every
+required input and reject actor attempts to shorten the contract. The release
+curator independently requires the same corresponding-source inventory.

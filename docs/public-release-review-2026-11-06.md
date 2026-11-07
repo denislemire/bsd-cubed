@@ -56,7 +56,7 @@ Signed candidate `5a680405523106a12212d4d7717f97166698ad14` adds the manually
 verified 23 ecosystem ports and their serial CI controller. CI61 is running;
 this does not qualify an alpha3 release or hardware installation. The source
 export scan found only the previously reviewed documented source digest and
-EDS's `GSSAPI_NONE_CMAKE_ON=-DWITH_KRB5=OFF` build option. Neither is a credential.
+EDS's Kerberos-disable build option. Neither is a credential.
 The 78-commit all-ref history scan found that same EDS option in its original
 source-preparation commit. Only its exact historical fingerprint is added to
 `.gitleaksignore`; the generic API-key rule remains enabled.
@@ -65,3 +65,7 @@ The existing draft PR description now reflects Session49.3, the native ecosystem
 results, the corrected browser ownership path and the actual alpha2 hardware
 acceptance. It explicitly keeps new CI/release/hardware work open. No repository
 visibility change or history rewrite has occurred.
+
+The same harmless option text was also detected when repeated in this audit
+and its ignore-file explanation. Those two exact historical fingerprints are
+reviewed as well; the current explanation avoids repeating the scanner trigger.
