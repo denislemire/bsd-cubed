@@ -22,3 +22,12 @@ sources with fuzz disabled. Candidate plists retain the pinned inventory with
 source-supported catalog/selection changes. Native configure/build/stage,
 check-plist/QA/package, meaningful tests and ordinary-user runtime checks are
 **pending**; no source-only recipe is claimed as a qualified desktop package.
+
+Native checkpoint: build/stage/check-plist/stage-qa/package and all100 upstream
+CTest cases passed on the primary generic FreeBSD15-STABLE VM. Tests used an
+ordinary actor and private home/bus. GTK3 is explicitly retained alongside the
+optional GTK4 API, including both OAuth WebKit interfaces when enabled. Camel66
+and actual header/locale changes are reflected in the plist. The package remains
+uninstalled pending a coherent consumer update; combined CI and release/hardware
+qualification remain open. See the dated second-batch audit for failed attempts
+and corrections.

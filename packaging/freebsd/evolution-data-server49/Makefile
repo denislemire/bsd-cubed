@@ -25,7 +25,7 @@ LIB_DEPENDS=	libgoa-1.0.so:net/gnome-online-accounts \
 USES=		cmake cpe desktop-file-utils gettext-tools gnome gperf \
 		iconv:wchar_t localbase pkgconfig sqlite tar:xz xorg
 USE_CXXSTD=	gnu++17
-USE_GNOME=	cairo glib20 introspection:build libxml2 pango
+USE_GNOME=	cairo glib20 gtk30 introspection:build libxml2 pango
 USE_XORG=	x11
 USE_LDCONFIG=	yes
 CPE_VENDOR=	gnome
@@ -34,6 +34,7 @@ LDFLAGS=	-L${LOCALBASE}/lib
 
 CMAKE_OFF=	CMAKE_CXX_EXTENSIONS
 CMAKE_ARGS=	-DENABLE_INTROSPECTION=ON \
+		-DENABLE_GTK=ON \
 		-DENABLE_EXAMPLES=OFF \
 		-DENABLE_INSTALLED_TESTS=OFF \
 		-DWITH_SYSTEMDUSERUNITDIR=no
@@ -64,14 +65,12 @@ CANBERRA_CMAKE_BOOL=	ENABLE_CANBERRA
 CANBERRA_LIB_DEPENDS=	libcanberra-gtk3.so:audio/libcanberra-gtk3 \
 			libcanberra.so:audio/libcanberra
 
-GTK4_DESC=		GTK4 vs. GTK3
-GTK4_VARS=		use_gnome+=gtk40 use_gnome+=gtk30
-GTK4_VARS_OFF=		use_gnome+=gtk30
+GTK4_DESC=		Additional GTK4 UI library alongside GTK3
+GTK4_VARS=		use_gnome+=gtk40
 GTK4_LIB_DEPENDS=	libgraphene-1.0.so:graphics/graphene \
 			libgtk-4.so:x11-toolkits/gtk40 \
 			libvulkan.so:graphics/vulkan-loader
 GTK4_CMAKE_BOOL=	ENABLE_GTK4
-GTK4_CMAKE_BOOL_OFF=	ENABLE_GTK
 
 GSSAPI_BASE_USES=	gssapi:base ssl
 GSSAPI_HEIMDAL_USES=	gssapi:heimdal
@@ -97,11 +96,12 @@ WEATHER_CMAKE_BOOL=	ENABLE_WEATHER
 .include <bsd.port.options.mk>
 
 .if ${PORT_OPTIONS:MOAUTH2}
+LIB_DEPENDS+=	libwebkit2gtk-4.1.so:www/webkit2-gtk@41
+CMAKE_ARGS+=	-DENABLE_OAUTH2_WEBKITGTK=ON
 .  if ${PORT_OPTIONS:MGTK4}
 LIB_DEPENDS+=	libwebkitgtk-6.0.so:www/webkit2-gtk@60
-CMAKE_ARGS+=	-DENABLE_OAUTH2_WEBKITGTK=OFF
+CMAKE_ARGS+=	-DENABLE_OAUTH2_WEBKITGTK4=ON
 .  else
-LIB_DEPENDS+=	libwebkit2gtk-4.1.so:www/webkit2-gtk@41
 CMAKE_ARGS+=	-DENABLE_OAUTH2_WEBKITGTK4=OFF
 .  endif
 .else
