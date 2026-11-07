@@ -27,7 +27,7 @@ case "$distname:$pkgname" in *[!A-Za-z0-9_.:+-]*|:*|*:) exit 1 ;; esac
 source_root="$work_root/source/$distname"
 mkdir -p "$source_root"
 # Explicit source inputs: no .git, private captures, generated binaries or secrets.
-for input in Makefile LICENSE README.md src include man tests packaging/bsd3-login.pc.in packaging/bsd3-user-session.pc.in packaging/bsd3-sddm-session.in packaging/sddm-wayland.conf.in packaging/gnome49; do
+for input in Makefile LICENSE README.md THIRD_PARTY.md src include man tests packaging/bsd3-login.pc.in packaging/bsd3-user-session.pc.in packaging/bsd3-sddm-session.in packaging/sddm-wayland.conf.in packaging/gnome49; do
     if [ "${input#packaging/}" != "$input" ]; then
         mkdir -p "$source_root/packaging"
         cp -R "$input" "$source_root/packaging/"
