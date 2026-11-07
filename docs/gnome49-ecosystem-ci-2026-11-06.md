@@ -239,3 +239,43 @@ the worker's WRKSRC/vendor layout populated that directory and checksum-verified
 all253 original registry archives against Cargo.lock; this was not a second
 Rust compile or a full Papers-worker claim. The transferred worker script's
 checksum matched the final locally checked source.
+
+### CI73 old-kernel process-environment failure
+
+CI73 stopped in the unchanged VT test before the ecosystem stage: CK registered
+a local VT9 session, but the client could not resolve its session ID. Recovery
+to VT1 passed. CK logged kvm_getenvv failure without its underlying errno; this
+diagnostic alone does not prove which kernel error occurred.
+
+The exact RELEASE-p6 kernel source95719d8a895b retains the faulty partial-read
+path described in FreeBSD PR297512. The upstream report links this defect to
+ConsoleKit process lookup and GNOME unlock failures. Reviewed stable/15 fixes
+c9b5dd2eb820 and75bf78a0ed8d landed August16. Official Git ancestry confirms the
+recorded lab646a485c3b2f and laptop06e5b042 source bases include the fixes. This
+does not establish the cause of the laptop's separate frozen-resume incident.
+
+An original C11/BSD2 bounded probe temporarily gives only its own synthetic child
+a single environment string ending at an unmapped page boundary, with a mapped-
+following-page control. It never reads actual environment values or other users'
+processes. The real STABLE VM passes both cases with exact content and length.
+The explicit legacy mode requires the control to pass and boundary read to fail
+with ENOMEM; its output explicitly says NOT A QUALIFICATION. CI records this
+capability before building. An unrecognized outcome fails the diagnostic.
+
+The observed CI73 lookup failure is consistent with this known older-kernel
+defect; its original errno was not retained, so attribution remains an inference.
+Neither session identity checks nor VT tests are bypassed, relaxed or retried
+inside their fixtures. ASLR is unchanged. The CI RELEASE image still needs the
+upstream kernel fixes; the target remains STABLE. A successful new combined run
+and exact-package STABLE/hardware validation are still required.
+
+Sources: https://lists.freebsd.org/archives/freebsd-bugs/2026-August/036119.html
+and https://github.com/freebsd/freebsd-src/commit/c9b5dd2eb8200eb9be6795fd2b0774991d85e1ef
+plus https://github.com/freebsd/freebsd-src/commit/75bf78a0ed8d3e108532c8893f5dad8bdb2b0b3e.
+
+The same original probe was then compiled and run as the ordinary laptop user
+inside a private temporary directory, which was removed afterward. Both mapped
+and unmapped-boundary reads returned the exact29 synthetic bytes successfully.
+This directly verifies that the actual unchanged laptop kernel does not exhibit
+this specific defect; it does not explain its separate resume/input freeze.
+The STABLE VM also correctly rejects the explicit legacy expectation.

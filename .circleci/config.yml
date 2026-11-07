@@ -22,6 +22,9 @@ jobs:
             export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
             sudo pkg install -y git pkgconf glib dbus consolekit2 python312 gmake gnome-desktop bind-tools curl
       - run:
+          name: Record native process-environment kernel capability
+          command: sh tools/test-native-process-environment.sh
+      - run:
           name: Prepare one pinned framework for serial candidate consumers
           command: sh tools/ci-ports-tree.sh "$BSD3_CI_PORTS_ROOT" "$(cat packaging/freebsd/mutter49/PORTS_REVISION)"
       - run:
