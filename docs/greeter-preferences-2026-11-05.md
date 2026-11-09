@@ -50,6 +50,14 @@ no cursor theme was available. This configuration does not change the normal
 user's GNOME profile. Shell syntax was checked; visible cursor acceptance remains
 part of the next physical trial.
 
+November 8: the same theme is arranged like the Ubuntu stick's greeter.
+The clock and ISO date sit at the top, the user and password sit in the
+center, and the session, battery, and power controls sit on a dim bar at
+the bottom. The accent is FreeBSD red (`#ab2b28`). Login still goes through
+SDDM's existing `sddm.login` call. A laptop install may set
+`background` in `theme.conf` to the dark metallic FreeBSD wallpaper; the
+embedded SDDM image remains the fallback.
+
 Dated hardware update: the customized greeter accepted password logins, the
 Wayland desktop and cursor worked, and normal logout returned to the greeter.
 See [physical acceptance](physical-desktop-2026-11-05.md) for evidence and remaining

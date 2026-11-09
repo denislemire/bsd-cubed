@@ -1,6 +1,6 @@
 [SddmGreeterTheme]
 Name=BSD3 trial preferences
-Description=12-hour time, ISO date and optional existing KDE battery model
+Description=Centered FreeBSD greeter: clock, user, and a bottom session bar
 Author=Denis Lemire
 License=MIT AND BSD-2-Clause
 Type=sddm-theme

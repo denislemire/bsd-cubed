@@ -55,7 +55,7 @@ Rectangle {
 
     Background {
         anchors.fill: parent
-        source: "qrc:/theme/background.png"
+        source: config.background ? config.background : config.defaultBackground
         fillMode: Image.PreserveAspectCrop
         onStatusChanged: {
             if (status == Image.Error && source != config.defaultBackground) {
@@ -73,14 +73,13 @@ Rectangle {
 
     Rectangle {
         anchors.fill: parent
-        color: "transparent"
-        //visible: primaryScreen
+        color: "#66000000"
 
         Component {
             id: userDelegate
 
             PictureBox {
-                anchors.verticalCenter: parent.verticalCenter
+                anchors.horizontalCenter: parent.horizontalCenter
                 name: (model.realName === "") ? model.name : model.realName
                 icon: model.icon
                 showPassword: model.needsPassword
@@ -100,123 +99,130 @@ Rectangle {
             }
         }
 
-        Row {
-            anchors.fill: parent
-            //visible: primaryScreen
+        Column {
+            id: clock
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top
+            anchors.topMargin: Math.max(36, parent.height * 0.08)
+            width: parent.width
+            property date dateTime: new Date()
+            Timer { interval: 1000; running: true; repeat: true; onTriggered: clock.dateTime = new Date() }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                color: "white"
+                font.pixelSize: Math.min(88, container.width / 12)
+                font.weight: Font.Light
+                text: Qt.formatTime(clock.dateTime, "h:mm AP")
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                color: "#f2f2f2"
+                font.pixelSize: 22
+                text: Qt.formatDate(clock.dateTime, "yyyy-MM-dd")
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                color: config.accentColor ? config.accentColor : "#ab2b28"
+                font.pixelSize: 18
+                font.letterSpacing: 3
+                topPadding: 8
+                text: "FREEBSD"
+            }
+        }
 
-            Rectangle {
-                width: parent.width / 2; height: parent.height
-                color: "#00000000"
+        Item {
+            id: usersContainer
+            width: Math.min(520, parent.width - 48)
+            height: 280
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: 24
 
-                Column {
-                    id: clock
-                    width: parent.width - 48
-                    anchors.centerIn: parent
-                    property date dateTime: new Date()
-                    Timer { interval: 1000; running: true; repeat: true; onTriggered: clock.dateTime = new Date() }
-                    Text { anchors.horizontalCenter: parent.horizontalCenter; color: "white"; font.pixelSize: Math.min(96, clock.width / 5); text: Qt.formatTime(clock.dateTime, "h:mm AP") }
-                    Text { anchors.horizontalCenter: parent.horizontalCenter; color: "white"; font.pixelSize: 28; text: Qt.formatDate(clock.dateTime, "yyyy-MM-dd") }
-                }
+            ImageButton {
+                id: prevUser
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                source: "qrc:/theme/angle-left.png"
+                visible: listView.count > 1
+                onClicked: listView.decrementCurrentIndex()
+                KeyNavigation.backtab: btnShutdown; KeyNavigation.tab: listView
             }
 
-            Rectangle {
-                width: parent.width / 2; height: parent.height
-                color: "#22000000"
+            ListView {
+                id: listView
+                anchors.left: prevUser.right
+                anchors.right: nextUser.left
+                anchors.verticalCenter: parent.verticalCenter
+                height: parent.height
                 clip: true
-
-                Item {
-                    id: usersContainer
-                    width: parent.width; height: 300
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    ImageButton {
-                        id: prevUser
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.margins: 10
-                        source: "qrc:/theme/angle-left.png"
-                        onClicked: listView.decrementCurrentIndex()
-
-                        KeyNavigation.backtab: btnShutdown; KeyNavigation.tab: listView
-                    }
-
-                    ListView {
-                        id: listView
-                        height: parent.height
-                        anchors.left: prevUser.right; anchors.right: nextUser.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.margins: 10
-
-                        clip: true
-                        focus: true
-
-                        spacing: 5
-
-                        model: userModel
-                        delegate: userDelegate
-                        orientation: ListView.Horizontal
-                        currentIndex: userModel.lastIndex
-
-                        KeyNavigation.backtab: prevUser; KeyNavigation.tab: nextUser
-                    }
-
-                    ImageButton {
-                        id: nextUser
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.margins: 10
-                        source: "qrc:/theme/angle-right.png"
-                        onClicked: listView.incrementCurrentIndex()
-                        KeyNavigation.backtab: listView; KeyNavigation.tab: session
-                    }
-                }
-
-                Text {
-                    id: txtMessage
-                    anchors.top: usersContainer.bottom;
-                    anchors.margins: 20
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    color: "white"
-                    text: textConstants.promptSelectUser
-                    wrapMode: Text.WordWrap
-                    width:parent.width - 60
-                    font.pixelSize: 20
-                }
-
-                Text {
-                    id: errMessage
-                    anchors.top: txtMessage.bottom
-                    anchors.margins: 20
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    color: "red"
-                    text: "The current theme cannot be loaded due to the errors below, please select another theme.\n" + __sddm_errors
-                    wrapMode: Text.WordWrap
-                    width: parent.width - 60
-                    font.pixelSize: 20
-                    visible: __sddm_errors !== ""
-                }
+                focus: true
+                spacing: 8
+                model: userModel
+                delegate: userDelegate
+                orientation: ListView.Horizontal
+                currentIndex: userModel.lastIndex
+                KeyNavigation.backtab: prevUser; KeyNavigation.tab: nextUser
             }
+
+            ImageButton {
+                id: nextUser
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                source: "qrc:/theme/angle-right.png"
+                visible: listView.count > 1
+                onClicked: listView.incrementCurrentIndex()
+                KeyNavigation.backtab: listView; KeyNavigation.tab: session
+            }
+        }
+
+        Text {
+            id: txtMessage
+            anchors.top: usersContainer.bottom
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.margins: 8
+            color: "white"
+            text: textConstants.promptSelectUser
+            wrapMode: Text.WordWrap
+            width: Math.min(480, parent.width - 80)
+            horizontalAlignment: Text.AlignHCenter
+            font.pixelSize: 16
+        }
+
+        Text {
+            id: errMessage
+            anchors.top: txtMessage.bottom
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.margins: 8
+            color: "#ffb4a8"
+            text: "The current theme cannot be loaded due to the errors below, please select another theme.\n" + __sddm_errors
+            wrapMode: Text.WordWrap
+            width: Math.min(480, parent.width - 80)
+            horizontalAlignment: Text.AlignHCenter
+            font.pixelSize: 14
+            visible: __sddm_errors !== ""
         }
 
         Rectangle {
             id: actionBar
-            anchors.top: parent.top;
+            anchors.bottom: parent.bottom
             anchors.horizontalCenter: parent.horizontalCenter
-            width: parent.width; height: 40
-            //visible: primaryScreen
+            width: parent.width
+            height: 52
+            color: "#59000000"
 
             Row {
                 anchors.left: parent.left
-                anchors.margins: 5
+                anchors.leftMargin: 16
+                anchors.verticalCenter: parent.verticalCenter
                 height: parent.height
-                spacing: 5
+                spacing: 8
 
                 Text {
                     height: parent.height
                     anchors.verticalCenter: parent.verticalCenter
-
                     text: textConstants.session
-                    font.pixelSize: 16
+                    color: "white"
+                    font.pixelSize: 14
                     verticalAlignment: Text.AlignVCenter
                 }
 
