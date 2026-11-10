@@ -1,5 +1,5 @@
 .\" SPDX-License-Identifier: BSD-2-Clause
-.Dd November 5, 2026
+.Dd November 10, 2026
 .Dt BSDDD 8
 .Os
 .Sh NAME
@@ -44,6 +44,13 @@ Service readiness does not assert that a session or desktop is usable.
 .Pp
 The service implements GetSession, GetSessionByPID, ListSessions,
 and the read-only session properties Id, Active, Type, Class and State.
+Selected power methods
+.Pq CanSuspend , Suspend , Inhibit
+and
+.Nm PrepareForSleep
+are forwarded to ConsoleKit after the original D-Bus caller is shown to own a
+session. ConsoleKit and the kernel perform the actual sleep. Callers must not
+treat a successful protocol reply as verified hardware suspend/resume.
 TakeControl requires the original D-Bus peer to own and belong to the session.
 ReleaseControl is restricted to that controlling connection.
 Each controller uses a separate backend connection, which is closed on client
@@ -58,8 +65,10 @@ The partial Seat interface forwards SwitchTo only for the active controlling
 connection belonging to that seat. ConsoleKit and the kernel validate the target
 VT; physical console switching and recovery remain unverified.
 .Pp
-It does not implement session creation, a complete Seat/User model, inhibitors,
-power management, notifications, or a user service manager.
+It does not implement session creation, a complete Seat/User model,
+SuspendThenHibernate, a user service manager, or the rest of logind.
+Inhibit leases share the daemon's ConsoleKit connection, so only one login1
+inhibitor is available at a time.
 Consumers must not interpret the presence of the bus name
 as full logind support.
 .Sh ENVIRONMENT

@@ -59,9 +59,12 @@ list below is how the work was planned, including items that later landed.
 ## Current protocol limits
 
 The daemon owns login1 and exports a selected Manager, Seat and Session
-interface. It is not a complete logind. Device descriptor transport,
-pause/resume and Active change signals exist; whether your GPU and input
-stack honor them is between you and the hardware.
+interface. It is not a complete logind. Selected power/inhibit methods are
+forwarded to ConsoleKit after the original caller is shown to own a session.
+They are not success stubs, and they are not verified hardware sleep.
+SuspendThenHibernate remains `na`. Device descriptor transport, pause/resume
+and Active change signals exist; whether your GPU and input stack honor them
+is between you and the hardware.
 TakeControl/ReleaseControl authenticate the original peer and isolate backend
 lifetimes; see [controller design](controller-lifecycle.md).
 ListSessions resolves local usernames where available. Session IDs are ConsoleKit

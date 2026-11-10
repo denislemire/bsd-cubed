@@ -53,9 +53,10 @@ weird on purpose: GNOME 49's manifest still pins `gnome-desktop` 44.5.
 
 Selected `sd-login` calls over typed ConsoleKit D-Bus, plus a partial
 `org.freedesktop.login1` Manager/Seat/Session: authenticated TakeControl,
-device handoff, pause/resume, Seat.SwitchTo for the active controller. It
-will not steal an existing bus name. KVM input revoke and VT switching work
-here; the pretty pixels were on my laptop.
+device handoff, pause/resume, Seat.SwitchTo for the active controller, and
+sleep/inhibit forwarded to ConsoleKit when GNOME Settings Daemon asks.
+It will not steal an existing bus name. KVM input revoke and VT switching
+work here; the pretty pixels were on my laptop.
 
 ## Next for me
 

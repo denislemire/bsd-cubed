@@ -71,8 +71,8 @@ login.o: src/login.c include/bsd3/sd-login.h
 libbsd3-login.a: login.o
 	$(AR) rcs $@ login.o
 
-bsddd: src/bsddd.c src/control.c src/control.h src/seats.c src/seats.h libbsd3-login.a
-	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ src/bsddd.c src/control.c src/seats.c libbsd3-login.a $(BSD3_LIBS)
+bsddd: src/bsddd.c src/control.c src/control.h src/power.c src/power.h src/seats.c src/seats.h libbsd3-login.a
+	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ src/bsddd.c src/control.c src/power.c src/seats.c libbsd3-login.a $(BSD3_LIBS)
 
 bsd3-vt-guard: src/vt-guard.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ src/vt-guard.c

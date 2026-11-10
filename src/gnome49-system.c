@@ -192,6 +192,41 @@ gboolean gsm_bsd3_system_inhibit_checked(GsmSystem *system, GsmInhibitorFlag fla
     return TRUE;
 }
 static gboolean unavailable(GsmSystem *s) { (void)s; return FALSE; }
+static gboolean can_ck(GsmSystem *system, const char *method)
+{
+    GsmBsd3System *s = (GsmBsd3System *)system;
+    GError *error = NULL;
+    GVariant *reply;
+    const char *result;
+    gboolean allowed;
+    if (!connected(s, &error)) { g_clear_error(&error); return FALSE; }
+    reply = request(s, ROOT "/Manager", MANAGER, method, NULL, G_VARIANT_TYPE("(s)"), &error);
+    if (!reply) { g_clear_error(&error); return FALSE; }
+    g_variant_get(reply, "(&s)", &result);
+    allowed = !strcmp(result, "yes") || !strcmp(result, "challenge");
+    g_variant_unref(reply);
+    return allowed;
+}
+static void do_ck(GsmSystem *system, const char *method)
+{
+    GsmBsd3System *s = (GsmBsd3System *)system;
+    GError *error = NULL;
+    GVariant *reply;
+    if (!connected(s, &error)) {
+        g_signal_emit_by_name(s, "request-completed", error);
+        g_clear_error(&error);
+        return;
+    }
+    reply = request(s, ROOT "/Manager", MANAGER, method, g_variant_new("(b)", TRUE),
+        G_VARIANT_TYPE("()"), &error);
+    if (reply) g_variant_unref(reply);
+    g_signal_emit_by_name(s, "request-completed", error);
+    g_clear_error(&error);
+}
+static gboolean can_suspend(GsmSystem *s) { return can_ck(s, "CanSuspend"); }
+static gboolean can_hibernate(GsmSystem *s) { return can_ck(s, "CanHibernate"); }
+static void do_suspend(GsmSystem *s) { do_ck(s, "Suspend"); }
+static void do_hibernate(GsmSystem *s) { do_ck(s, "Hibernate"); }
 static void deny(GsmSystem *s)
 {
     GError *error = g_error_new_literal(G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
@@ -220,9 +255,9 @@ static void iface_init(GsmSystemInterface *iface)
 {
     iface->can_switch_user = unavailable; iface->can_stop = unavailable;
     iface->can_restart = unavailable; iface->can_restart_to_firmware_setup = unavailable;
-    iface->can_suspend = unavailable; iface->can_hibernate = unavailable;
+    iface->can_suspend = can_suspend; iface->can_hibernate = can_hibernate;
     iface->attempt_stop = deny; iface->attempt_restart = deny;
-    iface->suspend = deny; iface->hibernate = deny;
+    iface->suspend = do_suspend; iface->hibernate = do_hibernate;
     iface->set_restart_to_firmware_setup = firmware;
     iface->prepare_shutdown = prepare; iface->complete_shutdown = deny;
     iface->set_session_idle = idle; iface->set_inhibitors = inhibit;
