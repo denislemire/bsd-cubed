@@ -1,0 +1,5 @@
+Original BSD-2-Clause greeter. It is not a derivative of SDDM's bundled
+Main.qml. Authentication is only sddm.login(); passwords are not logged.
+BatteryStatus.qml reads a world-readable ACPI snapshot written by
+publish-battery.sh (sysctl hw.acpi.battery.life / hw.acpi.acline). A missing
+file hides the indicator. No Plasma import and no extra battery service.

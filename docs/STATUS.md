@@ -6,7 +6,10 @@ scribbles. This page and the root README are the current story.
 ## On my machine
 
 GNOME Shell 49.10 on Wayland, FreeBSD 15-STABLE. SDDM on labwc gets me in;
-ordinary apps and logout work. Package set:
+ordinary apps and logout work. The greeter is a dark username/password
+theme (`bsd3-login`): 12-hour clock, ISO date, ACPI battery, no user
+carousel. It is installed for the next greeter start; this session was
+not restarted to prove the pixels. Package set:
 [v0.2.0-alpha3](https://github.com/denislemire/bsd-cubed/releases/tag/v0.2.0-alpha3).
 Overlays under `packaging/freebsd/`. `make test` is a private-bus protocol
 check, not a desktop.
