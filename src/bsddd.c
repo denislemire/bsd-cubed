@@ -11,6 +11,7 @@
 #include <glib-unix.h>
 #include "bsd3/sd-login.h"
 #include "control.h"
+#include "power.h"
 #include "seats.h"
 
 #define ROOT "/org/freedesktop/login1"
@@ -31,6 +32,20 @@ static const char xml[] =
     "</method>"
     "<method name='ListSeats'><arg type='a(so)' direction='out'/></method>"
     "<method name='GetSeat'><arg type='s' direction='in'/><arg type='o' direction='out'/></method>"
+    "<method name='CanSuspend'><arg type='s' direction='out'/></method>"
+    "<method name='CanHibernate'><arg type='s' direction='out'/></method>"
+    "<method name='CanHybridSleep'><arg type='s' direction='out'/></method>"
+    "<method name='CanPowerOff'><arg type='s' direction='out'/></method>"
+    "<method name='CanReboot'><arg type='s' direction='out'/></method>"
+    "<method name='CanSuspendThenHibernate'><arg type='s' direction='out'/></method>"
+    "<method name='Suspend'><arg type='b' direction='in'/></method>"
+    "<method name='Hibernate'><arg type='b' direction='in'/></method>"
+    "<method name='HybridSleep'><arg type='b' direction='in'/></method>"
+    "<method name='PowerOff'><arg type='b' direction='in'/></method>"
+    "<method name='Reboot'><arg type='b' direction='in'/></method>"
+    "<method name='Inhibit'><arg type='s' direction='in'/><arg type='s' direction='in'/>"
+    "<arg type='s' direction='in'/><arg type='s' direction='in'/><arg type='h' direction='out'/></method>"
+    "<signal name='PrepareForSleep'><arg type='b'/></signal>"
     "</interface><interface name='org.freedesktop.login1.Session'>"
     "<method name='TakeControl'><arg type='b' direction='in'/></method>"
     "<method name='ReleaseControl'/>"
@@ -93,6 +108,8 @@ manager_call(GDBusConnection *bus, const char *sender, const char *path,
 	(void)path;
 	(void)iface;
 	(void)data;
+	if (bsd3_power_call(bus, sender, method, parameters, invocation))
+		return;
 	if (strcmp(method, "ListSeats") == 0 || strcmp(method, "GetSeat") == 0) {
 		GError *error = NULL;
 		GPtrArray *seats = bsd3_seats_list(bus, &error);

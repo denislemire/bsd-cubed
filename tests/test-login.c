@@ -152,6 +152,123 @@ test_daemon(void)
 	g_clear_error(&error);
 }
 
+static gboolean sleep_entering;
+static guint sleep_signals;
+
+static void
+on_prepare_for_sleep(GDBusConnection *connection, const char *sender,
+    const char *path, const char *iface, const char *name, GVariant *args,
+    gpointer data)
+{
+	(void)connection; (void)sender; (void)path; (void)iface; (void)name;
+	(void)data;
+	g_variant_get(args, "(b)", &sleep_entering);
+	sleep_signals++;
+}
+
+static void
+power_counters(guint suspends, guint hibernates, guint other,
+    gboolean interactive, const char *last)
+{
+	GVariant *r = call(CK, MANAGER, "org.bsd3.Test", "GetPowerCounters",
+	    NULL, "(uuubs)");
+	guint a, b, c;
+	gboolean flag;
+	const char *method;
+	g_variant_get(r, "(uuub&s)", &a, &b, &c, &flag, &method);
+	g_assert_cmpuint(a, ==, suspends);
+	g_assert_cmpuint(b, ==, hibernates);
+	g_assert_cmpuint(c, ==, other);
+	g_assert_cmpint(flag, ==, interactive);
+	g_assert_cmpstr(method, ==, last);
+	g_variant_unref(r);
+}
+
+static void
+test_power(void)
+{
+	GVariant *r;
+	GError *error = NULL;
+	GUnixFDList *fds = NULL;
+	guint watch;
+	const char *result;
+	int handle, fd;
+	gint64 end;
+
+	mode("normal");
+	sleep_signals = 0;
+	watch = g_dbus_connection_signal_subscribe(bus, "org.freedesktop.login1",
+	    "org.freedesktop.login1.Manager", "PrepareForSleep",
+	    "/org/freedesktop/login1", NULL, G_DBUS_SIGNAL_FLAGS_NONE,
+	    on_prepare_for_sleep, NULL, NULL);
+	r = call("org.freedesktop.login1", "/org/freedesktop/login1",
+	    "org.freedesktop.login1.Manager", "CanSuspend", NULL, "(s)");
+	g_variant_get(r, "(&s)", &result);
+	g_assert_cmpstr(result, ==, "yes");
+	g_variant_unref(r);
+	r = call("org.freedesktop.login1", "/org/freedesktop/login1",
+	    "org.freedesktop.login1.Manager", "CanSuspendThenHibernate", NULL, "(s)");
+	g_variant_get(r, "(&s)", &result);
+	g_assert_cmpstr(result, ==, "na");
+	g_variant_unref(r);
+	power_counters(0, 0, 0, FALSE, "");
+	r = call("org.freedesktop.login1", "/org/freedesktop/login1",
+	    "org.freedesktop.login1.Manager", "Suspend", g_variant_new("(b)", TRUE), "()");
+	g_variant_unref(r);
+	end = g_get_monotonic_time() + 3000000;
+	while (sleep_signals < 2 && g_get_monotonic_time() < end) {
+		while (g_main_context_iteration(NULL, FALSE))
+			continue;
+		g_usleep(1000);
+	}
+	g_assert_cmpuint(sleep_signals, ==, 2);
+	g_assert_false(sleep_entering);
+	power_counters(1, 0, 0, TRUE, "Suspend");
+	r = call("org.freedesktop.login1", "/org/freedesktop/login1",
+	    "org.freedesktop.login1.Manager", "Hibernate", g_variant_new("(b)", FALSE), "()");
+	g_variant_unref(r);
+	power_counters(1, 1, 0, FALSE, "Hibernate");
+	r = call("org.freedesktop.login1", "/org/freedesktop/login1",
+	    "org.freedesktop.login1.Manager", "PowerOff", g_variant_new("(b)", TRUE), "()");
+	g_variant_unref(r);
+	power_counters(1, 1, 1, TRUE, "Stop");
+	r = g_dbus_connection_call_with_unix_fd_list_sync(bus, "org.freedesktop.login1",
+	    "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "Inhibit",
+	    g_variant_new("(ssss)", "sleep", "gsd-power", "GNOME idle delay", "delay"),
+	    G_VARIANT_TYPE("(h)"), 0, 3000, NULL, &fds, NULL, &error);
+	g_assert_no_error(error);
+	g_variant_get(r, "(h)", &handle);
+	g_assert_nonnull(fds);
+	fd = g_unix_fd_list_get(fds, handle, &error);
+	g_assert_no_error(error);
+	g_assert_cmpint(fd, >=, 0);
+	close(fd);
+	g_variant_unref(r);
+	g_object_unref(fds);
+	mode("power-na");
+	r = call("org.freedesktop.login1", "/org/freedesktop/login1",
+	    "org.freedesktop.login1.Manager", "CanHibernate", NULL, "(s)");
+	g_variant_get(r, "(&s)", &result);
+	g_assert_cmpstr(result, ==, "na");
+	g_variant_unref(r);
+	mode("power-fail");
+	r = g_dbus_connection_call_sync(bus, "org.freedesktop.login1",
+	    "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "Suspend",
+	    g_variant_new("(b)", TRUE), NULL, 0, 3000, NULL, &error);
+	g_assert_null(r);
+	g_assert_nonnull(error);
+	g_clear_error(&error);
+	mode("denied");
+	r = g_dbus_connection_call_sync(bus, "org.freedesktop.login1",
+	    "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "CanSuspend",
+	    NULL, G_VARIANT_TYPE("(s)"), 0, 3000, NULL, &error);
+	g_assert_null(r);
+	g_assert_error(error, G_DBUS_ERROR, G_DBUS_ERROR_ACCESS_DENIED);
+	g_clear_error(&error);
+	mode("normal");
+	g_dbus_connection_signal_unsubscribe(bus, watch);
+}
+
 static GDBusConnection *
 client_connection(void)
 {
@@ -962,6 +1079,7 @@ main(int argc, char **argv)
 	g_test_add_func("/bsd3/display", test_display);
 	g_test_add_func("/bsd3/errors", test_errors);
 	g_test_add_func("/bsd3/daemon", test_daemon);
+	g_test_add_func("/bsd3/power", test_power);
 	g_test_add_func("/bsd3/controller-ownership", test_control_ownership);
 	g_test_add_func("/bsd3/controller-failures", test_control_failures);
 	g_test_add_func("/bsd3/controller-missing-credentials", test_missing_credentials);

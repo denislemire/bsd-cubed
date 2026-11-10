@@ -4,7 +4,7 @@
 #define CK "org.freedesktop.ConsoleKit"
 #define ROOT "/org/freedesktop/ConsoleKit"
 static GDBusConnection *bus;
-static guint denied;
+static guint denied, accepted;
 static void activity_notified(GObject *object,GParamSpec *spec,gpointer data)
 { (void)object;(void)spec;*(gboolean *)data=TRUE; }
 static GVariant *control(const char *method, GVariant *args, const char *type)
@@ -43,6 +43,12 @@ static void rejected(GsmSystem *s, GError *error, gpointer data)
     g_assert_error(error,G_IO_ERROR,G_IO_ERROR_NOT_SUPPORTED);
     denied++;
 }
+static void succeeded(GsmSystem *s, GError *error, gpointer data)
+{
+    (void)s;(void)data;
+    g_assert_null(error);
+    accepted++;
+}
 static void test_native_system(void)
 {
     GError *error=NULL;GsmSystem *s;GVariant *r;guint32 pid;
@@ -72,6 +78,11 @@ static void test_native_system(void)
     g_assert_no_error(error);
     emit_active(FALSE);state(s,FALSE);emit_active(TRUE);state(s,TRUE);
     g_assert_false(gsm_system_can_stop(s));g_assert_false(gsm_system_can_restart(s));
+    g_assert_true(gsm_system_can_suspend(s));g_assert_true(gsm_system_can_hibernate(s));
+    g_signal_connect(s,"request-completed",G_CALLBACK(succeeded),NULL);
+    gsm_system_suspend(s);gsm_system_hibernate(s);
+    g_assert_cmpuint(accepted,==,2);
+    g_signal_handlers_disconnect_by_func(s,succeeded,NULL);
     g_signal_connect(s,"request-completed",G_CALLBACK(rejected),NULL);
     gsm_system_attempt_stop(s);gsm_system_attempt_restart(s);
     g_assert_cmpuint(denied,==,2);

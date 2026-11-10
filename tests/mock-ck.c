@@ -19,6 +19,9 @@ static guint takes, releases, acknowledgements, switches, last_vt;
 static GHashTable *devices;
 static gboolean session6_active = TRUE;
 static guint system_idle_calls, system_inhibits, system_closed;
+static guint power_suspends, power_hibernates, power_other;
+static gboolean power_interactive;
+static char *power_last;
 static gboolean system_idle;
 static int inhibitor_read = -1;
 static char *inhibitor_what;
@@ -30,6 +33,16 @@ static const char xml[] =
  "<method name='GetSessionsForUnixUser'><arg type='u' direction='in'/><arg type='ao' direction='out'/></method>"
  "<method name='GetSessionForUnixProcess'><arg type='u' direction='in'/><arg type='o' direction='out'/></method>"
  "<method name='Inhibit'><arg type='s' direction='in'/><arg type='s' direction='in'/><arg type='s' direction='in'/><arg type='s' direction='in'/><arg type='h' direction='out'/></method>"
+ "<method name='CanSuspend'><arg type='s' direction='out'/></method>"
+ "<method name='CanHibernate'><arg type='s' direction='out'/></method>"
+ "<method name='CanHybridSleep'><arg type='s' direction='out'/></method>"
+ "<method name='CanStop'><arg type='s' direction='out'/></method>"
+ "<method name='CanRestart'><arg type='s' direction='out'/></method>"
+ "<method name='Suspend'><arg type='b' direction='in'/></method>"
+ "<method name='Hibernate'><arg type='b' direction='in'/></method>"
+ "<method name='HybridSleep'><arg type='b' direction='in'/></method>"
+ "<method name='Stop'><arg type='b' direction='in'/></method>"
+ "<method name='Restart'><arg type='b' direction='in'/></method>"
  "<signal name='SessionRemoved'><arg type='s'/><arg type='o'/></signal>"
  "</interface><interface name='org.freedesktop.ConsoleKit.Session'>"
  "<method name='GetSessionType'><arg type='s' direction='out'/></method>"
@@ -54,6 +67,7 @@ static const char xml[] =
  "<method name='GetSwitchCounters'><arg type='u' direction='out'/><arg type='u' direction='out'/></method>"
  "<method name='GetLastPid'><arg type='u' direction='out'/></method>"
  "<method name='GetSystemCounters'><arg type='u' direction='out'/><arg type='u' direction='out'/><arg type='u' direction='out'/><arg type='b' direction='out'/><arg type='b' direction='out'/><arg type='s' direction='out'/></method>"
+ "<method name='GetPowerCounters'><arg type='u' direction='out'/><arg type='u' direction='out'/><arg type='u' direction='out'/><arg type='b' direction='out'/><arg type='s' direction='out'/></method>"
  "<method name='EmitSystemRemoved'/>"
  "<method name='EmitPause'><arg type='u' direction='in'/><arg type='u' direction='in'/><arg type='s' direction='in'/></method>"
  "<method name='EmitResume'><arg type='u' direction='in'/><arg type='u' direction='in'/></method>"
@@ -191,6 +205,9 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 			reply = g_variant_new("(uuubbs)", system_idle_calls, system_inhibits,
 			    system_closed, inhibitor_read >= 0, system_idle,
 			    inhibitor_what ? inhibitor_what : "");
+		} else if (strcmp(name, "GetPowerCounters") == 0) {
+			reply = g_variant_new("(uuubs)", power_suspends, power_hibernates,
+			    power_other, power_interactive, power_last ? power_last : "");
 		} else if (strcmp(name, "EmitSystemRemoved") == 0) {
 			g_dbus_connection_emit_signal(bus, NULL, ROOT "/Manager", CK ".Manager",
 			    "SessionRemoved", g_variant_new("(so)", "Session6", ROOT "/Session6"), NULL);
@@ -231,7 +248,7 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 			g_free(inhibitor_what);
 			g_variant_get(args, "(s&s&s&s)", &inhibitor_what, &who, &why, &kind);
 			(void)who; (void)why;
-			g_assert_cmpstr(kind, ==, "block");
+			g_assert_true(strcmp(kind, "block") == 0 || strcmp(kind, "delay") == 0);
 			g_assert_cmpint(pipe(ends), ==, 0);
 			inhibitor_read = ends[0];
 			fds = g_unix_fd_list_new();
@@ -254,6 +271,29 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 				g_variant_builder_add(&seats, "o", seat_path);
 			}
 			reply = g_variant_new("(ao)", &seats);
+		} else if (strcmp(name, "CanSuspend") == 0 || strcmp(name, "CanHibernate") == 0 ||
+		    strcmp(name, "CanHybridSleep") == 0 || strcmp(name, "CanStop") == 0 ||
+		    strcmp(name, "CanRestart") == 0) {
+			reply = g_variant_new("(s)", strcmp(mode, "power-na") == 0 ? "na" :
+			    strcmp(mode, "power-challenge") == 0 ? "challenge" : "yes");
+		} else if (strcmp(name, "Suspend") == 0 || strcmp(name, "Hibernate") == 0 ||
+		    strcmp(name, "HybridSleep") == 0 || strcmp(name, "Stop") == 0 ||
+		    strcmp(name, "Restart") == 0) {
+			if (strcmp(mode, "power-fail") == 0) {
+				g_dbus_method_invocation_return_dbus_error(invocation,
+				    CK ".Manager.Error.Failed", "Fixture refused power action");
+				return;
+			}
+			g_variant_get(args, "(b)", &power_interactive);
+			g_free(power_last);
+			power_last = g_strdup(name);
+			if (strcmp(name, "Suspend") == 0)
+				power_suspends++;
+			else if (strcmp(name, "Hibernate") == 0)
+				power_hibernates++;
+			else
+				power_other++;
+			reply = g_variant_new("()");
 		} else if (strcmp(name, "GetSessionForUnixProcess") == 0) {
 			g_variant_get(args, "(u)", &last_pid);
 			if (last_pid == 99999999) {

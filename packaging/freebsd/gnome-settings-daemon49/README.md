@@ -13,8 +13,10 @@ Datetime, Sharing and Housekeeping remain explicit. Their systemd service APIs
 are not implemented or advertised by this port.
 
 Unlike the old FreeBSD47 patches, power and media-key login1 requests retain
-their upstream destination and reach BSD3's real supported compatibility API.
-No success-returning systemd method stubs are installed. Session49's native Dinit
+their upstream destination and reach BSD3's compatibility API. That API now
+forwards CanSuspend/Suspend/Inhibit to ConsoleKit after authenticating the
+original session peer. No success-returning stubs are installed; hardware
+suspend/resume remains a separate trial. Session49's native Dinit
 graph owns the seven required settings services; upstream49 no longer installs
 the old desktop autostart files. This port therefore belongs to the matching
 BSD3 native49 candidate, not an arbitrary legacy GNOME login.

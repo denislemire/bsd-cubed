@@ -55,7 +55,8 @@ it does not establish desktop readiness.
 - `libbsd3-login.a`: selected `sd-login` functions over typed ConsoleKit D-Bus
   calls, with negative errno returns and caller-owned strings.
 - `bsddd --foreground`: partial `org.freedesktop.login1` Manager and Session objects,
-  authenticated TakeControl/ReleaseControl, and isolated controller lifetimes.
+  authenticated TakeControl/ReleaseControl, ConsoleKit-backed sleep/inhibit methods
+  for GNOME Settings Daemon, and isolated controller lifetimes.
   Experimental descriptor handoff and pause/resume protocol are implemented;
   Seat.SwitchTo requires the active original controller on the matching seat;
   real input revocation and console switching pass in KVM; physical GPU presentation is verified for the identified beta5 laptop only.

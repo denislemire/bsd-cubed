@@ -56,8 +56,11 @@ Do not run ConsoleKit, seatd and BSD³ as competing DRM/VT owners.
 
 ## Current protocol limits
 
-The daemon owns login1 but intentionally exposes a small read-only interface.
-It does not yet export Seat/User objects. Device descriptor transport,
+The daemon owns login1 but intentionally exposes a small interface.
+Selected power/inhibit methods are forwarded to ConsoleKit after the original
+caller is shown to own a session. They are not success stubs, and they are not
+verified hardware sleep. SuspendThenHibernate remains `na`.
+It does not yet export User objects. Device descriptor transport,
 pause/resume and Active change signals are experimental protocol support,
 not verified hardware revocation.
 TakeControl/ReleaseControl authenticate the original peer and isolate backend
