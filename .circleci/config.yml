@@ -7,8 +7,12 @@ jobs:
     environment:
       BSD3_USERSESSION: "yes"
       PYTHON: /usr/local/bin/python3.12
-      # Optional lab DNS used only to resolve the private package catalogue.
+      # Optional resolver used only for the package host in BSD3_CI_PKG_URL.
       # Set BSD3_CI_DNS in the executor/project environment; do not commit RFC1918 addresses.
+      # BSD3_CI_PKG_URL is the https URL of pinned consolekit2-2.0.0_5.pkg.
+      # Set it in the executor/project environment. The script has no default.
+      # The in-job consolekit2 package is reused when it is already 2.0.0_5
+      # or newer; otherwise an unset URL is an error.
       BSD3_CI_PORTS_ROOT: /var/tmp/bsd3-ci-ports
       PORTSDIR: /var/tmp/bsd3-ci-ports
     machine:
@@ -92,4 +96,4 @@ workflows:
   build:
     jobs:
       - freebsd-build-test-package:
-          serial-group: denislemire/ehws-freebsd-heavy
+          serial-group: bsd-cubed-freebsd-heavy

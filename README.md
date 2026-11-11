@@ -9,8 +9,9 @@ is no systemd in this tree.
 
 On my FreeBSD 15-STABLE laptop this turned into a usable GNOME Shell 49.10
 Wayland session: login, apps, logout. The greeter is SDDM on labwc; Xwayland
-is there for older apps. [v0.2.0-alpha3](https://github.com/denislemire/bsd-cubed/releases/tag/v0.2.0-alpha3)
-is the package set I actually ran.
+is there for older apps. [v0.2.0-alpha4](https://github.com/denislemire/bsd-cubed/releases/tag/v0.2.0-alpha4)
+is the tag to cut from this tree. The desktop is the same one I ran; this
+tag only drops internal catalogue names from the source.
 
 If it works on your machine and you like it, I am glad. If it breaks, you
 get to keep both pieces. BSD-2-Clause; see [LICENSE](LICENSE) and
@@ -23,6 +24,18 @@ quality is a different story than the Airwave applet showing up.
 A slightly more itemized list is in [docs/STATUS.md](docs/STATUS.md). How the
 pieces fit is in [docs/architecture.md](docs/architecture.md). Dated files
 under `docs/` are lab notes from along the way.
+
+## v0.2.0-alpha4
+
+Hygiene release. `tools/ci-user-session.sh` fetches pinned
+`consolekit2-2.0.0_5.pkg` only from `BSD3_CI_PKG_URL`. That variable is the
+https URL of the package, it has no default, and the script exits with an
+error if a download is still required while it is unset. A `consolekit2`
+package this job already built at 2.0.0_5 or newer is installed first.
+The SHA256 pin still covers every download.
+Optional `BSD3_CI_DNS` is a resolver address for that URL's host; set both
+in the executor environment and do not commit them. See
+[docs/ports.md](docs/ports.md).
 
 ## Build
 

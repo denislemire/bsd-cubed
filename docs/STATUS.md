@@ -6,8 +6,9 @@ scribbles. This page and the root README are the current story.
 ## On my machine
 
 GNOME Shell 49.10 on Wayland, FreeBSD 15-STABLE. SDDM on labwc gets me in;
-ordinary apps and logout work. Package set:
-[v0.2.0-alpha3](https://github.com/denislemire/bsd-cubed/releases/tag/v0.2.0-alpha3).
+ordinary apps and logout work. Source tag for this tree:
+[v0.2.0-alpha4](https://github.com/denislemire/bsd-cubed/releases/tag/v0.2.0-alpha4).
+The desktop session is unchanged; the tag drops internal catalogue names.
 Overlays under `packaging/freebsd/`. `make test` is a private-bus protocol
 check, not a desktop.
 
