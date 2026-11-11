@@ -1,0 +1,22 @@
+/* SPDX-License-Identifier: BSD-2-Clause
+ * Authority rule for bsddd power and inhibit.
+ * Defaults in the action file are "no". This rule opens only the operator
+ * group, and it refuses root. bsddd also requires an active local ConsoleKit
+ * session and bsddd_power_group (default operator), and it refuses uid 0.
+ * Keep this group aligned with bsddd_power_group. A missing authority denies.
+ */
+polkit.addRule(function(action, subject) {
+    var id = action.id;
+    if (id !== "org.freedesktop.login1.power-off" &&
+        id !== "org.freedesktop.login1.reboot" &&
+        id !== "org.freedesktop.login1.suspend" &&
+        id !== "org.freedesktop.login1.hibernate" &&
+        id !== "org.freedesktop.login1.hybrid-sleep" &&
+        id !== "org.freedesktop.login1.suspend-then-hibernate" &&
+        id !== "org.freedesktop.login1.inhibit")
+        return;
+    if (subject.user === "root")
+        return polkit.Result.NO;
+    if (subject.isInGroup("operator"))
+        return polkit.Result.YES;
+});

@@ -11,6 +11,7 @@
 #include <glib-unix.h>
 #include "bsd3/sd-login.h"
 #include "control.h"
+#include "power.h"
 #include "seats.h"
 
 #define ROOT "/org/freedesktop/login1"
@@ -31,6 +32,20 @@ static const char xml[] =
     "</method>"
     "<method name='ListSeats'><arg type='a(so)' direction='out'/></method>"
     "<method name='GetSeat'><arg type='s' direction='in'/><arg type='o' direction='out'/></method>"
+    "<method name='CanSuspend'><arg type='s' direction='out'/></method>"
+    "<method name='CanHibernate'><arg type='s' direction='out'/></method>"
+    "<method name='CanHybridSleep'><arg type='s' direction='out'/></method>"
+    "<method name='CanPowerOff'><arg type='s' direction='out'/></method>"
+    "<method name='CanReboot'><arg type='s' direction='out'/></method>"
+    "<method name='CanSuspendThenHibernate'><arg type='s' direction='out'/></method>"
+    "<method name='Suspend'><arg type='b' direction='in'/></method>"
+    "<method name='Hibernate'><arg type='b' direction='in'/></method>"
+    "<method name='HybridSleep'><arg type='b' direction='in'/></method>"
+    "<method name='PowerOff'><arg type='b' direction='in'/></method>"
+    "<method name='Reboot'><arg type='b' direction='in'/></method>"
+    "<method name='Inhibit'><arg type='s' direction='in'/><arg type='s' direction='in'/>"
+    "<arg type='s' direction='in'/><arg type='s' direction='in'/><arg type='h' direction='out'/></method>"
+    "<signal name='PrepareForSleep'><arg type='b'/></signal>"
     "</interface><interface name='org.freedesktop.login1.Session'>"
     "<method name='TakeControl'><arg type='b' direction='in'/></method>"
     "<method name='ReleaseControl'/>"
@@ -93,6 +108,8 @@ manager_call(GDBusConnection *bus, const char *sender, const char *path,
 	(void)path;
 	(void)iface;
 	(void)data;
+	if (bsd3_power_call(bus, sender, method, parameters, invocation))
+		return;
 	if (strcmp(method, "ListSeats") == 0 || strcmp(method, "GetSeat") == 0) {
 		GError *error = NULL;
 		GPtrArray *seats = bsd3_seats_list(bus, &error);
@@ -438,17 +455,39 @@ failed:
 	return (1);
 }
 
+static void
+usage(void)
+{
+	g_printerr("usage: bsddd --probe | --foreground "
+	    "[--power-group NAME | --power-group-file PATH] | --check-owner PID\n");
+}
+
 int
 main(int argc, char **argv)
 {
 	GError *error = NULL;
 	guint owner;
+	const char *power_group = NULL, *power_file = NULL;
 	if (argc == 2 && strcmp(argv[1], "--probe") == 0)
 		return (probe());
 	if (argc == 3 && strcmp(argv[1], "--check-owner") == 0)
 		return (check_owner(argv[2]));
-	if (argc != 2 || strcmp(argv[1], "--foreground") != 0) {
-		g_printerr("usage: bsddd --probe | --foreground | --check-owner PID\n");
+	if (argc == 4 && strcmp(argv[1], "--foreground") == 0 &&
+	    strcmp(argv[2], "--power-group") == 0)
+		power_group = argv[3];
+	else if (argc == 4 && strcmp(argv[1], "--foreground") == 0 &&
+	    strcmp(argv[2], "--power-group-file") == 0)
+		power_file = argv[3];
+	else if (argc != 2 || strcmp(argv[1], "--foreground") != 0) {
+		usage();
+		return (64);
+	}
+	if (power_group != NULL && bsd3_power_set_group(power_group) < 0) {
+		g_printerr("bsddd: invalid power group\n");
+		return (64);
+	}
+	if (power_file != NULL && bsd3_power_set_group_file(power_file) < 0) {
+		g_printerr("bsddd: invalid power group file\n");
 		return (64);
 	}
 	schema = g_dbus_node_info_new_for_xml(xml, &error);
