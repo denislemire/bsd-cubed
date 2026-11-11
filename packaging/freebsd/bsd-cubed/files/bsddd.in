@@ -10,15 +10,31 @@ name=bsddd
 rcvar=bsddd_enable
 load_rc_config "$name"
 : ${bsddd_enable:=NO}
+: ${bsddd_power_group:=operator}
 
 command=/usr/sbin/daemon
 procname=%%PREFIX%%/sbin/bsddd
 pidfile=/var/run/bsddd.pid
-command_args="-c -f -S -T bsddd -p ${pidfile} -- ${procname} --foreground"
+command_args="-c -f -S -T bsddd -p ${pidfile} -- ${procname} --foreground --power-group ${bsddd_power_group}"
+start_precmd=bsddd_prestart
 start_postcmd=bsddd_poststart
 status_cmd=bsddd_status
 # Privileged service management must use the machine bus, not caller overrides.
 unset DBUS_SYSTEM_BUS_ADDRESS DBUS_SESSION_BUS_ADDRESS
+
+bsddd_prestart()
+{
+    case ${bsddd_power_group} in
+    ""|*[!A-Za-z0-9_.-]*)
+        warn "${name}: bsddd_power_group must be one group name"
+        return 1
+        ;;
+    esac
+    if [ "${#bsddd_power_group}" -gt 32 ]; then
+        warn "${name}: bsddd_power_group is too long"
+        return 1
+    fi
+}
 
 bsddd_ready()
 {

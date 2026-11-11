@@ -27,7 +27,10 @@ trap 'exit 143' TERM
 ./mock-ck >"$test_tmp/mock.log" 2>&1 &
 mock_pid=$!
 gdbus wait --system --timeout 5 org.freedesktop.ConsoleKit
-./bsddd --foreground >"$test_tmp/daemon.log" 2>&1 &
+power_group_file=$test_tmp/power-group
+printf 'power_group="%s"\n' "$(id -gn)" > "$power_group_file"
+export BSD3_POWER_GROUP_FILE="$power_group_file"
+./bsddd --foreground --power-group-file "$power_group_file" >"$test_tmp/daemon.log" 2>&1 &
 daemon_pid=$!
 gdbus wait --system --timeout 5 org.freedesktop.login1
 ./test-login

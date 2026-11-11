@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1.0/policyconfig.dtd">
+<!-- SPDX-License-Identifier: BSD-2-Clause -->
+<policyconfig>
+  <vendor>BSD cubed</vendor>
+  <vendor_url>https://github.com/denislemire/bsd-cubed</vendor_url>
+
+  <action id="org.freedesktop.login1.power-off">
+    <description>Power off the system</description>
+    <message>Authentication is required to power off the system</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.freedesktop.login1.reboot">
+    <description>Reboot the system</description>
+    <message>Authentication is required to reboot the system</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.freedesktop.login1.suspend">
+    <description>Suspend the system</description>
+    <message>Authentication is required to suspend the system</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.freedesktop.login1.hibernate">
+    <description>Hibernate the system</description>
+    <message>Authentication is required to hibernate the system</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.freedesktop.login1.hybrid-sleep">
+    <description>Hybrid sleep the system</description>
+    <message>Authentication is required to hybrid-sleep the system</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.freedesktop.login1.suspend-then-hibernate">
+    <description>Suspend then hibernate the system</description>
+    <message>Authentication is required to suspend then hibernate the system</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.freedesktop.login1.inhibit">
+    <description>Inhibit system power events</description>
+    <message>Authentication is required to inhibit power events</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>no</allow_active>
+    </defaults>
+  </action>
+</policyconfig>

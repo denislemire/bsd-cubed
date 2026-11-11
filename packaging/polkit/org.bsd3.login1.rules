@@ -1,0 +1,24 @@
+/* SPDX-License-Identifier: BSD-2-Clause
+ * Authority rule for the login1 power and inhibit action ids.
+ * These ids are shared with any PolicyKit client, so the decision cannot be
+ * "operator, wherever they are". YES requires a local active session in the
+ * operator group (the default bsddd_power_group). Root is NO. Every other
+ * subject is NO. Keep the group aligned with bsddd_power_group; if they
+ * differ, bsddd still denies. A missing authority denies.
+ */
+polkit.addRule(function(action, subject) {
+    var id = action.id;
+    if (id !== "org.freedesktop.login1.power-off" &&
+        id !== "org.freedesktop.login1.reboot" &&
+        id !== "org.freedesktop.login1.suspend" &&
+        id !== "org.freedesktop.login1.hibernate" &&
+        id !== "org.freedesktop.login1.hybrid-sleep" &&
+        id !== "org.freedesktop.login1.suspend-then-hibernate" &&
+        id !== "org.freedesktop.login1.inhibit")
+        return;
+    if (subject.user === "root")
+        return polkit.Result.NO;
+    if (subject.local && subject.active && subject.isInGroup("operator"))
+        return polkit.Result.YES;
+    return polkit.Result.NO;
+});

@@ -1,5 +1,5 @@
 .\" SPDX-License-Identifier: BSD-2-Clause
-.Dd November 5, 2026
+.Dd November 11, 2026
 .Dt BSDDD 8
 .Os
 .Sh NAME
@@ -10,6 +10,7 @@
 .Fl Fl probe
 .Nm
 .Fl Fl foreground
+.Oo Fl Fl power-group Ar name | Fl Fl power-group-file Ar path Oc
 .Nm
 .Fl Fl check-owner Ar pid
 .Sh DESCRIPTION
@@ -58,8 +59,120 @@ The partial Seat interface forwards SwitchTo only for the active controlling
 connection belonging to that seat. ConsoleKit and the kernel validate the target
 VT; physical console switching and recovery remain unverified.
 .Pp
-It does not implement session creation, a complete Seat/User model, inhibitors,
-power management, notifications, or a user service manager.
+Selected Manager power methods and
+.Ic Inhibit
+are accepted only for the original D-Bus peer.
+The methods are
+.Ic CanSuspend ,
+.Ic CanHibernate ,
+.Ic CanHybridSleep ,
+.Ic CanPowerOff ,
+.Ic CanReboot ,
+.Ic CanSuspendThenHibernate ,
+.Ic Suspend ,
+.Ic Hibernate ,
+.Ic HybridSleep ,
+.Ic PowerOff ,
+.Ic Reboot
+and
+.Ic Inhibit .
+Bus policy lets any user send to the name; that is not authorization.
+.Pp
+The peer must satisfy every one of the following.
+The system bus must report the peer's uid and process id.
+Uid 0 is refused, as is a call on the daemon's own bus connection.
+PolicyKit would treat uid 0 as authorized; this daemon does not.
+The process must own an active, local ConsoleKit session.
+The uid must be a member of the power group.
+PolicyKit
+.Ic CheckAuthorization
+must return authorized for subject kind
+.Dq system-bus-name ,
+using that peer's unique name and with user interaction disabled.
+A challenge, a missing authority, a bad subject, or any lookup error is a denial.
+.Pp
+The default power group is
+.Sy operator ,
+the FreeBSD group historically permitted to shut the system down.
+Set
+.Va bsddd_power_group
+in
+.Xr rc.conf 5
+to another single group name.
+The rc.d script passes it as
+.Fl Fl power-group .
+An empty or illegal name prevents the service from starting.
+.Fl Fl power-group-file
+re-reads one line of the form
+.Ql power_group="name"
+on each call and fails closed when the file is missing or malformed.
+It is not combined with
+.Fl Fl power-group .
+.Pp
+.Ic Can*
+answers reflect that caller.
+A denied caller receives
+.Dq no ,
+including for
+.Ic CanSuspendThenHibernate ,
+even when ConsoleKit would report
+.Dq na
+or
+.Dq yes
+to root.
+An authorized caller receives
+.Dq yes
+or
+.Dq na
+from ConsoleKit's capability reply.
+.Dq challenge
+and any other capability reply become
+.Dq no .
+If the authority or the capability lookup fails, the call returns an access error
+rather than
+.Dq yes .
+.Ic SuspendThenHibernate
+is not implemented and stays
+.Dq na
+for an authorized caller.
+.Pp
+Only after the decision is allow does the daemon ask ConsoleKit to perform
+.Ic Suspend ,
+.Ic Hibernate ,
+.Ic HybridSleep ,
+.Ic Stop ,
+.Ic Restart
+or
+.Ic Inhibit .
+ConsoleKit then sees this daemon's connection, so that call is actuation, not
+the caller's authorization.
+.Ic PrepareForSleep
+is emitted around an attempted sleep or power action, not around a denial.
+.Ic Inhibit
+accepts modes
+.Dq block
+and
+.Dq delay
+and uses the same decision with action
+.Dq org.freedesktop.login1.inhibit .
+The inhibitor is held on the daemon's ConsoleKit connection, so only one login1
+inhibitor is available at a time.
+A successful reply is not verified hardware suspend or power-off.
+.Pp
+The port installs a PolicyKit action file whose defaults are
+.Dq no ,
+and a rule for those same action ids.
+The rule returns yes only for a local, active member of the
+.Sy operator
+group.
+Root is no, and every other subject is no, so a remote or inactive
+operator is not authorized for any PolicyKit client.
+Keep the group in that rule aligned with
+.Va bsddd_power_group .
+If they name different groups, the call stays denied.
+.Pp
+It does not implement session creation, a complete Seat/User model,
+interactive PolicyKit prompts, or a user service manager.
 Consumers must not interpret the presence of the bus name
 as full logind support.
 .Sh ENVIRONMENT
@@ -71,7 +184,16 @@ The tests direct this to a private bus; do not set it for privileged deployment.
 .Sh EXIT STATUS
 .Ex -std
 A usage error returns 64.
+.Sh FILES
+.Bl -tag -width "/usr/local/share/polkit-1/rules.d/org.bsd3.login1.rules"
+.It Pa /usr/local/share/polkit-1/actions/org.bsd3.login1.policy
+Action definitions for the login1 power and inhibit ids.
+Defaults deny every subject.
+.It Pa /usr/local/share/polkit-1/rules.d/org.bsd3.login1.rules
+Shipped authority rule: local, active operator only. Root and every other subject are no.
+.El
 .Sh SEE ALSO
-.Xr daemon 8
+.Xr daemon 8 ,
+.Xr rc.conf 5
 .Sh AUTHORS
 .An Denis Lemire Aq Mt denis@lemire.name

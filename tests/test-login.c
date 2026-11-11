@@ -1,11 +1,16 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 #include <errno.h>
+#include <grp.h>
+#include <pwd.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <gio/gio.h>
 #include <gio/gunixfdlist.h>
 #include "bsd3/sd-login.h"
+#include "power-auth.h"
 #define CK "org.freedesktop.ConsoleKit"
 #define MANAGER "/org/freedesktop/ConsoleKit/Manager"
 static GDBusConnection *bus;
@@ -926,6 +931,539 @@ test_seat_switch(void)
 	mode("normal");
 }
 
+static struct bsd3_power_facts
+allowed_facts(void)
+{
+	struct bsd3_power_facts facts = {
+		.credentials_ok = TRUE,
+		.uid = 1000,
+		.daemon_bus = FALSE,
+		.session = 1,
+		.owned = 1,
+		.active = 1,
+		.local = 1,
+		.grouped = 1,
+		.polkit = 1
+	};
+	return (facts);
+}
+
+static void
+test_power_decision(void)
+{
+	struct bsd3_power_facts facts;
+
+	facts = allowed_facts();
+	g_assert_cmpint(bsd3_power_decide(&facts), ==, BSD3_POWER_ALLOW);
+	facts = allowed_facts();
+	facts.uid = 0;
+	g_assert_cmpint(bsd3_power_decide(&facts), ==, BSD3_POWER_DENY);
+	facts = allowed_facts();
+	facts.uid = 0;
+	facts.polkit = -1;
+	g_assert_cmpint(bsd3_power_decide(&facts), ==, BSD3_POWER_DENY);
+	facts = allowed_facts();
+	facts.daemon_bus = TRUE;
+	g_assert_cmpint(bsd3_power_decide(&facts), ==, BSD3_POWER_DENY);
+	facts = allowed_facts();
+	facts.credentials_ok = FALSE;
+	g_assert_cmpint(bsd3_power_decide(&facts), ==, BSD3_POWER_UNAVAILABLE);
+	g_assert_cmpint(bsd3_power_decide(NULL), ==, BSD3_POWER_UNAVAILABLE);
+	facts = allowed_facts();
+	facts.session = 0;
+	facts.grouped = -1;
+	g_assert_cmpint(bsd3_power_decide(&facts), ==, BSD3_POWER_DENY);
+	facts = allowed_facts();
+	facts.session = -1;
+	g_assert_cmpint(bsd3_power_decide(&facts), ==, BSD3_POWER_UNAVAILABLE);
+	facts = allowed_facts();
+	facts.owned = 0;
+	g_assert_cmpint(bsd3_power_decide(&facts), ==, BSD3_POWER_DENY);
+	facts = allowed_facts();
+	facts.active = 0;
+	g_assert_cmpint(bsd3_power_decide(&facts), ==, BSD3_POWER_DENY);
+	facts = allowed_facts();
+	facts.local = 0;
+	g_assert_cmpint(bsd3_power_decide(&facts), ==, BSD3_POWER_DENY);
+	facts = allowed_facts();
+	facts.local = -1;
+	g_assert_cmpint(bsd3_power_decide(&facts), ==, BSD3_POWER_UNAVAILABLE);
+	facts = allowed_facts();
+	facts.grouped = 0;
+	facts.polkit = -1;
+	g_assert_cmpint(bsd3_power_decide(&facts), ==, BSD3_POWER_DENY);
+	facts = allowed_facts();
+	facts.grouped = -1;
+	g_assert_cmpint(bsd3_power_decide(&facts), ==, BSD3_POWER_UNAVAILABLE);
+	facts = allowed_facts();
+	facts.polkit = 0;
+	g_assert_cmpint(bsd3_power_decide(&facts), ==, BSD3_POWER_DENY);
+	facts = allowed_facts();
+	facts.polkit = -1;
+	g_assert_cmpint(bsd3_power_decide(&facts), ==, BSD3_POWER_UNAVAILABLE);
+	facts = allowed_facts();
+	facts.polkit = 2;
+	g_assert_cmpint(bsd3_power_decide(&facts), ==, BSD3_POWER_DENY);
+}
+
+static guint power_sleep_signals;
+
+static void
+on_power_sleep(GDBusConnection *connection, const char *sender, const char *path,
+    const char *iface, const char *name, GVariant *args, gpointer data)
+{
+	(void)connection; (void)sender; (void)path; (void)iface; (void)name;
+	(void)args; (void)data;
+	power_sleep_signals++;
+}
+
+static void
+write_power_group(const char *name)
+{
+	const char *path = g_getenv("BSD3_POWER_GROUP_FILE");
+	char *tmp, *text;
+	g_assert_nonnull(path);
+	tmp = g_strconcat(path, ".tmp", NULL);
+	text = g_strdup_printf("power_group=\"%s\"\n", name);
+	g_assert_true(g_file_set_contents(tmp, text, -1, NULL));
+	g_assert_cmpint(rename(tmp, path), ==, 0);
+	g_free(tmp);
+	g_free(text);
+}
+
+static gboolean
+power_group_name_ok(const char *name)
+{
+	size_t i, n;
+	if (name == NULL)
+		return (FALSE);
+	n = strlen(name);
+	if (n == 0 || n > 32)
+		return (FALSE);
+	for (i = 0; i < n; i++) {
+		char c = name[i];
+		if (!g_ascii_isalnum(c) && c != '_' && c != '-' && c != '.')
+			return (FALSE);
+	}
+	return (TRUE);
+}
+
+/* A group the caller belongs to besides the primary gid. Membership has to
+ * come from getgrouplist(), not from pw_gid alone. */
+static char *
+supplementary_group(gid_t primary)
+{
+	struct passwd *pw = getpwuid(getuid());
+	gid_t groups[64];
+	char *user;
+	int used = 64, rc, i;
+
+	g_assert_nonnull(pw);
+	g_assert_nonnull(pw->pw_name);
+	user = g_strdup(pw->pw_name);
+	rc = getgrouplist(user, pw->pw_gid, groups, &used);
+	g_assert_cmpint(rc, >=, 0);
+	if (rc > 0)
+		used = rc;
+	g_free(user);
+	for (i = 0; i < used; i++) {
+		struct group *gr;
+		char *name;
+		if (groups[i] == primary)
+			continue;
+		gr = getgrgid(groups[i]);
+		if (gr == NULL || !power_group_name_ok(gr->gr_name))
+			continue;
+		name = g_strdup(gr->gr_name);
+		return (name);
+	}
+	return (NULL);
+}
+
+static char *
+foreign_group(void)
+{
+	static const char *candidates[] = {
+		"operator", "wheel", "nogroup", "nobody", "daemon", "bin", "sys", NULL
+	};
+	struct passwd *pw = getpwuid(getuid());
+	gid_t groups[64], primary;
+	char *user;
+	int used = 64, rc, i;
+	const char **candidate;
+
+	g_assert_nonnull(pw);
+	g_assert_nonnull(pw->pw_name);
+	user = g_strdup(pw->pw_name);
+	primary = pw->pw_gid;
+	rc = getgrouplist(user, primary, groups, &used);
+	g_assert_cmpint(rc, >=, 0);
+	if (rc > 0)
+		used = rc;
+	for (candidate = candidates; *candidate != NULL; candidate++) {
+		struct group *gr = getgrnam(*candidate);
+		gboolean member = FALSE;
+		if (gr == NULL)
+			continue;
+		for (i = 0; i < used; i++) {
+			if (groups[i] == gr->gr_gid)
+				member = TRUE;
+		}
+		if (!member) {
+			char *name = g_strdup(gr->gr_name);
+			g_free(user);
+			return (name);
+		}
+	}
+	g_free(user);
+	return (NULL);
+}
+
+struct power_snap {
+	guint queries, actions, inhibits, polkit, sleep;
+};
+
+static guint
+inhibit_count(void)
+{
+	GVariant *r = call(CK, MANAGER, "org.bsd3.Test", "GetSystemCounters",
+	    NULL, "(uuubbs)");
+	guint idle, inhibits, closed;
+	gboolean held, hint;
+	const char *what;
+	g_variant_get(r, "(uuubb&s)", &idle, &inhibits, &closed, &held, &hint, &what);
+	(void)idle; (void)closed; (void)held; (void)hint; (void)what;
+	g_variant_unref(r);
+	return (inhibits);
+}
+
+static void
+power_snap(struct power_snap *snap)
+{
+	GVariant *r = call(CK, MANAGER, "org.bsd3.Test", "GetPowerCounters",
+	    NULL, "(uubs)");
+	gboolean interactive;
+	const char *last;
+	guint flags;
+	g_variant_get(r, "(uub&s)", &snap->queries, &snap->actions, &interactive, &last);
+	(void)interactive; (void)last;
+	g_variant_unref(r);
+	r = call(CK, MANAGER, "org.bsd3.Test", "GetPolkit", NULL, "(usssu)");
+	g_variant_get(r, "(u&s&s&su)", &snap->polkit, &last, &last, &last, &flags);
+	(void)last; (void)flags;
+	g_variant_unref(r);
+	snap->inhibits = inhibit_count();
+	snap->sleep = power_sleep_signals;
+}
+
+static void
+assert_backend_idle(const struct power_snap *before, gboolean polkit_idle)
+{
+	struct power_snap now;
+	while (g_main_context_iteration(NULL, FALSE))
+		continue;
+	power_snap(&now);
+	g_assert_cmpuint(now.queries, ==, before->queries);
+	g_assert_cmpuint(now.actions, ==, before->actions);
+	g_assert_cmpuint(now.inhibits, ==, before->inhibits);
+	g_assert_cmpuint(now.sleep, ==, before->sleep);
+	if (polkit_idle)
+		g_assert_cmpuint(now.polkit, ==, before->polkit);
+}
+
+static void
+expect_can(const char *method, const char *value, const char *fragment)
+{
+	GError *error = NULL;
+	GVariant *r = g_dbus_connection_call_sync(bus, "org.freedesktop.login1",
+	    "/org/freedesktop/login1", "org.freedesktop.login1.Manager", method,
+	    NULL, value == NULL ? NULL : G_VARIANT_TYPE("(s)"), 0, 3000, NULL, &error);
+	if (value != NULL) {
+		const char *got;
+		g_assert_no_error(error);
+		g_assert_nonnull(r);
+		g_variant_get(r, "(&s)", &got);
+		g_assert_cmpstr(got, ==, value);
+		g_variant_unref(r);
+		return;
+	}
+	g_assert_null(r);
+	g_assert_error(error, G_DBUS_ERROR, G_DBUS_ERROR_ACCESS_DENIED);
+	g_assert_nonnull(strstr(error->message, fragment));
+	g_clear_error(&error);
+}
+
+static void
+expect_denied_action(const char *method, const char *fragment)
+{
+	GError *error = NULL;
+	GVariant *args = strcmp(method, "Inhibit") == 0 ?
+	    g_variant_new("(ssss)", "sleep", "test", "denied", "block") :
+	    g_variant_new("(b)", TRUE);
+	GVariant *r = g_dbus_connection_call_sync(bus, "org.freedesktop.login1",
+	    "/org/freedesktop/login1", "org.freedesktop.login1.Manager", method,
+	    args, NULL, 0, 3000, NULL, &error);
+	g_assert_null(r);
+	g_assert_error(error, G_DBUS_ERROR, G_DBUS_ERROR_ACCESS_DENIED);
+	g_assert_nonnull(strstr(error->message, fragment));
+	g_clear_error(&error);
+}
+
+static void
+test_power_authorization(void)
+{
+	struct power_snap before;
+	struct group *primary_gr;
+	char *primary, *foreign, *owner = NULL, *seen_subject = NULL;
+	GVariant *r;
+	GError *error = NULL;
+	GUnixFDList *fds = NULL;
+	const char *kind, *subject, *action, *result;
+	guint calls, flags, watch;
+	int handle, fd;
+	gint64 end;
+
+	if (!peer_pid_available) {
+		g_test_skip("Host D-Bus cannot report peer credentials");
+		return;
+	}
+	primary_gr = getgrgid(getgid());
+	g_assert_nonnull(primary_gr);
+	g_assert_nonnull(primary_gr->gr_name);
+	primary = g_strdup(primary_gr->gr_name);
+	foreign = foreign_group();
+	g_assert_nonnull(foreign);
+	write_power_group(primary);
+	power_sleep_signals = 0;
+	watch = g_dbus_connection_signal_subscribe(bus, "org.freedesktop.login1",
+	    "org.freedesktop.login1.Manager", "PrepareForSleep",
+	    "/org/freedesktop/login1", NULL, G_DBUS_SIGNAL_FLAGS_NONE,
+	    on_power_sleep, NULL, NULL);
+
+	mode("no-session");
+	power_snap(&before);
+	expect_can("CanSuspend", "no", NULL);
+	expect_can("CanPowerOff", "no", NULL);
+	expect_can("CanSuspendThenHibernate", "no", NULL);
+	expect_denied_action("PowerOff", "Permission denied");
+	expect_denied_action("Reboot", "Permission denied");
+	expect_denied_action("Suspend", "Permission denied");
+	expect_denied_action("Inhibit", "Permission denied");
+	assert_backend_idle(&before, TRUE);
+
+	mode("inactive");
+	power_snap(&before);
+	expect_can("CanSuspend", "no", NULL);
+	expect_denied_action("Hibernate", "Permission denied");
+	assert_backend_idle(&before, TRUE);
+
+	mode("remote");
+	power_snap(&before);
+	expect_can("CanReboot", "no", NULL);
+	expect_denied_action("HybridSleep", "Permission denied");
+	assert_backend_idle(&before, TRUE);
+
+	mode("uid-mismatch");
+	power_snap(&before);
+	expect_can("CanHibernate", "no", NULL);
+	expect_denied_action("PowerOff", "Permission denied");
+	assert_backend_idle(&before, TRUE);
+
+	mode("power-na");
+	write_power_group(foreign);
+	power_snap(&before);
+	expect_can("CanSuspend", "no", NULL);
+	expect_can("CanSuspendThenHibernate", "no", NULL);
+	expect_denied_action("PowerOff", "Permission denied");
+	expect_denied_action("Inhibit", "Permission denied");
+	assert_backend_idle(&before, TRUE);
+
+	write_power_group(primary);
+	mode("local");
+	power_snap(&before);
+	mode("polkit-down");
+	expect_can("CanSuspend", NULL, "unavailable");
+	expect_denied_action("PowerOff", "unavailable");
+	expect_denied_action("Inhibit", "unavailable");
+	assert_backend_idle(&before, TRUE);
+
+	mode("polkit-error");
+	power_snap(&before);
+	expect_can("CanPowerOff", NULL, "unavailable");
+	expect_denied_action("Reboot", "unavailable");
+	assert_backend_idle(&before, FALSE);
+	r = call(CK, MANAGER, "org.bsd3.Test", "GetPolkit", NULL, "(usssu)");
+	g_variant_get(r, "(u&s&s&su)", &calls, &kind, &subject, &action, &flags);
+	g_assert_cmpuint(calls, ==, before.polkit + 2);
+	g_assert_cmpstr(kind, ==, "system-bus-name");
+	g_assert_cmpstr(subject, ==, g_dbus_connection_get_unique_name(bus));
+	g_assert_cmpuint(flags, ==, 0);
+	g_variant_unref(r);
+
+	mode("polkit-challenge");
+	power_snap(&before);
+	expect_can("CanSuspend", "no", NULL);
+	expect_denied_action("Suspend", "Permission denied");
+	assert_backend_idle(&before, FALSE);
+
+	mode("polkit-no");
+	power_snap(&before);
+	expect_can("CanHybridSleep", "no", NULL);
+	expect_denied_action("HybridSleep", "Permission denied");
+	assert_backend_idle(&before, FALSE);
+
+	write_power_group("not a valid group");
+	mode("local");
+	power_snap(&before);
+	expect_can("CanSuspend", NULL, "unavailable");
+	expect_denied_action("PowerOff", "unavailable");
+	assert_backend_idle(&before, TRUE);
+	write_power_group(primary);
+
+	mode("local");
+	r = call(CK, MANAGER, "org.bsd3.Test", "GetPolkit", NULL, "(usssu)");
+	g_variant_get(r, "(u&s&s&su)", &calls, &kind, &subject, &action, &flags);
+	g_variant_unref(r);
+	r = call("org.freedesktop.login1", "/org/freedesktop/login1",
+	    "org.freedesktop.login1.Manager", "CanSuspend", NULL, "(s)");
+	g_variant_get(r, "(&s)", &result);
+	g_assert_cmpstr(result, ==, "yes");
+	g_variant_unref(r);
+	r = call(CK, MANAGER, "org.bsd3.Test", "GetPolkit", NULL, "(usssu)");
+	g_variant_get(r, "(u&s&s&su)", &calls, &kind, &subject, &action, &flags);
+	g_assert_cmpstr(kind, ==, "system-bus-name");
+	g_assert_cmpstr(subject, ==, g_dbus_connection_get_unique_name(bus));
+	g_assert_cmpstr(action, ==, "org.freedesktop.login1.suspend");
+	g_assert_cmpuint(flags, ==, 0);
+	seen_subject = g_strdup(subject);
+	g_variant_unref(r);
+	r = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus",
+	    "/org/freedesktop/DBus", "org.freedesktop.DBus", "GetNameOwner",
+	    g_variant_new("(s)", "org.freedesktop.login1"), G_VARIANT_TYPE("(s)"),
+	    0, 3000, NULL, &error);
+	g_assert_no_error(error);
+	g_variant_get(r, "(s)", &owner);
+	g_assert_cmpstr(seen_subject, !=, owner);
+	g_variant_unref(r);
+	g_free(owner);
+	mode("power-na");
+	expect_can("CanHibernate", "na", NULL);
+	expect_can("CanSuspendThenHibernate", "na", NULL);
+	mode("power-challenge");
+	expect_can("CanSuspend", "no", NULL);
+	mode("local");
+	power_sleep_signals = 0;
+	r = call("org.freedesktop.login1", "/org/freedesktop/login1",
+	    "org.freedesktop.login1.Manager", "Suspend", g_variant_new("(b)", TRUE), "()");
+	g_variant_unref(r);
+	end = g_get_monotonic_time() + 3000000;
+	while (power_sleep_signals < 2 && g_get_monotonic_time() < end) {
+		while (g_main_context_iteration(NULL, FALSE))
+			continue;
+		g_usleep(1000);
+	}
+	g_assert_cmpuint(power_sleep_signals, ==, 2);
+	r = call(CK, MANAGER, "org.bsd3.Test", "GetPowerCounters", NULL, "(uubs)");
+	{
+		guint queries, actions;
+		gboolean interactive;
+		const char *last;
+		g_variant_get(r, "(uub&s)", &queries, &actions, &interactive, &last);
+		g_assert_cmpuint(actions, >=, 1);
+		g_assert_true(interactive);
+		g_assert_cmpstr(last, ==, "Suspend");
+		g_variant_unref(r);
+	}
+	r = call("org.freedesktop.login1", "/org/freedesktop/login1",
+	    "org.freedesktop.login1.Manager", "PowerOff", g_variant_new("(b)", FALSE), "()");
+	g_variant_unref(r);
+	r = call(CK, MANAGER, "org.bsd3.Test", "GetPowerCounters", NULL, "(uubs)");
+	{
+		guint queries, actions;
+		gboolean interactive;
+		const char *last;
+		g_variant_get(r, "(uub&s)", &queries, &actions, &interactive, &last);
+		g_assert_false(interactive);
+		g_assert_cmpstr(last, ==, "Stop");
+		g_variant_unref(r);
+	}
+	r = call(CK, MANAGER, "org.bsd3.Test", "GetPolkit", NULL, "(usssu)");
+	g_variant_get(r, "(u&s&s&su)", &calls, &kind, &subject, &action, &flags);
+	g_assert_cmpstr(action, ==, "org.freedesktop.login1.power-off");
+	g_assert_cmpstr(subject, ==, g_dbus_connection_get_unique_name(bus));
+	g_assert_cmpuint(flags, ==, 0);
+	g_variant_unref(r);
+	r = g_dbus_connection_call_with_unix_fd_list_sync(bus, "org.freedesktop.login1",
+	    "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "Inhibit",
+	    g_variant_new("(ssss)", "sleep", "gsd-power", "idle", "delay"),
+	    G_VARIANT_TYPE("(h)"), 0, 3000, NULL, &fds, NULL, &error);
+	g_assert_no_error(error);
+	g_variant_get(r, "(h)", &handle);
+	g_assert_nonnull(fds);
+	fd = g_unix_fd_list_get(fds, handle, &error);
+	g_assert_no_error(error);
+	g_assert_cmpint(fd, >=, 0);
+	close(fd);
+	g_variant_unref(r);
+	g_object_unref(fds);
+	r = call(CK, MANAGER, "org.bsd3.Test", "GetPolkit", NULL, "(usssu)");
+	g_variant_get(r, "(u&s&s&su)", &calls, &kind, &subject, &action, &flags);
+	g_assert_cmpstr(action, ==, "org.freedesktop.login1.inhibit");
+	g_variant_unref(r);
+
+	{
+		char *extra = supplementary_group(getgid());
+		struct power_snap extra_before, extra_now;
+		g_assert_nonnull(extra);
+		g_assert_cmpstr(extra, !=, primary);
+		write_power_group(extra);
+		mode("local");
+		power_snap(&extra_before);
+		expect_can("CanReboot", "yes", NULL);
+		power_snap(&extra_now);
+		g_assert_cmpuint(extra_now.queries, ==, extra_before.queries + 1);
+		g_assert_cmpuint(extra_now.actions, ==, extra_before.actions);
+		g_assert_cmpuint(extra_now.polkit, ==, extra_before.polkit + 1);
+		g_free(extra);
+	}
+
+	write_power_group(primary);
+	mode("local");
+	while (g_main_context_iteration(NULL, FALSE))
+		continue;
+	power_snap(&before);
+	r = g_dbus_connection_call_sync(bus, "org.freedesktop.login1",
+	    "/org/freedesktop/login1", "org.freedesktop.login1.Manager",
+	    "CanTeleport", NULL, NULL, 0, 3000, NULL, &error);
+	g_assert_null(r);
+	g_assert_error(error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD);
+	g_clear_error(&error);
+	r = g_dbus_connection_call_sync(bus, "org.freedesktop.login1",
+	    "/org/freedesktop/login1", "org.freedesktop.login1.Manager",
+	    "PowerCycle", g_variant_new("(b)", TRUE), NULL, 0, 3000, NULL, &error);
+	g_assert_null(r);
+	g_assert_error(error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD);
+	g_clear_error(&error);
+	assert_backend_idle(&before, TRUE);
+
+	mode("power-fail");
+	r = g_dbus_connection_call_sync(bus, "org.freedesktop.login1",
+	    "/org/freedesktop/login1", "org.freedesktop.login1.Manager", "Reboot",
+	    g_variant_new("(b)", TRUE), NULL, 0, 3000, NULL, &error);
+	g_assert_null(r);
+	g_assert_nonnull(error);
+	g_assert_cmpstr(strstr(error->message, "Permission denied") == NULL ? "backend" : "auth",
+	    ==, "backend");
+	g_clear_error(&error);
+
+	write_power_group(primary);
+	mode("normal");
+	g_dbus_connection_signal_unsubscribe(bus, watch);
+	g_free(seen_subject);
+	g_free(primary);
+	g_free(foreign);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -962,6 +1500,8 @@ main(int argc, char **argv)
 	g_test_add_func("/bsd3/display", test_display);
 	g_test_add_func("/bsd3/errors", test_errors);
 	g_test_add_func("/bsd3/daemon", test_daemon);
+	g_test_add_func("/bsd3/power-decision", test_power_decision);
+	g_test_add_func("/bsd3/power-authorization", test_power_authorization);
 	g_test_add_func("/bsd3/controller-ownership", test_control_ownership);
 	g_test_add_func("/bsd3/controller-failures", test_control_failures);
 	g_test_add_func("/bsd3/controller-missing-credentials", test_missing_credentials);

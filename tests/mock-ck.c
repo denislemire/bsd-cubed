@@ -22,6 +22,12 @@ static guint system_idle_calls, system_inhibits, system_closed;
 static gboolean system_idle;
 static int inhibitor_read = -1;
 static char *inhibitor_what;
+static guint power_queries, power_actions;
+static gboolean power_interactive;
+static char *power_last;
+static guint polkit_calls, polkit_flags;
+static char *polkit_kind, *polkit_name, *polkit_action;
+#define PK "org.freedesktop.PolicyKit1"
 struct fake_device { char *owner; gboolean paused; gboolean awaiting_ack; };
 static const char xml[] =
  "<node><interface name='org.freedesktop.ConsoleKit.Manager'>"
@@ -30,6 +36,16 @@ static const char xml[] =
  "<method name='GetSessionsForUnixUser'><arg type='u' direction='in'/><arg type='ao' direction='out'/></method>"
  "<method name='GetSessionForUnixProcess'><arg type='u' direction='in'/><arg type='o' direction='out'/></method>"
  "<method name='Inhibit'><arg type='s' direction='in'/><arg type='s' direction='in'/><arg type='s' direction='in'/><arg type='s' direction='in'/><arg type='h' direction='out'/></method>"
+ "<method name='CanSuspend'><arg type='s' direction='out'/></method>"
+ "<method name='CanHibernate'><arg type='s' direction='out'/></method>"
+ "<method name='CanHybridSleep'><arg type='s' direction='out'/></method>"
+ "<method name='CanStop'><arg type='s' direction='out'/></method>"
+ "<method name='CanRestart'><arg type='s' direction='out'/></method>"
+ "<method name='Suspend'><arg type='b' direction='in'/></method>"
+ "<method name='Hibernate'><arg type='b' direction='in'/></method>"
+ "<method name='HybridSleep'><arg type='b' direction='in'/></method>"
+ "<method name='Stop'><arg type='b' direction='in'/></method>"
+ "<method name='Restart'><arg type='b' direction='in'/></method>"
  "<signal name='SessionRemoved'><arg type='s'/><arg type='o'/></signal>"
  "</interface><interface name='org.freedesktop.ConsoleKit.Session'>"
  "<method name='GetSessionType'><arg type='s' direction='out'/></method>"
@@ -38,6 +54,7 @@ static const char xml[] =
  "<method name='GetCreationTime'><arg type='s' direction='out'/></method>"
  "<method name='GetUnixUser'><arg type='u' direction='out'/></method>"
  "<method name='IsActive'><arg type='b' direction='out'/></method>"
+ "<method name='IsLocal'><arg type='b' direction='out'/></method>"
  "<method name='SetIdleHint'><arg type='b' direction='in'/></method>"
  "<method name='GetSeatId'><arg type='o' direction='out'/></method>"
  "<method name='CanControlSession'><arg type='b' direction='out'/></method>"
@@ -54,6 +71,8 @@ static const char xml[] =
  "<method name='GetSwitchCounters'><arg type='u' direction='out'/><arg type='u' direction='out'/></method>"
  "<method name='GetLastPid'><arg type='u' direction='out'/></method>"
  "<method name='GetSystemCounters'><arg type='u' direction='out'/><arg type='u' direction='out'/><arg type='u' direction='out'/><arg type='b' direction='out'/><arg type='b' direction='out'/><arg type='s' direction='out'/></method>"
+ "<method name='GetPowerCounters'><arg type='u' direction='out'/><arg type='u' direction='out'/><arg type='b' direction='out'/><arg type='s' direction='out'/></method>"
+ "<method name='GetPolkit'><arg type='u' direction='out'/><arg type='s' direction='out'/><arg type='s' direction='out'/><arg type='s' direction='out'/><arg type='u' direction='out'/></method>"
  "<method name='EmitSystemRemoved'/>"
  "<method name='EmitPause'><arg type='u' direction='in'/><arg type='u' direction='in'/><arg type='s' direction='in'/></method>"
  "<method name='EmitResume'><arg type='u' direction='in'/><arg type='u' direction='in'/></method>"
@@ -65,6 +84,10 @@ static const char xml[] =
  "<method name='CanActivateSessions'><arg type='b' direction='out'/></method>"
  "<property name='CanGraphical' type='b' access='read'/>"
  "<method name='SwitchTo'><arg type='u' direction='in'/></method>"
+ "</interface><interface name='org.freedesktop.PolicyKit1.Authority'>"
+ "<method name='CheckAuthorization'><arg type='(sa{sv})' direction='in'/><arg type='s' direction='in'/>"
+ "<arg type='a{ss}' direction='in'/><arg type='u' direction='in'/><arg type='s' direction='in'/>"
+ "<arg type='(bba{ss})' direction='out'/></method>"
  "</interface></node>";
 
 static void
@@ -169,8 +192,25 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 	(void)bus; (void)sender; (void)data;
 	if (strcmp(iface, "org.bsd3.Test") == 0) {
 		if (strcmp(name, "SetMode") == 0) {
+			GError *own_error = NULL;
+			GVariant *owned;
 			g_free(mode);
 			g_variant_get(args, "(s)", &mode);
+			if (strcmp(mode, "inactive") == 0)
+				session6_active = FALSE;
+			else if (strcmp(mode, "local") == 0 || strcmp(mode, "remote") == 0 ||
+			    strcmp(mode, "no-session") == 0 ||
+			    strncmp(mode, "polkit-", 7) == 0 ||
+			    strncmp(mode, "power-", 6) == 0)
+				session6_active = TRUE;
+			owned = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus",
+			    "/org/freedesktop/DBus", "org.freedesktop.DBus",
+			    strcmp(mode, "polkit-down") == 0 ? "ReleaseName" : "RequestName",
+			    strcmp(mode, "polkit-down") == 0 ? g_variant_new("(s)", PK) :
+			    g_variant_new("(su)", PK, 4U), G_VARIANT_TYPE("(u)"), 0,
+			    3000, NULL, &own_error);
+			g_assert_no_error(own_error);
+			g_variant_unref(owned);
 			if (strcmp(mode, "restart") == 0) {
 				GError *error = NULL;
 				GVariant *r;
@@ -186,6 +226,14 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 				g_assert_no_error(error); g_variant_unref(r);
 			}
 			reply = g_variant_new("()");
+		} else if (strcmp(name, "GetPowerCounters") == 0) {
+			reply = g_variant_new("(uubs)", power_queries, power_actions,
+			    power_interactive, power_last ? power_last : "");
+		} else if (strcmp(name, "GetPolkit") == 0) {
+			reply = g_variant_new("(usssu)", polkit_calls,
+			    polkit_kind ? polkit_kind : "",
+			    polkit_name ? polkit_name : "",
+			    polkit_action ? polkit_action : "", polkit_flags);
 		} else if (strcmp(name, "GetSystemCounters") == 0) {
 			probe_inhibitor();
 			reply = g_variant_new("(uuubbs)", system_idle_calls, system_inhibits,
@@ -213,6 +261,41 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 			reply = g_variant_new("(uuu)", takes, releases, g_hash_table_size(owners));
 		else
 			reply = g_variant_new("(u)", last_pid);
+	} else if (strcmp(iface, PK ".Authority") == 0 &&
+	    strcmp(name, "CheckAuthorization") == 0) {
+		const char *kind = NULL, *action = NULL, *cancel = NULL, *bus_name = NULL;
+		GVariant *dict = NULL, *details = NULL;
+		GVariantBuilder empty;
+		gboolean authorized, challenge;
+		g_variant_get(args, "((&s@a{sv})&s@a{ss}u&s)", &kind, &dict, &action,
+		    &details, &polkit_flags, &cancel);
+		if (kind == NULL || action == NULL ||
+		    !g_variant_lookup(dict, "name", "&s", &bus_name) || bus_name == NULL) {
+			g_clear_pointer(&dict, g_variant_unref);
+			g_clear_pointer(&details, g_variant_unref);
+			g_dbus_method_invocation_return_dbus_error(invocation,
+			    PK ".Error.Failed", "Fixture rejected authorization subject");
+			return;
+		}
+		g_free(polkit_kind);
+		g_free(polkit_name);
+		g_free(polkit_action);
+		polkit_kind = g_strdup(kind);
+		polkit_name = g_strdup(bus_name);
+		polkit_action = g_strdup(action);
+		polkit_calls++;
+		g_variant_unref(dict);
+		g_variant_unref(details);
+		if (strcmp(mode, "polkit-error") == 0) {
+			g_dbus_method_invocation_return_dbus_error(invocation,
+			    PK ".Error.Failed", "Fixture authority unavailable");
+			return;
+		}
+		authorized = strcmp(kind, "system-bus-name") == 0 &&
+		    strcmp(mode, "polkit-no") != 0 && strcmp(mode, "polkit-challenge") != 0;
+		challenge = strcmp(mode, "polkit-challenge") == 0;
+		g_variant_builder_init(&empty, G_VARIANT_TYPE("a{ss}"));
+		reply = g_variant_new("((bba{ss}))", authorized, challenge, &empty);
 	} else if (strcmp(mode, "denied") == 0) {
 		g_dbus_method_invocation_return_dbus_error(invocation,
 		    "org.freedesktop.DBus.Error.AccessDenied", "Fixture denial");
@@ -231,7 +314,7 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 			g_free(inhibitor_what);
 			g_variant_get(args, "(s&s&s&s)", &inhibitor_what, &who, &why, &kind);
 			(void)who; (void)why;
-			g_assert_cmpstr(kind, ==, "block");
+			g_assert_true(strcmp(kind, "block") == 0 || strcmp(kind, "delay") == 0);
 			g_assert_cmpint(pipe(ends), ==, 0);
 			inhibitor_read = ends[0];
 			fds = g_unix_fd_list_new();
@@ -254,9 +337,36 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 				g_variant_builder_add(&seats, "o", seat_path);
 			}
 			reply = g_variant_new("(ao)", &seats);
+		} else if (strcmp(name, "CanSuspend") == 0 || strcmp(name, "CanHibernate") == 0 ||
+		    strcmp(name, "CanHybridSleep") == 0 || strcmp(name, "CanStop") == 0 ||
+		    strcmp(name, "CanRestart") == 0) {
+			power_queries++;
+			g_free(power_last);
+			power_last = g_strdup(name);
+			if (strcmp(mode, "power-fail") == 0) {
+				g_dbus_method_invocation_return_dbus_error(invocation,
+				    CK ".Manager.Error.Failed", "Fixture refused capability");
+				return;
+			}
+			reply = g_variant_new("(s)", strcmp(mode, "power-na") == 0 ? "na" :
+			    strcmp(mode, "power-challenge") == 0 ? "challenge" :
+			    strcmp(mode, "power-no") == 0 ? "no" : "yes");
+		} else if (strcmp(name, "Suspend") == 0 || strcmp(name, "Hibernate") == 0 ||
+		    strcmp(name, "HybridSleep") == 0 || strcmp(name, "Stop") == 0 ||
+		    strcmp(name, "Restart") == 0) {
+			if (strcmp(mode, "power-fail") == 0) {
+				g_dbus_method_invocation_return_dbus_error(invocation,
+				    CK ".Manager.Error.Failed", "Fixture refused power action");
+				return;
+			}
+			g_variant_get(args, "(b)", &power_interactive);
+			g_free(power_last);
+			power_last = g_strdup(name);
+			power_actions++;
+			reply = g_variant_new("()");
 		} else if (strcmp(name, "GetSessionForUnixProcess") == 0) {
 			g_variant_get(args, "(u)", &last_pid);
-			if (last_pid == 99999999) {
+			if (last_pid == 99999999 || strcmp(mode, "no-session") == 0) {
 				g_dbus_method_invocation_return_dbus_error(invocation,
 				    CK ".Manager.Error.NoSessionForPid", "Absent");
 				return;
@@ -337,6 +447,8 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 			    id == 8 ? (guint32)getuid() + 1 : 1000U);
 		else if (strcmp(name, "IsActive") == 0)
 			reply = g_variant_new("(b)", strcmp(state, "active") == 0);
+		else if (strcmp(name, "IsLocal") == 0)
+			reply = g_variant_new("(b)", strcmp(mode, "remote") != 0);
 		else if (strcmp(name, "SetIdleHint") == 0) {
 			g_variant_get(args, "(b)", &system_idle);
 			system_idle_calls++;
@@ -499,6 +611,15 @@ main(void)
 	g_assert_cmpuint(g_dbus_connection_register_object(bus, ROOT "/Seat1",
 	    schema->interfaces[3], &vtable, NULL, NULL, &error), >, 0);
 	g_assert_no_error(error);
+	g_assert_cmpuint(g_dbus_connection_register_object(bus, "/org/freedesktop/PolicyKit1/Authority",
+	    schema->interfaces[4], &vtable, NULL, NULL, &error), >, 0);
+	g_assert_no_error(error);
+	reply = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus",
+	    "/org/freedesktop/DBus", "org.freedesktop.DBus", "RequestName",
+	    g_variant_new("(su)", PK, 4U), G_VARIANT_TYPE("(u)"), 0, 3000,
+	    NULL, &error);
+	g_assert_no_error(error);
+	g_variant_unref(reply);
 	reply = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus",
 	    "/org/freedesktop/DBus", "org.freedesktop.DBus", "RequestName",
 	    g_variant_new("(su)", CK, 4U), G_VARIANT_TYPE("(u)"), 0, 3000,
