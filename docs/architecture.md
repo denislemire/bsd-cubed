@@ -92,8 +92,10 @@ existing system-bus socket. The caller must also be a non-root member of
 `bsddd_power_group` (default `operator`, set in rc.conf) and own an active
 local ConsoleKit session. uid 0 never passes, including when PolicyKit would
 allow root. A missing authority, a challenge, or any lookup error is a denial.
-The shipped PolicyKit rule allows the operator group and must stay aligned
-with that knob; if the two disagree, the call stays denied.
+The shipped PolicyKit rule returns yes only for a local active member of
+the operator group, and no for root and every other subject, because those
+action ids are shared with any PolicyKit client. Keep the rule aligned with
+that knob; if the two disagree, the call stays denied.
 Before control methods exist, specify caller credentials, ownership, per-client
 backend connections or a native device broker, revocation and disconnect handling.
 Never accept a client-supplied UID as authorization. Do not gain device access by

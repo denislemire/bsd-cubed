@@ -161,11 +161,13 @@ A successful reply is not verified hardware suspend or power-off.
 .Pp
 The port installs a PolicyKit action file whose defaults are
 .Dq no ,
-and a rule that returns yes for the
+and a rule for those same action ids.
+The rule returns yes only for a local, active member of the
 .Sy operator
-group and no for
-.Dq root .
-Keep that rule aligned with
+group.
+Root is no, and every other subject is no, so a remote or inactive
+operator is not authorized for any PolicyKit client.
+Keep the group in that rule aligned with
 .Va bsddd_power_group .
 If they name different groups, the call stays denied.
 .Pp
@@ -188,7 +190,7 @@ A usage error returns 64.
 Action definitions for the login1 power and inhibit ids.
 Defaults deny every subject.
 .It Pa /usr/local/share/polkit-1/rules.d/org.bsd3.login1.rules
-Shipped authority rule for the operator group.
+Shipped authority rule: local, active operator only. Root and every other subject are no.
 .El
 .Sh SEE ALSO
 .Xr daemon 8 ,

@@ -1031,6 +1031,55 @@ write_power_group(const char *name)
 	g_free(text);
 }
 
+static gboolean
+power_group_name_ok(const char *name)
+{
+	size_t i, n;
+	if (name == NULL)
+		return (FALSE);
+	n = strlen(name);
+	if (n == 0 || n > 32)
+		return (FALSE);
+	for (i = 0; i < n; i++) {
+		char c = name[i];
+		if (!g_ascii_isalnum(c) && c != '_' && c != '-' && c != '.')
+			return (FALSE);
+	}
+	return (TRUE);
+}
+
+/* A group the caller belongs to besides the primary gid. Membership has to
+ * come from getgrouplist(), not from pw_gid alone. */
+static char *
+supplementary_group(gid_t primary)
+{
+	struct passwd *pw = getpwuid(getuid());
+	gid_t groups[64];
+	char *user;
+	int used = 64, rc, i;
+
+	g_assert_nonnull(pw);
+	g_assert_nonnull(pw->pw_name);
+	user = g_strdup(pw->pw_name);
+	rc = getgrouplist(user, pw->pw_gid, groups, &used);
+	g_assert_cmpint(rc, >=, 0);
+	if (rc > 0)
+		used = rc;
+	g_free(user);
+	for (i = 0; i < used; i++) {
+		struct group *gr;
+		char *name;
+		if (groups[i] == primary)
+			continue;
+		gr = getgrgid(groups[i]);
+		if (gr == NULL || !power_group_name_ok(gr->gr_name))
+			continue;
+		name = g_strdup(gr->gr_name);
+		return (name);
+	}
+	return (NULL);
+}
+
 static char *
 foreign_group(void)
 {
@@ -1361,6 +1410,41 @@ test_power_authorization(void)
 	g_variant_get(r, "(u&s&s&su)", &calls, &kind, &subject, &action, &flags);
 	g_assert_cmpstr(action, ==, "org.freedesktop.login1.inhibit");
 	g_variant_unref(r);
+
+	{
+		char *extra = supplementary_group(getgid());
+		struct power_snap extra_before, extra_now;
+		g_assert_nonnull(extra);
+		g_assert_cmpstr(extra, !=, primary);
+		write_power_group(extra);
+		mode("local");
+		power_snap(&extra_before);
+		expect_can("CanReboot", "yes", NULL);
+		power_snap(&extra_now);
+		g_assert_cmpuint(extra_now.queries, ==, extra_before.queries + 1);
+		g_assert_cmpuint(extra_now.actions, ==, extra_before.actions);
+		g_assert_cmpuint(extra_now.polkit, ==, extra_before.polkit + 1);
+		g_free(extra);
+	}
+
+	write_power_group(primary);
+	mode("local");
+	while (g_main_context_iteration(NULL, FALSE))
+		continue;
+	power_snap(&before);
+	r = g_dbus_connection_call_sync(bus, "org.freedesktop.login1",
+	    "/org/freedesktop/login1", "org.freedesktop.login1.Manager",
+	    "CanTeleport", NULL, NULL, 0, 3000, NULL, &error);
+	g_assert_null(r);
+	g_assert_error(error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD);
+	g_clear_error(&error);
+	r = g_dbus_connection_call_sync(bus, "org.freedesktop.login1",
+	    "/org/freedesktop/login1", "org.freedesktop.login1.Manager",
+	    "PowerCycle", g_variant_new("(b)", TRUE), NULL, 0, 3000, NULL, &error);
+	g_assert_null(r);
+	g_assert_error(error, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD);
+	g_clear_error(&error);
+	assert_backend_idle(&before, TRUE);
 
 	mode("power-fail");
 	r = g_dbus_connection_call_sync(bus, "org.freedesktop.login1",
