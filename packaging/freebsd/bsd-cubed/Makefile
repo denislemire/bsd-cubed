@@ -12,7 +12,8 @@ LICENSE_FILE=	${WRKSRC}/LICENSE
 
 BUILD_DEPENDS=	dbus-run-session:devel/dbus
 RUN_DEPENDS=	consolekit2>=2.0.0_5:sysutils/consolekit2 \
-		dbus-daemon:devel/dbus
+		dbus-daemon:devel/dbus \
+		polkit:sysutils/polkit
 
 USES=		gnome pkgconfig
 USE_GNOME=	glib20

@@ -53,9 +53,12 @@ weird on purpose: GNOME 49's manifest still pins `gnome-desktop` 44.5.
 
 Selected `sd-login` calls over typed ConsoleKit D-Bus, plus a partial
 `org.freedesktop.login1` Manager/Seat/Session: authenticated TakeControl,
-device handoff, pause/resume, Seat.SwitchTo for the active controller. It
-will not steal an existing bus name. KVM input revoke and VT switching work
-here; the pretty pixels were on my laptop.
+device handoff, pause/resume, Seat.SwitchTo for the active controller. Power
+and inhibit calls are allowed only for a non-root peer in `bsddd_power_group`
+(default `operator`) with an active local ConsoleKit session, after PolicyKit
+authorizes that peer's bus name. It will not steal an existing bus name. KVM
+input revoke and VT switching work here; the pretty pixels were on my laptop.
+Laptop suspend is still unverified.
 
 ## Next for me
 

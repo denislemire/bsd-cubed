@@ -59,7 +59,9 @@ list below is how the work was planned, including items that later landed.
 ## Current protocol limits
 
 The daemon owns login1 and exports a selected Manager, Seat and Session
-interface. It is not a complete logind. Device descriptor transport,
+interface. It is not a complete logind. Power and inhibit methods are
+caller-authorized; a successful reply is not verified hardware suspend.
+Device descriptor transport,
 pause/resume and Active change signals exist; whether your GPU and input
 stack honor them is between you and the hardware.
 TakeControl/ReleaseControl authenticate the original peer and isolate backend
@@ -81,6 +83,17 @@ Do not mistake this subset for full sd-login ABI/semantic compatibility.
 
 D-Bus authenticates the client's bus connection. A proxy calling ConsoleKit under
 its own identity cannot claim that ConsoleKit authenticated the original caller.
+PowerOff, Reboot, Suspend, Hibernate, HybridSleep, the matching Can* methods
+and Inhibit therefore ask PolicyKit CheckAuthorization about the original
+unique name (subject kind system-bus-name, no user interaction). ConsoleKit
+Can* on this daemon's connection answers for root and is not the caller's
+permission. There is no FreeBSD base call that presents another uid on an
+existing system-bus socket. The caller must also be a non-root member of
+`bsddd_power_group` (default `operator`, set in rc.conf) and own an active
+local ConsoleKit session. uid 0 never passes, including when PolicyKit would
+allow root. A missing authority, a challenge, or any lookup error is a denial.
+The shipped PolicyKit rule allows the operator group and must stay aligned
+with that knob; if the two disagree, the call stays denied.
 Before control methods exist, specify caller credentials, ownership, per-client
 backend connections or a native device broker, revocation and disconnect handling.
 Never accept a client-supplied UID as authorization. Do not gain device access by
