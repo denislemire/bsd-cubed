@@ -370,10 +370,20 @@ stop(gpointer data)
 	return (G_SOURCE_REMOVE);
 }
 
+static void
+ignore_bus_override(void)
+{
+	/* GLib selects G_BUS_TYPE_SYSTEM from DBUS_SYSTEM_BUS_ADDRESS when it
+	 * is set. The daemon always uses the system bus GLib was built with.
+	 * The rc wrapper also clears the variable; that is not the mechanism. */
+	g_unsetenv("DBUS_SYSTEM_BUS_ADDRESS");
+}
+
 static int
 probe(void)
 {
 	char **sessions = NULL;
+	ignore_bus_override();
 	int n = sd_get_sessions(&sessions), i;
 	if (n < 0) {
 		g_printerr("ConsoleKit: %s (%d)\n", g_strerror(-n), n);
@@ -414,6 +424,7 @@ check_owner(const char *text)
 	expected = g_ascii_strtoull(text, NULL, 10);
 	if (errno != 0 || expected == 0 || expected > G_MAXINT32)
 		return (64);
+	ignore_bus_override();
 	bus = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
 	if (bus == NULL)
 		goto failed;
@@ -443,6 +454,7 @@ main(int argc, char **argv)
 {
 	GError *error = NULL;
 	guint owner;
+	ignore_bus_override();
 	if (argc == 2 && strcmp(argv[1], "--probe") == 0)
 		return (probe());
 	if (argc == 3 && strcmp(argv[1], "--check-owner") == 0)
@@ -460,6 +472,7 @@ main(int argc, char **argv)
 	loop = g_main_loop_new(NULL, FALSE);
 	g_unix_signal_add(SIGINT, stop, NULL);
 	g_unix_signal_add(SIGTERM, stop, NULL);
+	ignore_bus_override();
 	owner = g_bus_own_name(G_BUS_TYPE_SYSTEM, LOGIN,
 	    G_BUS_NAME_OWNER_FLAGS_DO_NOT_QUEUE, bus_ready, name_ready, name_lost,
 	    NULL, NULL);

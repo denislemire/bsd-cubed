@@ -3,6 +3,9 @@
 /libbsd3-login.a
 /mock-ck
 /test-login
+/test-hardening
+/hardening-preload.so
+/system-bus-path
 /dist/
 /captures/private/
 
