@@ -1,0 +1,13 @@
+[SddmGreeterTheme]
+Name=BSD3 login
+Description=Dark username/password greeter with ISO date, 12-hour time, and ACPI battery
+Author=Denis Lemire
+Copyright=Copyright (c) 2026 Denis Lemire
+License=BSD-2-Clause
+Type=sddm-theme
+Version=0.3
+Theme-API=2.0
+MainScript=Main.qml
+ConfigFile=theme.conf
+QtVersion=6
+Screenshot=
