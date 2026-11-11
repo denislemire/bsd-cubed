@@ -54,15 +54,37 @@ trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
 # Reuse the qualified native dependency; do not rebuild or modify it here.
-# The package URL comes only from BSD3_CI_PKG_URL. There is no built-in mirror.
+# A network fetch uses only BSD3_CI_PKG_URL. There is no built-in mirror.
 ck_sha=08d42eb5055f6cdf3dd91d3613c24f16fa91a33180b8bee7473e1cd737454fd9
-ck_installed=$(pkg query '%v' consolekit2 2>/dev/null || :)
+ck_installed=$(sudo pkg query '%v' consolekit2 2>/dev/null || :)
+ck_old=no
 if [ -z "$ck_installed" ] || [ "$(pkg version -t "$ck_installed" 2.0.0_5)" = '<' ]; then
+    ck_old=yes
+fi
+# The ConsoleKit step in this job already built the native package. Prefer
+# that file over a mirror when the installed copy is older and no URL is set.
+if [ "$ck_old" = yes ] && [ -z "${BSD3_CI_PKG_URL:-}" ]; then
+    set -- "$repo_root"/dist/consolekit/packages/All/consolekit2-*.pkg
+    if [ "$#" -eq 1 ] && [ -f "$1" ]; then
+        local_ver=${1##*/}
+        local_ver=${local_ver#consolekit2-}
+        local_ver=${local_ver%.pkg}
+        if [ -n "$local_ver" ] && [ "$(pkg version -t "$local_ver" 2.0.0_5)" != '<' ]; then
+            sudo pkg add -f "$1"
+            ck_installed=$(sudo pkg query '%v' consolekit2 2>/dev/null || :)
+            if [ -n "$ck_installed" ] && \
+                [ "$(pkg version -t "$ck_installed" 2.0.0_5)" != '<' ]; then
+                ck_old=no
+            fi
+        fi
+    fi
+fi
+if [ "$ck_old" = yes ]; then
     pkg_url=${BSD3_CI_PKG_URL:-}
     case $pkg_url in
     https://*/*.pkg) ;;
     '')
-        echo 'BSD3_CI_PKG_URL is unset; refusing to fetch consolekit2' >&2
+        echo "BSD3_CI_PKG_URL is unset; refusing to fetch consolekit2 (installed: ${ck_installed:-none})" >&2
         exit 1
         ;;
     *)
@@ -70,12 +92,11 @@ if [ -z "$ck_installed" ] || [ "$(pkg version -t "$ck_installed" 2.0.0_5)" = '<'
         exit 1
         ;;
     esac
-    case $pkg_url in
-    *[!A-Za-z0-9._~:/?#%+=-]*)
+    pkg_leftover=$(printf '%s' "$pkg_url" | tr -d 'A-Za-z0-9._~:/?%+=-')
+    if [ -n "$pkg_leftover" ]; then
         echo 'BSD3_CI_PKG_URL contains characters this script will not pass to fetch' >&2
         exit 1
-        ;;
-    esac
+    fi
     pkg_rest=${pkg_url#https://}
     pkg_authority=${pkg_rest%%/*}
     case $pkg_authority in

@@ -30,7 +30,9 @@ under `docs/` are lab notes from along the way.
 Hygiene release. `tools/ci-user-session.sh` fetches pinned
 `consolekit2-2.0.0_5.pkg` only from `BSD3_CI_PKG_URL`. That variable is the
 https URL of the package, it has no default, and the script exits with an
-error if a fetch is required while it is unset. The SHA256 pin is unchanged.
+error if a download is still required while it is unset. A `consolekit2`
+package this job already built at 2.0.0_5 or newer is installed first.
+The SHA256 pin still covers every download.
 Optional `BSD3_CI_DNS` is a resolver address for that URL's host; set both
 in the executor environment and do not commit them. See
 [docs/ports.md](docs/ports.md).
