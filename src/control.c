@@ -7,10 +7,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <gio/gio.h>
 #include <gio/gunixfdlist.h>
 #include "bsd3/sd-login.h"
 #include "control.h"
+#include "hardening.h"
 
 #define CK "org.freedesktop.ConsoleKit"
 #define CK_SESSION CK ".Session"
@@ -129,21 +131,111 @@ bsd3_controls_stop(void)
 	g_clear_object(&front_bus);
 }
 
+/* One credential snapshot. ProcessFD is held open across the session lookup. */
 static gboolean
-credential(const char *sender, const char *method, guint32 *ret)
+peer_credentials(const char *sender, pid_t *pid, uid_t *uid, bool *pinned,
+    int *fd_out)
 {
 	GError *error = NULL;
-	GVariant *reply = g_dbus_connection_call_sync(front_bus,
+	GUnixFDList *fds = NULL;
+	GVariant *reply, *dict, *entry, *value;
+	GVariantIter iter;
+	const char *key;
+	bool have_uid = false, have_pid = false, have_fd = false;
+	uid_t got_uid = 0;
+	pid_t got_pid = 0;
+	gint32 handle = -1;
+	int fd = -1;
+
+	*fd_out = -1;
+	reply = g_dbus_connection_call_with_unix_fd_list_sync(front_bus,
 	    "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
-	    method, g_variant_new("(s)", sender), G_VARIANT_TYPE("(u)"),
-	    G_DBUS_CALL_FLAGS_NONE, 3000, NULL, &error);
+	    "GetConnectionCredentials", g_variant_new("(s)", sender),
+	    G_VARIANT_TYPE("(a{sv})"), G_DBUS_CALL_FLAGS_NONE, 3000, NULL, &fds,
+	    NULL, &error);
 	if (reply == NULL) {
 		g_clear_error(&error);
 		return (FALSE);
 	}
-	g_variant_get(reply, "(u)", ret);
+	dict = g_variant_get_child_value(reply, 0);
+	g_variant_iter_init(&iter, dict);
+	while ((entry = g_variant_iter_next_value(&iter)) != NULL) {
+		g_variant_get(entry, "{&sv}", &key, &value);
+		if (!have_uid && strcmp(key, "UnixUserID") == 0 &&
+		    g_variant_is_of_type(value, G_VARIANT_TYPE_UINT32)) {
+			got_uid = g_variant_get_uint32(value);
+			have_uid = true;
+		} else if (!have_pid && strcmp(key, "ProcessID") == 0 &&
+		    g_variant_is_of_type(value, G_VARIANT_TYPE_UINT32)) {
+			guint32 raw = g_variant_get_uint32(value);
+			if (raw > 0 && raw <= G_MAXINT32) {
+				got_pid = (pid_t)raw;
+				have_pid = true;
+			}
+		} else if (!have_fd && strcmp(key, "ProcessFD") == 0 &&
+		    g_variant_is_of_type(value, G_VARIANT_TYPE_HANDLE)) {
+			handle = g_variant_get_handle(value);
+			have_fd = true;
+		}
+		g_variant_unref(value);
+		g_variant_unref(entry);
+	}
+	g_variant_unref(dict);
 	g_variant_unref(reply);
+	if (have_fd) {
+		if (fds == NULL || handle < 0 ||
+		    (fd = g_unix_fd_list_get(fds, handle, &error)) < 0) {
+			g_clear_error(&error);
+			g_clear_object(&fds);
+			return (FALSE);
+		}
+	}
+	g_clear_object(&fds);
+	if (!bsd3_peer_identity(have_uid, got_uid, have_pid, got_pid, have_fd,
+	    fd, pid, pinned)) {
+		if (fd >= 0)
+			close(fd);
+		return (FALSE);
+	}
+	*uid = got_uid;
+	*fd_out = fd;
 	return (TRUE);
+}
+
+static gboolean
+peer_session(const char *sender, char **session_out)
+{
+	pid_t pid;
+	uid_t uid, owner;
+	bool pinned;
+	int fd = -1;
+	char *session = NULL;
+
+	if (!peer_credentials(sender, &pid, &uid, &pinned, &fd))
+		return (FALSE);
+	if (pinned && !bsd3_process_fd_still(fd, pid))
+		goto fail;
+	/*
+	 * A FreeBSD process descriptor stops this pid from being reused while
+	 * it is open. A Linux pidfd stops resolving once that task is gone, so
+	 * the checks on either side of this lookup reject a recycled pid.
+	 * Without ProcessFD, the snapshot ProcessID can be reused first.
+	 */
+	if (sd_pid_get_session(pid, &session) < 0)
+		goto fail;
+	if (pinned && !bsd3_process_fd_still(fd, pid))
+		goto fail;
+	if (sd_session_get_uid(session, &owner) < 0 || owner != uid)
+		goto fail;
+	if (fd >= 0)
+		close(fd);
+	*session_out = session;
+	return (TRUE);
+fail:
+	if (fd >= 0)
+		close(fd);
+	free(session);
+	return (FALSE);
 }
 
 static char *
@@ -166,17 +258,9 @@ backend_owner(void)
 static gboolean
 authorized(const char *id, const char *sender)
 {
-	guint32 uid, pid;
-	uid_t owner;
 	char *actual_session = NULL;
 	gboolean matches;
-	if (!credential(sender, "GetConnectionUnixUser", &uid) ||
-	    !credential(sender, "GetConnectionUnixProcessID", &pid) ||
-	    pid == 0 || pid > G_MAXINT32)
-		return (FALSE);
-	if (sd_session_get_uid(id, &owner) < 0 || (uid_t)uid != owner)
-		return (FALSE);
-	if (sd_pid_get_session((pid_t)pid, &actual_session) < 0)
+	if (!peer_session(sender, &actual_session))
 		return (FALSE);
 	matches = strcmp(actual_session, id) == 0;
 	free(actual_session);
@@ -366,6 +450,12 @@ device_call(struct controller *c, const char *method, GVariant *args,
 			failure(invocation, "org.freedesktop.DBus.Error.LimitsExceeded", "Device limit reached");
 			return;
 		}
+		/* Root ConsoleKit would open any cdev. Allow only DRM and evdev. */
+		if (!bsd3_cdev_allowed(major, minor)) {
+			failure(invocation, "org.freedesktop.DBus.Error.AccessDenied",
+			    "Only DRM and evdev devices may be taken");
+			return;
+		}
 		reply = g_dbus_connection_call_with_unix_fd_list_sync(c->backend,
 		    c->backend_owner, c->path, CK_SESSION, method, args,
 		    G_VARIANT_TYPE("(hb)"), G_DBUS_CALL_FLAGS_NO_AUTO_START, 3000,
@@ -440,6 +530,8 @@ new_controller(const char *id, const char *sender, const char *owner, GError **e
 	c->sender = g_strdup(sender);
 	c->backend_owner = g_strdup(owner);
 	c->path = g_strconcat("/org/freedesktop/ConsoleKit/", id, NULL);
+	/* Same rule as startup: never follow DBUS_SYSTEM_BUS_ADDRESS. */
+	g_unsetenv("DBUS_SYSTEM_BUS_ADDRESS");
 	address = g_dbus_address_get_for_bus_sync(G_BUS_TYPE_SYSTEM, NULL, error);
 	if (address == NULL)
 		goto fail;
@@ -582,7 +674,7 @@ bsd3_seat_call(const char *component, GVariant *args,
 {
 	const char *sender = g_dbus_method_invocation_get_sender(invocation);
 	struct controller *c;
-	guint32 pid, vt;
+	guint32 vt;
 	gboolean active;
 	char *id = NULL, *seat_path = NULL, *seat_name = NULL, *encoded = NULL;
 	GVariant *reply = NULL;
@@ -595,8 +687,7 @@ bsd3_seat_call(const char *component, GVariant *args,
 		    "VT numbers start at one");
 		return;
 	}
-	if (!credential(sender, "GetConnectionUnixProcessID", &pid) ||
-	    pid == 0 || pid > G_MAXINT32 || sd_pid_get_session((pid_t)pid, &id) < 0)
+	if (!peer_session(sender, &id))
 		goto denied;
 	c = g_hash_table_lookup(controllers, id);
 	if (c == NULL || c->closing || strcmp(c->sender, sender) != 0 ||

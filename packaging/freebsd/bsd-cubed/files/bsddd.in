@@ -17,7 +17,8 @@ pidfile=/var/run/bsddd.pid
 command_args="-c -f -S -T bsddd -p ${pidfile} -- ${procname} --foreground"
 start_postcmd=bsddd_poststart
 status_cmd=bsddd_status
-# Privileged service management must use the machine bus, not caller overrides.
+# bsddd ignores DBUS_SYSTEM_BUS_ADDRESS on its own. Clear the service
+# environment too so helper processes are not pointed at another bus.
 unset DBUS_SYSTEM_BUS_ADDRESS DBUS_SESSION_BUS_ADDRESS
 
 bsddd_ready()

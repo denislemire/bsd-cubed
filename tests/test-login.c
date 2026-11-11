@@ -558,6 +558,61 @@ test_device_failures(void)
 }
 
 static void
+take_and_release(GDBusConnection *client, guint32 dev_major, guint32 dev_minor)
+{
+	GUnixFDList *fds = NULL;
+	GVariant *reply = device_request(client, "TakeDevice", dev_major, dev_minor,
+	    &fds, NULL);
+	consume_descriptor(reply, fds, 'T', FALSE);
+	fds = NULL;
+	reply = device_request(client, "ReleaseDevice", dev_major, dev_minor, &fds, NULL);
+	g_assert_null(fds);
+	g_variant_unref(reply);
+}
+
+static void
+test_device_allowlist(void)
+{
+	GDBusConnection *client;
+	GUnixFDList *fds = NULL;
+	GVariant *reply;
+	guint32 count, acknowledgements;
+	const char *denied = "org.freedesktop.DBus.Error.AccessDenied";
+	if (!peer_pid_available) {
+		g_test_skip("Peer PID credentials unavailable on this host");
+		return;
+	}
+	mode("control");
+	client = client_connection();
+	control(client, "Session6", "TakeControl", FALSE, NULL);
+	/* mem, uinput, devname(3)'s synthetic fallback, disks, VTs, sysmouse. */
+	(void)device_request(client, "TakeDevice", 1, 1, &fds, denied);
+	(void)device_request(client, "TakeDevice", 2, 5, &fds, denied);
+	(void)device_request(client, "TakeDevice", 3, 1, &fds, denied);
+	(void)device_request(client, "TakeDevice", 4, 1, &fds, denied);
+	(void)device_request(client, "TakeDevice", 4, 2, &fds, denied);
+	(void)device_request(client, "TakeDevice", 4, 3, &fds, denied);
+	(void)device_request(client, "TakeDevice", 9, 9, &fds, denied);
+	g_assert_null(fds);
+	reply = call(CK, MANAGER, "org.bsd3.Test", "GetDeviceCounters", NULL, "(uu)");
+	g_variant_get(reply, "(uu)", &count, &acknowledgements);
+	g_variant_unref(reply);
+	g_assert_cmpuint(count, ==, 0);
+	take_and_release(client, 2, 1);
+	take_and_release(client, 2, 2);
+	take_and_release(client, 2, 3);
+	take_and_release(client, 2, 4);
+	take_and_release(client, 2, 6);
+	take_and_release(client, 2, 7);
+	control(client, "Session6", "ReleaseControl", FALSE, NULL);
+	g_dbus_connection_close_sync(client, NULL, NULL);
+	g_object_unref(client);
+	wait_no_controllers();
+	wait_no_devices();
+	mode("normal");
+}
+
+static void
 test_device_limit(void)
 {
 	GDBusConnection *client;
@@ -966,6 +1021,7 @@ main(int argc, char **argv)
 	g_test_add_func("/bsd3/controller-failures", test_control_failures);
 	g_test_add_func("/bsd3/controller-missing-credentials", test_missing_credentials);
 	g_test_add_func("/bsd3/device-lifecycle", test_device_lifecycle);
+	g_test_add_func("/bsd3/device-allowlist", test_device_allowlist);
 	g_test_add_func("/bsd3/device-failures", test_device_failures);
 	g_test_add_func("/bsd3/device-limit", test_device_limit);
 	g_test_add_func("/bsd3/device-active", test_device_active);

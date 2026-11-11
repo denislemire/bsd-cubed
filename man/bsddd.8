@@ -1,5 +1,5 @@
 .\" SPDX-License-Identifier: BSD-2-Clause
-.Dd November 5, 2026
+.Dd November 11, 2026
 .Dt BSDDD 8
 .Os
 .Sh NAME
@@ -28,7 +28,10 @@ The
 .Fl Fl foreground
 option runs a partial
 .Dq org.freedesktop.login1
-service on the system bus.
+service on the system bus compiled into GLib.
+.Ev DBUS_SYSTEM_BUS_ADDRESS
+is ignored.
+The rc.d script also clears that variable; the daemon does not depend on it.
 It does not replace or queue behind an existing owner.
 Bus policy must explicitly permit the caller to own that name.
 The FreeBSD port installs a disabled-by-default rc.d service and a policy
@@ -45,6 +48,18 @@ Service readiness does not assert that a session or desktop is usable.
 The service implements GetSession, GetSessionByPID, ListSessions,
 and the read-only session properties Id, Active, Type, Class and State.
 TakeControl requires the original D-Bus peer to own and belong to the session.
+The peer is identified with
+.Li GetConnectionCredentials .
+When the bus supplies
+.Li ProcessFD ,
+that descriptor pins the process and a recycled PID cannot pass.
+When the bus supplies only
+.Li UnixUserID
+and
+.Li ProcessID ,
+a residual window remains: the PID can be reused before ConsoleKit reports
+the session.
+Missing credentials fail closed.
 ReleaseControl is restricted to that controlling connection.
 Each controller uses a separate backend connection, which is closed on client
 disconnect, backend restart, release failure or daemon shutdown.
@@ -52,7 +67,20 @@ Forced takeover is unsupported.
 .Pp
 Experimental TakeDevice, ReleaseDevice, PauseDeviceComplete and unicast
 pause/resume notifications preserve backend device descriptors.
-Their protocol tests do not prove real DRM/input revocation or VT switching.
+TakeDevice forwards a lease only for a character device whose devfs name,
+from
+.Xr devname 3 ,
+is a DRM node
+.Pq Li drm/N , Li dri/cardN , Li dri/renderDN , Li dri/controlDN , or Li dri/controlN
+or an evdev node
+.Pq Li input/eventN .
+FreeBSD major numbers are assigned when the device attaches, so they are not
+a device class and are not consulted.
+Unresolved names, the synthetic
+.Li #C
+fallback, and every other devfs name are denied.
+The daemon does not open the device itself.
+These tests do not prove real DRM or input revocation, or VT switching.
 .Pp
 The partial Seat interface forwards SwitchTo only for the active controlling
 connection belonging to that seat. ConsoleKit and the kernel validate the target
@@ -63,11 +91,12 @@ power management, notifications, or a user service manager.
 Consumers must not interpret the presence of the bus name
 as full logind support.
 .Sh ENVIRONMENT
-.Bl -tag -width DBUS_SYSTEM_BUS_ADDRESS
-.It Ev DBUS_SYSTEM_BUS_ADDRESS
-Overrides the system bus address as provided by GLib.
-The tests direct this to a private bus; do not set it for privileged deployment.
-.El
+.Nm
+ignores
+.Ev DBUS_SYSTEM_BUS_ADDRESS
+and does not use any other variable to choose its bus.
+Private protocol tests isolate the default system bus socket.
+They do not teach the daemon an alternate address.
 .Sh EXIT STATUS
 .Ex -std
 A usage error returns 64.
