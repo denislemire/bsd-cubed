@@ -251,7 +251,7 @@ The exact RELEASE-p6 kernel source95719d8a895b retains the faulty partial-read
 path described in FreeBSD PR297512. The upstream report links this defect to
 ConsoleKit process lookup and GNOME unlock failures. Reviewed stable/15 fixes
 c9b5dd2eb820 and75bf78a0ed8d landed August16. Official Git ancestry confirms the
-recorded lab646a485c3b2f and laptop06e5b042 source bases include the fixes. This
+recorded lab and laptop source bases include the fixes. This
 does not establish the cause of the laptop's separate frozen-resume incident.
 
 An original C11/BSD2 bounded probe temporarily gives only its own synthetic child

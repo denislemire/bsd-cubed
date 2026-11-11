@@ -22,6 +22,7 @@ if [ "$(id -u)" -eq 0 ]; then
         LOGNAME=circleci PATH="$PATH" LANG=C.UTF-8 \
         PYTHON="${PYTHON:-/usr/local/bin/python3.12}" \
         PORTSDIR="${PORTSDIR:-}" BSD3_CI_DNS="${BSD3_CI_DNS:-}" \
+        BSD3_CI_PKG_URL="${BSD3_CI_PKG_URL:-}" \
         /bin/sh "$user_root/source/tools/ci-user-session.sh"
     user_status=$?
     set -e
@@ -53,29 +54,90 @@ trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
 # Reuse the qualified native dependency; do not rebuild or modify it here.
-ck_url=https://packages.ehws.generic.business/FreeBSD:15:amd64/bsd3-beta5/All/consolekit2-2.0.0_5.pkg
+# The package URL comes only from BSD3_CI_PKG_URL. There is no built-in mirror.
 ck_sha=08d42eb5055f6cdf3dd91d3613c24f16fa91a33180b8bee7473e1cd737454fd9
 ck_installed=$(pkg query '%v' consolekit2 2>/dev/null || :)
 if [ -z "$ck_installed" ] || [ "$(pkg version -t "$ck_installed" 2.0.0_5)" = '<' ]; then
+    pkg_url=${BSD3_CI_PKG_URL:-}
+    case $pkg_url in
+    https://*/*.pkg) ;;
+    '')
+        echo 'BSD3_CI_PKG_URL is unset; refusing to fetch consolekit2' >&2
+        exit 1
+        ;;
+    *)
+        echo 'BSD3_CI_PKG_URL must be an https URL ending in .pkg' >&2
+        exit 1
+        ;;
+    esac
+    case $pkg_url in
+    *[!A-Za-z0-9._~:/?#%+=-]*)
+        echo 'BSD3_CI_PKG_URL contains characters this script will not pass to fetch' >&2
+        exit 1
+        ;;
+    esac
+    pkg_rest=${pkg_url#https://}
+    pkg_authority=${pkg_rest%%/*}
+    case $pkg_authority in
+    *@*)
+        echo 'BSD3_CI_PKG_URL must not include userinfo' >&2
+        exit 1
+        ;;
+    esac
+    pkg_port=443
+    case $pkg_authority in
+    \[*)
+        echo 'BSD3_CI_PKG_URL must use a DNS name, not an address literal' >&2
+        exit 1
+        ;;
+    *:*)
+        pkg_host=${pkg_authority%%:*}
+        pkg_port=${pkg_authority#*:}
+        ;;
+    *)
+        pkg_host=$pkg_authority
+        ;;
+    esac
+    case $pkg_host in
+    ''|-*|.*|*.|*..*|*[!A-Za-z0-9.-]*)
+        echo 'BSD3_CI_PKG_URL host is not a DNS name' >&2
+        exit 1
+        ;;
+    *[!0-9.]*) ;;
+    *)
+        echo 'BSD3_CI_PKG_URL must use a DNS name, not an address literal' >&2
+        exit 1
+        ;;
+    esac
+    case $pkg_port in
+    ''|0*|*[!0-9]*)
+        echo 'BSD3_CI_PKG_URL port is not a decimal port' >&2
+        exit 1
+        ;;
+    esac
+    if [ "$pkg_port" -gt 65535 ]; then
+        echo 'BSD3_CI_PKG_URL port is out of range' >&2
+        exit 1
+    fi
     if [ -n "${BSD3_CI_DNS:-}" ]; then
         "${PYTHON:-python3}" -c 'import ipaddress,sys; ipaddress.ip_address(sys.argv[1])' "$BSD3_CI_DNS"
-        # Query the lab resolver explicitly and scope the answer to this curl
-        # invocation. Never modify /etc/resolv.conf, /etc/hosts or TLS policy.
+        # Query the configured resolver explicitly and scope the answer to this
+        # curl invocation. Never modify /etc/resolv.conf, /etc/hosts or TLS policy.
         package_ip=$(dig +short +time=3 +tries=1 @"$BSD3_CI_DNS" \
-            packages.ehws.generic.business A | "${PYTHON:-python3}" -c '
+            "$pkg_host" A | "${PYTHON:-python3}" -c '
 import ipaddress,sys
 answers=[]
 for line in sys.stdin:
     try: ip=ipaddress.ip_address(line.strip())
     except ValueError: continue
     if ip.version==4 and ip.is_private: answers.append(str(ip))
-if not answers: raise SystemExit("No internal package mirror address returned")
+if not answers: raise SystemExit("No private package address returned")
 print(answers[0])')
         curl --fail --location --silent --show-error --connect-timeout 10 --max-time 60 \
-            --resolve "packages.ehws.generic.business:443:$package_ip" \
-            -o "$work_root/consolekit2.pkg" "$ck_url"
+            --resolve "${pkg_host}:${pkg_port}:${package_ip}" \
+            -o "$work_root/consolekit2.pkg" "$pkg_url"
     else
-        fetch -o "$work_root/consolekit2.pkg" "$ck_url"
+        fetch -o "$work_root/consolekit2.pkg" "$pkg_url"
     fi
     [ "$(sha256 -q "$work_root/consolekit2.pkg")" = "$ck_sha" ]
     sudo pkg add -f "$work_root/consolekit2.pkg"
