@@ -60,16 +60,19 @@ Rectangle {
         text: Qt.formatDate(root.now, "yyyy-MM-dd")
     }
 
-    Text {
+    Image {
+        id: logo
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: dateLabel.bottom
-        anchors.topMargin: 14
-        color: "#6e747e"
-        font.family: root.uiFont
-        font.pixelSize: 11
-        font.letterSpacing: 6
-        font.capitalization: Font.AllUppercase
-        text: "FreeBSD"
+        anchors.topMargin: 28
+        source: "FreeBSD-logo-light.png"
+        fillMode: Image.PreserveAspectFit
+        sourceSize.height: 56
+        height: 56
+        width: 195
+        smooth: true
+        asynchronous: true
+        Accessible.name: "FreeBSD"
     }
 
     Rectangle {
@@ -77,8 +80,8 @@ Rectangle {
         width: Math.min(380, parent.width - 48)
         height: form.implicitHeight + 48
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: dateLabel.bottom
-        anchors.topMargin: 72
+        anchors.top: logo.bottom
+        anchors.topMargin: 28
         color: "#14181e"
         border.color: "#262c34"
         border.width: 1
