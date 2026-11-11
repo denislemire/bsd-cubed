@@ -1,4 +1,0 @@
-Main.qml is a minimal derivative of SDDM v0.21.0 src/greeter/theme/Main.qml (MIT license and upstream attribution preserved in file).
-Upstream URL: https://raw.githubusercontent.com/sddm/sddm/v0.21.0/src/greeter/theme/Main.qml
-Upstream SHA256: 53f0afc29d7f1f233a50f8f00c875ae88ade95817ec0eaec9103489ca3e8dc01
-Local changes: explicit h:mm AP time, yyyy-MM-dd date, removed layout label/selector and repaired tab order, optional battery model loader. Existing SDDM embedded image resources are referenced, not copied. BatteryStatus.qml is original BSD-2-Clause code using the already installed KDE battery API. The loader isolates a missing optional module from the login form. No passwords are logged, stored or handled outside SDDM's existing login call.
