@@ -1,5 +1,6 @@
 PORTNAME=	gnome-settings-daemon
 PORTVERSION=	49.1
+PORTREVISION=	1
 CATEGORIES=	sysutils gnome
 MASTER_SITES=	GNOME
 DIST_SUBDIR=	gnome

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-2-Clause
-# Foreground executable and public bus name from GNOME Settings Daemon 47.
+# Foreground executable and public bus name from GNOME Settings Daemon 49.
 type = process
-command = @PREFIX@/libexec/bsd3-bus-ready org.gnome.SettingsDaemon.Power -- @LOCALBASE@/libexec/gsd-power
+command = @PREFIX@/libexec/bsd3-bus-ready org.gnome.SettingsDaemon.Power -- /usr/bin/env BSD3_IDLE_DISPLAY=1 @LOCALBASE@/libexec/gsd-power
 depends-on = gnome-shell
 ready-notification = pipevar:BSD3_READY_FD
 restart = no

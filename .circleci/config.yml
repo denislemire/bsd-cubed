@@ -3,6 +3,36 @@ version: 2.1
 # One disposable FreeBSD executor: bound peak RAM and preserve one coherent
 # candidate/source set. Hardware rollout and catalogue publication are separate.
 jobs:
+  freebsd-display-idle-packages:
+    environment:
+      BSD3_USERSESSION: "yes"
+      BSD3_CI_PORTS_ROOT: /var/tmp/bsd3-display-idle-ports
+      PORTSDIR: /var/tmp/bsd3-display-idle-ports
+    machine:
+      image: freebsd-15.1:current
+    resource_class: freebsd.medium
+    steps:
+      - checkout
+      - run:
+          name: Install focused package build prerequisites
+          command: |
+            set -eu
+            export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+            sudo pkg update -f
+            sudo pkg upgrade -y
+            sudo pkg install -y git pkgconf glib dbus consolekit2 python312 gmake gnome-desktop swayidle wlopm
+      - run:
+          name: Build and verify BSD3 ConsoleKit dependency
+          no_output_timeout: 20m
+          command: sh tools/ci-consolekit.sh
+      - run:
+          name: Build and verify package-owned display idle stack
+          no_output_timeout: 30m
+          command: sh tools/ci-display-idle-packages.sh
+      - store_artifacts:
+          path: dist/display-idle
+          destination: freebsd/display-idle
+
   freebsd-build-test-package:
     environment:
       BSD3_USERSESSION: "yes"
@@ -21,6 +51,8 @@ jobs:
           command: |
             set -eu
             export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+            sudo pkg update -f
+            sudo pkg upgrade -y
             sudo pkg install -y git pkgconf glib dbus consolekit2 python312 gmake gnome-desktop bind-tools curl
       - run:
           name: Record native process-environment kernel capability
@@ -91,5 +123,9 @@ jobs:
 workflows:
   build:
     jobs:
+      - freebsd-display-idle-packages:
+          serial-group: denislemire/ehws-freebsd-heavy
       - freebsd-build-test-package:
+          requires:
+            - freebsd-display-idle-packages
           serial-group: denislemire/ehws-freebsd-heavy

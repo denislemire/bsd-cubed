@@ -26,3 +26,10 @@ GNOME49 session graphs passed with all seven processes mapping the installed
 cleanup. The integration fixture now reports the queried installed package
 version rather than its former hardcoded47 label. This is headless VM evidence;
 release qualification and new hardware acceptance remain separate gates.
+
+The `_1` package adds an explicitly BSD3-scoped display-idle path. The BSD3
+service descriptor sets `BSD3_IDLE_DISPLAY=1`; an arbitrary GNOME session does
+not. In that mode the power plugin uses the desktop `idle-delay` even when the
+GDM screen shield is absent, removes the watch while the session is inactive or
+idle is inhibited, requests Mutter display power-save mode3 at timeout, and
+requests mode0 after activity. The independent system sleep policy is unchanged.
