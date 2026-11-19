@@ -1,0 +1,6 @@
+#!/bin/sh
+# SPDX-License-Identifier: BSD-2-Clause
+# Run inside the greeter compositor. Its Wayland socket disappears at logout.
+exec @LOCALBASE@/bin/swayidle -w timeout 300 \
+    '@LOCALBASE@/bin/wlopm --off "*"' \
+    resume '@LOCALBASE@/bin/wlopm --on "*"'

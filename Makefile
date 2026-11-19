@@ -14,7 +14,7 @@ INSTALL ?= install
 DINIT ?= $(LOCALBASE)/sbin/dinit
 DINITCTL ?= $(LOCALBASE)/sbin/dinitctl
 
-all: bsddd bsd3-vt-guard bsd3-session bsd3-sddm-session libbsd3-login.a bsd3-login.pc
+all: bsddd bsd3-vt-guard bsd3-session bsd3-sddm-session bsd3-sddm-greeter-idle libbsd3-login.a bsd3-login.pc
 
 # Explicit target; the 0.2 FreeBSD port enables this SDK by default.
 user-session: bsd3-user-session libbsd3-user-session.a bsd3-user-session.pc bsd3-bus-ready bsd3-session-initialized
@@ -83,6 +83,9 @@ bsd3-session: src/session.c
 bsd3-sddm-session: packaging/bsd3-sddm-session.in Makefile FORCE
 	sed 's|@PREFIX@|$(PREFIX)|g; s|@LOCALBASE@|$(LOCALBASE)|g' packaging/bsd3-sddm-session.in > $@
 
+bsd3-sddm-greeter-idle: packaging/bsd3-sddm-greeter-idle.in Makefile FORCE
+	sed 's|@LOCALBASE@|$(LOCALBASE)|g' packaging/bsd3-sddm-greeter-idle.in > $@
+
 mock-ck: tests/mock-ck.c
 	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ tests/mock-ck.c $(BSD3_LIBS)
 
@@ -102,6 +105,7 @@ install: all
 	$(INSTALL) -d $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/libexec $(DESTDIR)$(PREFIX)/share/examples/bsd-cubed $(DESTDIR)$(PREFIX)/share/man/man1
 	$(INSTALL) -m 755 bsd3-session $(DESTDIR)$(PREFIX)/bin/bsd3-session
 	$(INSTALL) -m 755 bsd3-sddm-session $(DESTDIR)$(PREFIX)/libexec/bsd3-sddm-session
+	$(INSTALL) -m 755 bsd3-sddm-greeter-idle $(DESTDIR)$(PREFIX)/libexec/bsd3-sddm-greeter-idle
 	sed 's|@PREFIX@|$(PREFIX)|g' packaging/sddm-wayland.conf.in > $(DESTDIR)$(PREFIX)/share/examples/bsd-cubed/sddm-wayland.conf
 	$(INSTALL) -m 755 bsd3-vt-guard $(DESTDIR)$(PREFIX)/sbin/bsd3-vt-guard
 	$(INSTALL) -m 755 bsddd $(DESTDIR)$(PREFIX)/sbin/bsddd
@@ -113,5 +117,5 @@ install: all
 	$(INSTALL) -m 644 man/bsddd.8 $(DESTDIR)$(PREFIX)/share/man/man8/bsddd.8
 
 clean:
-	rm -f bsddd bsd3-vt-guard bsd3-session bsd3-sddm-session login.o libbsd3-login.a mock-ck test-login bsd3-login.pc
+	rm -f bsddd bsd3-vt-guard bsd3-session bsd3-sddm-session bsd3-sddm-greeter-idle login.o libbsd3-login.a mock-ck test-login bsd3-login.pc
 	rm -f bsd3-user-session user-session-api.o libbsd3-user-session.a bsd3-user-session.pc test-user-session-client bsd3-bus-ready bsd3-session-initialized test-bus-ready-client

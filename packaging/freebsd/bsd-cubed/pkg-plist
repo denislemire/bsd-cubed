@@ -1,5 +1,6 @@
 bin/bsd3-session
 libexec/bsd3-sddm-session
+libexec/bsd3-sddm-greeter-idle
 share/examples/bsd-cubed/sddm-wayland.conf
 etc/dbus-1/system.d/org.bsd3.login1.conf
 include/bsd3/sd-login.h
