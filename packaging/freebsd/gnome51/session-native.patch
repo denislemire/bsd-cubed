@@ -1,0 +1,561 @@
+--- a/data/meson.build
++++ b/data/meson.build
+@@ -15,6 +15,7 @@
+   install_dir: session_datadir / 'wayland-sessions',
+ )
+ 
++if not native_bsd3
+ # Next, let's install the necessary systemd scaffolding
+ 
+ install_data(
+@@ -74,6 +75,8 @@
+   install_dir : join_paths(systemd_userunitdir, 'app-flatpak-.scope.d')
+ )
+ 
++endif
++
+ # Install some other misc. configuration files
+ 
+ i18n.merge_file(
+--- a/gnome-session/gsm-app.c
++++ b/gnome-session/gsm-app.c
+@@ -142,6 +142,29 @@
+         return g_app_info_get_id (G_APP_INFO (app->inner));
+ }
+ 
++#ifdef HAVE_BSD3_USER_SESSION
++/* Exact graph-owned identities only; ordinary application autostart and
++ * unsupported service phases retain their upstream behavior. */
++static gboolean
++native_graph_manages (GDesktopAppInfo *info)
++{
++        const char *id = g_app_info_get_id (G_APP_INFO (info));
++        const char *managed[] = {
++                "org.gnome.SettingsDaemon.A11ySettings.desktop",
++                "org.gnome.SettingsDaemon.Color.desktop",
++                "org.gnome.SettingsDaemon.Keyboard.desktop",
++                "org.gnome.SettingsDaemon.MediaKeys.desktop",
++                "org.gnome.SettingsDaemon.Power.desktop",
++                "org.gnome.SettingsDaemon.ScreensaverProxy.desktop",
++                "org.gnome.SettingsDaemon.Sound.desktop",
++        };
++        for (gsize i = 0; i < G_N_ELEMENTS (managed); i++)
++                if (g_strcmp0 (id, managed[i]) == 0)
++                        return TRUE;
++        return FALSE;
++}
++#endif
++
+ gboolean
+ gsm_app_peek_is_disabled (GsmApp *app)
+ {
+@@ -169,6 +192,11 @@
+                 return TRUE;
+         }
+ 
++#ifdef HAVE_BSD3_USER_SESSION
++        if (native_graph_manages (app->inner))
++                return TRUE;
++#endif
++
+         /* Check if app is systemd enabled */
+         if (g_desktop_app_info_get_boolean (app->inner, GSM_APP_SYSTEMD_HIDDEN_KEY)) {
+                 g_debug ("App %s is disabled by " GSM_APP_SYSTEMD_HIDDEN_KEY,
+@@ -203,7 +231,11 @@
+         g_return_val_if_fail (info != NULL, NULL);
+ 
+         app_phase = g_desktop_app_info_get_string (info, GSM_APP_PHASE_KEY);
+-        if (app_phase && strcmp (app_phase, "Application") != 0) {
++        if (app_phase && strcmp (app_phase, "Application") != 0
++#ifdef HAVE_BSD3_USER_SESSION
++            && !(strcmp (app_phase, "Initialization") == 0 && native_graph_manages (info))
++#endif
++        ) {
+                 g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED,
+                              "App %s sets " GSM_APP_PHASE_KEY ", but gnome-session no longer manages session services",
+                              g_app_info_get_id (G_APP_INFO(info)));
+--- a/gnome-session/gsm-manager.c
++++ b/gnome-session/gsm-manager.c
+@@ -40,9 +40,12 @@
+ #include "gsm-manager.h"
+ #include "org.gnome.SessionManager.h"
+ 
++#ifdef HAVE_BSD3_USER_SESSION
++#include <bsd3/user-session.h>
++#else
+ #include <systemd/sd-journal.h>
+-
+ #include <systemd/sd-daemon.h>
++#endif
+ 
+ #include "gsm-app.h"
+ #include "gsm-client.h"
+@@ -776,19 +779,32 @@
+ 
+         switch (manager->phase) {
+         case GSM_MANAGER_PHASE_INITIALIZATION:
++#ifdef HAVE_BSD3_USER_SESSION
++                if (bsd3_session_ready () < 0)
++                        g_error ("Native session readiness notification failed");
++#else
+                 sd_notify (0, "READY=1\nSTATUS=Waiting for session to start");
++#endif
+                 break;
+         case GSM_MANAGER_PHASE_APPLICATION:
++#ifndef HAVE_BSD3_USER_SESSION
+                 sd_notify (0, "STATUS=Starting applications");
++#endif
+                 gsm_exported_manager_emit_session_running (manager->skeleton);
+                 do_phase_startup (manager);
+                 break;
+         case GSM_MANAGER_PHASE_RUNNING:
++#ifndef HAVE_BSD3_USER_SESSION
+                 sd_notify (0, "STATUS=Running");
++#endif
++#ifdef HAVE_BSD3_USER_SESSION
++                g_message ("Entering running state");
++#else
+                 sd_journal_send ("MESSAGE_ID=%s", GSM_MANAGER_STARTUP_SUCCEEDED_MSGID,
+                                  "PRIORITY=%d", 5,
+                                  "MESSAGE=Entering running state",
+                                  NULL);
++#endif
+                 if (manager->pending_end_session_tasks != NULL)
+                         complete_end_session_tasks (manager);
+                 g_object_unref (manager->end_session_cancellable);
+@@ -796,16 +812,22 @@
+                 update_idle (manager);
+                 break;
+         case GSM_MANAGER_PHASE_QUERY_END_SESSION:
++#ifndef HAVE_BSD3_USER_SESSION
+                 sd_notify (0, "STATUS=Querying end of session");
++#endif
+                 do_phase_query_end_session (manager);
+                 break;
+         case GSM_MANAGER_PHASE_END_SESSION:
++#ifndef HAVE_BSD3_USER_SESSION
+                 sd_notify (0, "STOPPING=1\nSTATUS=Logging out");
++#endif
+                 gsm_exported_manager_emit_session_over (manager->skeleton);
+                 do_phase_end_session (manager);
+                 break;
+         case GSM_MANAGER_PHASE_EXIT:
++#ifndef HAVE_BSD3_USER_SESSION
+                 sd_notify (0, "STOPPING=1\nSTATUS=Quitting");
++#endif
+                 do_phase_exit (manager);
+                 break;
+         default:
+@@ -1332,6 +1354,15 @@
+ 
+         g_debug ("GsmManager: Shutdown called");
+ 
++#ifdef HAVE_BSD3_USER_SESSION
++        if (gsm_system_can_shutdown (manager->system) == GSM_ACTION_UNAVAILABLE) {
++                g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR,
++                                                       G_DBUS_ERROR_NOT_SUPPORTED,
++                                                       "Native shutdown backend is unavailable");
++                return TRUE;
++        }
++#endif
++
+         if (manager->phase < GSM_MANAGER_PHASE_RUNNING) {
+                 g_dbus_method_invocation_return_error (invocation,
+                                                        GSM_MANAGER_ERROR,
+@@ -1373,6 +1404,15 @@
+ 
+         g_debug ("GsmManager: Reboot called");
+ 
++#ifdef HAVE_BSD3_USER_SESSION
++        if (gsm_system_can_restart (manager->system) == GSM_ACTION_UNAVAILABLE) {
++                g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR,
++                                                       G_DBUS_ERROR_NOT_SUPPORTED,
++                                                       "Native reboot backend is unavailable");
++                return TRUE;
++        }
++#endif
++
+         if (manager->phase < GSM_MANAGER_PHASE_RUNNING) {
+                 g_dbus_method_invocation_return_error (invocation,
+                                                        GSM_MANAGER_ERROR,
+@@ -1411,6 +1451,15 @@
+                      GsmManager            *manager)
+ {
+         g_debug ("GsmManager: Suspend called");
++
++#ifdef HAVE_BSD3_USER_SESSION
++        if (gsm_system_can_suspend (manager->system) == GSM_ACTION_UNAVAILABLE) {
++                g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR,
++                                                       G_DBUS_ERROR_NOT_SUPPORTED,
++                                                       "Native Suspend backend is unavailable");
++                return TRUE;
++        }
++#endif
+         gsm_system_suspend (manager->system);
+         gsm_exported_manager_complete_suspend (skeleton, invocation);
+         return TRUE;
+@@ -1491,6 +1540,15 @@
+                                           GsmManager            *manager)
+ {
+         g_debug ("GsmManager: SetRebootToFirmwareSetup called");
++
++#ifdef HAVE_BSD3_USER_SESSION
++        if (!gsm_system_can_restart_to_firmware_setup (manager->system)) {
++                g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR,
++                                                       G_DBUS_ERROR_NOT_SUPPORTED,
++                                                       "Native SetRebootToFirmwareSetup backend is unavailable");
++                return TRUE;
++        }
++#endif
+ 
+         gsm_system_set_restart_to_firmware_setup (manager->system, enable);
+ 
+@@ -1512,7 +1570,15 @@
+                                                        GSM_MANAGER_ERROR_NOT_IN_INITIALIZATION,
+                                                        "Setenv interface is only available during the Initialization phase");
+         } else {
++#ifdef HAVE_BSD3_USER_SESSION
++                g_autoptr (GError) error = NULL;
++                if (!gsm_util_setenv_native (variable, value, &error)) {
++                        g_dbus_method_invocation_return_gerror (invocation, error);
++                        return TRUE;
++                }
++#else
+                 gsm_util_setenv (variable, value);
++#endif
+                 gsm_exported_manager_complete_setenv (skeleton, invocation);
+         }
+ 
+--- a/gnome-session/gsm-system.c
++++ b/gnome-session/gsm-system.c
+@@ -24,7 +24,11 @@
+ #include "gsm-system.h"
+ 
+ #include "gsm-system-null.h"
++#ifdef HAVE_BSD3_USER_SESSION
++#include "gnome49-system.h"
++#else
+ #include "gsm-systemd.h"
++#endif
+ 
+ enum {
+         SHUTDOWN_PREPARED,
+@@ -245,6 +249,14 @@
+ {
+         static GsmSystem *system = NULL;
+ 
++#ifdef HAVE_BSD3_USER_SESSION
++        if (system == NULL) {
++                g_autoptr (GError) error = NULL;
++                system = gsm_bsd3_system_new (&error);
++                if (system == NULL)
++                        g_error ("Cannot bind native desktop session: %s", error->message);
++        }
++#else
+         if (system == NULL) {
+                 system = gsm_systemd_new ();
+                 if (system != NULL) {
+@@ -256,6 +268,7 @@
+                 system = gsm_system_null_new ();
+                 g_warning ("Using null backend for session tracking");
+         }
++#endif
+ 
+         return g_object_ref (system);
+ }
+--- a/gnome-session/gsm-util.c
++++ b/gnome-session/gsm-util.c
+@@ -30,10 +30,15 @@
+ #include <glib/gstdio.h>
+ #include <gio/gio.h>
+ 
++#ifndef HAVE_BSD3_USER_SESSION
+ #define GNOME_DESKTOP_USE_UNSTABLE_API
+ #include <libgnome-desktop/gnome-systemd.h>
++#endif
+ 
+ #include "gsm-util.h"
++#ifdef HAVE_BSD3_USER_SESSION
++#include <bsd3/user-session.h>
++#endif
+ 
+ static gchar **child_environment;
+ 
+@@ -271,9 +276,56 @@
+         return environment_updated;
+ }
+ 
++#ifdef HAVE_BSD3_USER_SESSION
++static gboolean
++bsd3_update_environment (const char *name, const char *value, GError **error)
++{
++        int result = bsd3_session_setenv (name, value);
++        if (result < 0) {
++                g_set_error (error, G_IO_ERROR, g_io_error_from_errno (-result),
++                             "Native session environment update failed: %s", g_strerror (-result));
++                return FALSE;
++        }
++        return TRUE;
++}
++
++static gboolean
++bsd3_export_environment (GError **error)
++{
++        g_auto (GStrv) names = g_listenv ();
++        g_autoptr (GRegex) regex = g_regex_new ("^" ENV_NAME_PATTERN "$", 0, 0, error);
++        if (regex == NULL)
++                return FALSE;
++        for (guint i = 0; variable_blacklist[i] != NULL; i++)
++                if (!bsd3_update_environment (variable_blacklist[i], NULL, error))
++                        return FALSE;
++        for (guint i = 0; variable_unsetlist[i] != NULL; i++)
++                if (g_getenv (variable_unsetlist[i]) == NULL &&
++                    !bsd3_update_environment (variable_unsetlist[i], NULL, error))
++                        return FALSE;
++        for (guint i = 0; names[i] != NULL; i++) {
++                const char *name = names[i];
++                const char *value = g_getenv (name);
++                if (g_strv_contains (variable_blacklist, name) ||
++                    g_str_equal (name, "BSD3_SESSION_SOCKET") ||
++                    g_str_equal (name, "BSD3_READY_FD") ||
++                    g_str_has_prefix (name, "DINIT_") ||
++                    !g_regex_match (regex, name, 0, NULL) ||
++                    value == NULL || !g_utf8_validate (value, -1, NULL))
++                        continue;
++                if (!bsd3_update_environment (name, value, error))
++                        return FALSE;
++        }
++        return TRUE;
++}
++#endif
++
+ gboolean
+ gsm_util_export_user_environment (GError     **error)
+ {
++#ifdef HAVE_BSD3_USER_SESSION
++        return bsd3_export_environment (error);
++#else
+ 
+         GDBusConnection *connection;
+         gboolean         environment_updated = FALSE;
+@@ -348,6 +400,7 @@
+         g_clear_object (&connection);
+ 
+         return environment_updated;
++#endif
+ }
+ 
+ static gboolean
+@@ -355,6 +408,9 @@
+                                   const char  *value,
+                                   GError     **error)
+ {
++#ifdef HAVE_BSD3_USER_SESSION
++        return bsd3_update_environment (variable, value, error);
++#else
+         GDBusConnection *connection;
+         gboolean         environment_updated;
+         char            *entry;
+@@ -395,7 +451,24 @@
+         g_clear_object (&connection);
+ 
+         return environment_updated;
+-}
++#endif
++}
++
++#ifdef HAVE_BSD3_USER_SESSION
++gboolean
++gsm_util_setenv_native (const char *variable, const char *value, GError **error)
++{
++        if (!gsm_util_update_user_environment (variable, value, error))
++                return FALSE;
++        if (child_environment == NULL)
++                child_environment = g_get_environ ();
++        if (value == NULL)
++                child_environment = g_environ_unsetenv (child_environment, variable);
++        else
++                child_environment = g_environ_setenv (child_environment, variable, value, TRUE);
++        return gsm_util_update_activation_environment (variable, value, error);
++}
++#endif
+ 
+ void
+ gsm_util_setenv (const char *variable,
+@@ -442,6 +515,7 @@
+         return variable_blacklist;
+ }
+ 
++#ifndef HAVE_BSD3_USER_SESSION
+ static void
+ app_launched (GAppLaunchContext *ctx,
+               GAppInfo          *appinfo,
+@@ -460,6 +534,7 @@
+         gnome_start_systemd_scope (g_app_info_get_id (appinfo),
+                                    pid, NULL, NULL, NULL, NULL, NULL);
+ }
++#endif
+ 
+ gboolean
+ gsm_util_launch_app (GDesktopAppInfo *app,
+@@ -469,7 +544,9 @@
+         GError *local_error = NULL;
+         const char * const *variable_denylist;
+         const char * const *child_environment;
++#ifndef HAVE_BSD3_USER_SESSION
+         guint handler;
++#endif
+         gboolean success;
+ 
+         ctx = g_app_launch_context_new ();
+@@ -485,7 +562,9 @@
+                         g_app_launch_context_setenv (ctx, split[0], split[1]);
+         }
+ 
++#ifndef HAVE_BSD3_USER_SESSION
+         handler = g_signal_connect (ctx, "launched", G_CALLBACK (app_launched), app);
++#endif
+ 
+         success = g_desktop_app_info_launch_uris_as_manager (app,
+                                                              NULL,
+@@ -498,7 +577,9 @@
+                                             "Unable to start app (%s): ",
+                                             g_app_info_get_id (G_APP_INFO (app)));
+ 
++#ifndef HAVE_BSD3_USER_SESSION
+         g_signal_handler_disconnect (ctx, handler);
++#endif
+ 
+         return success;
+ }
+--- a/gnome-session/gsm-util.h
++++ b/gnome-session/gsm-util.h
+@@ -30,6 +30,11 @@
+ 
+ void        gsm_util_setenv                         (const char *variable,
+                                                      const char *value);
++#ifdef HAVE_BSD3_USER_SESSION
++gboolean    gsm_util_setenv_native                  (const char *variable,
++                                                     const char *value,
++                                                     GError **error);
++#endif
+ const char * const * gsm_util_listenv               (void);
+ const char * const * gsm_util_get_variable_blacklist(void);
+ 
+--- a/gnome-session/meson.build
++++ b/gnome-session/meson.build
+@@ -1,13 +1,16 @@
++cflags = [
++  '-DLOCALE_DIR="@0@"'.format(session_localedir),
++  '-DDATA_DIR="@0@"'.format(session_pkgdatadir),
++  '-DLIBEXECDIR="@0@"'.format(session_libexecdir)
++]
++
++
++if not native_bsd3
+ sources = files(
+   'gsm-util.c',
+   'leader-main.c'
+ )
+ 
+-cflags = [
+-  '-DLOCALE_DIR="@0@"'.format(session_localedir),
+-  '-DDATA_DIR="@0@"'.format(session_pkgdatadir),
+-  '-DLIBEXECDIR="@0@"'.format(session_libexecdir)
+-]
+ 
+ executable(
+   meson.project_name(),
+@@ -34,6 +37,8 @@
+   install_dir: session_libexecdir
+ )
+ 
++endif
++
+ sources = files(
+   'gsm-app.c',
+   'gsm-client.c',
+@@ -45,11 +50,16 @@
+   'gsm-shell.c',
+   'gsm-store.c',
+   'gsm-system.c',
+-  'gsm-system-null.c',
+-  'gsm-systemd.c',
+   'gsm-util.c',
+   'service-main.c'
+ )
++
++if native_bsd3
++  sources += files('gnome49-system.c')
++  cflags += '-DBSD3_GSM_SYSTEM_CLASS'
++else
++  sources += files('gsm-system-null.c', 'gsm-systemd.c')
++endif
+ 
+ dbus_ifaces = [
+   'org.gnome.SessionManager',
+--- a/meson.build
++++ b/meson.build
+@@ -86,20 +86,25 @@
+   dependency('gnome-desktop-4'),
+ ]
+ 
+-libsystemd_dep = dependency('libsystemd', version: '>= 209', required: true)
+-config_h.set('SYSTEMD_STRICT_ENV',
+-              libsystemd_dep.version().version_compare('< 248'))
+-
+-session_bin_deps = session_deps + [
+-  libsystemd_dep,
+-  dependency('gio-unix-2.0', version: glib_req_version),
+-]
+-
+-systemd_userunitdir = get_option('systemduserunitdir')
+-if systemd_userunitdir == ''
+-  systemd_dep = dependency('systemd', version: '>= 242', required: true)
+-  systemd_userunitdir = systemd_dep.get_variable(pkgconfig: 'systemduserunitdir',
++native_bsd3 = get_option('bsd3')
++session_bin_deps = session_deps + [dependency('gio-unix-2.0', version: glib_req_version)]
++systemd_userunitdir = ''
++if native_bsd3
++  if host_machine.system() != 'freebsd'
++    error('The native BSD3 backend requires FreeBSD')
++  endif
++  config_h.set('HAVE_BSD3_USER_SESSION', 1)
++  session_bin_deps += dependency('bsd3-user-session', version: '>= 0.2.0.a1', static: true)
++else
++  libsystemd_dep = dependency('libsystemd', version: '>= 209', required: true)
++  config_h.set('SYSTEMD_STRICT_ENV', libsystemd_dep.version().version_compare('< 248'))
++  session_bin_deps += libsystemd_dep
++  systemd_userunitdir = get_option('systemduserunitdir')
++  if systemd_userunitdir == ''
++    systemd_dep = dependency('systemd', version: '>= 242', required: true)
++    systemd_userunitdir = systemd_dep.get_variable(pkgconfig: 'systemduserunitdir',
+                                                  pkgconfig_define: ['prefix', session_prefix])
++  endif
+ endif
+ 
+ configure_file(
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -3,3 +3,5 @@
+ option('docbook', type: 'boolean', value: true, description: 'build documentation')
+ option('man', type: 'boolean', value: true, description: 'build documentation (requires xmlto)')
+ option('mimeapps', type: 'boolean', value: true, description: 'install default gnome-mimeapps.list')
++
++option('bsd3', type: 'boolean', value: false, description: 'Use the native FreeBSD BSD3 session backend')
+--- a/tools/meson.build
++++ b/tools/meson.build
+@@ -1,9 +1,12 @@
+ programs = [
+   # name, deps, install_dir
+-  ['gnome-session-ctl', session_bin_deps, session_libexecdir],
+   ['gnome-session-inhibit', session_deps, session_bindir],
+   ['gnome-session-quit', session_deps, session_bindir],
+ ]
++
++if not native_bsd3
++  programs += [['gnome-session-ctl', session_bin_deps, session_libexecdir]]
++endif
+ 
+ foreach program: programs
+   executable(

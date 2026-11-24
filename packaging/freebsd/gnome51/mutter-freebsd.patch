@@ -1,0 +1,685 @@
+--- a/clutter/clutter/clutter-frame-clock.c
++++ b/clutter/clutter/clutter-frame-clock.c
+@@ -390,7 +390,7 @@
+               if (delta_us > ms2us (100))
+                 {
+                   CLUTTER_NOTE (FRAME_TIMINGS,
+-                                "%s timelines lagging by %ld µs, resetting",
++                                "%s timelines lagging by %" G_GINT64_FORMAT " µs, resetting",
+                                 frame_clock->output_name,
+                                 delta_us);
+ 
+@@ -400,7 +400,7 @@
+               else if (delta_us > 0)
+                 {
+                   CLUTTER_NOTE (FRAME_TIMINGS,
+-                                "%s timelines lagging by %ld µs, catching up",
++                                "%s timelines lagging by %" G_GINT64_FORMAT " µs, catching up",
+                                 frame_clock->output_name,
+                                 delta_us);
+ 
+@@ -565,7 +565,7 @@
+   if (adjustment_us != 0)
+     {
+       CLUTTER_NOTE (FRAME_TIMINGS,
+-                    "%s maximum update duration updated: %ld → %ld µs",
++                    "%s maximum update duration updated: %" G_GINT64_FORMAT " → %" G_GINT64_FORMAT " µs",
+                     frame_clock->output_name,
+                     frame_clock->max_update_duration_us,
+                     frame_clock->max_update_duration_us + adjustment_us);
+@@ -583,7 +583,7 @@
+   if (adjustment_us != 0)
+     {
+       CLUTTER_NOTE (FRAME_TIMINGS,
+-                    "%s minimum update duration updated: %ld → %ld µs",
++                    "%s minimum update duration updated: %" G_GINT64_FORMAT " → %" G_GINT64_FORMAT " µs",
+                     frame_clock->output_name,
+                     frame_clock->min_update_duration_us,
+                     frame_clock->min_update_duration_us + adjustment_us);
+@@ -618,7 +618,7 @@
+     return;
+ 
+   CLUTTER_NOTE (FRAME_TIMINGS,
+-                "%s update duration margin updated: %ld → %ld µs",
++                "%s update duration margin updated: %" G_GINT64_FORMAT " → %" G_GINT64_FORMAT " µs",
+                 frame_clock->output_name,
+                 frame_clock->max_update_margin.current_us,
+                 frame_clock->max_update_margin.current_us + adjustment_us);
+@@ -645,7 +645,7 @@
+   COGL_TRACE_DESCRIBE (ClutterFrameClockNotifyPresented,
+                        frame_clock->output_name);
+ 
+-  CLUTTER_NOTE (FRAME_CLOCK, "Frame %ld for %s presented",
++  CLUTTER_NOTE (FRAME_CLOCK, "Frame %" G_GINT64_FORMAT " for %s presented",
+                 frame_info->view_frame_counter,
+                 frame_clock->output_name);
+ 
+@@ -708,13 +708,13 @@
+           if (frame_info->presentation_time <= current_time_us)
+             {
+               g_string_append_printf (description,
+-                                      "presentation was %ld µs earlier",
++                                      "presentation was %" G_GINT64_FORMAT " µs earlier",
+                                       current_time_us - frame_info->presentation_time);
+             }
+           else
+             {
+               g_string_append_printf (description,
+-                                      "presentation will be %ld µs later",
++                                      "presentation will be %" G_GINT64_FORMAT " µs later",
+                                       frame_info->presentation_time - current_time_us);
+             }
+         }
+@@ -725,7 +725,7 @@
+             g_string_append (description, ", ");
+ 
+           g_string_append_printf (description,
+-                                  "KMS update ready at %ld µs",
++                                  "KMS update ready at %" G_GINT64_FORMAT " µs",
+                                   frame_info->kms_ready_time_us);
+         }
+ 
+@@ -758,8 +758,8 @@
+         }
+ 
+       CLUTTER_NOTE (FRAME_TIMINGS,
+-                    "%s %s %s buffering: Frame %ld dispatch %ld%+04ld µs, "
+-                    "%3ld µs to flip / %4ld µs %s",
++                    "%s %s %s buffering: Frame %" G_GINT64_FORMAT " dispatch %" G_GINT64_FORMAT "%+04" G_GINT64_FORMAT " µs, "
++                    "%3" G_GINT64_FORMAT " µs to flip / %4" G_GINT64_FORMAT " µs %s",
+                     frame_clock->output_name,
+                     frr_or_vrr, double_or_triple,
+                     frame_info->view_frame_counter,
+@@ -780,7 +780,7 @@
+   else
+     {
+       CLUTTER_NOTE (FRAME_TIMINGS,
+-                    "%s %s %s buffering: Frame %ld dispatch %ld%+04ld µs",
++                    "%s %s %s buffering: Frame %" G_GINT64_FORMAT " dispatch %" G_GINT64_FORMAT "%+04" G_GINT64_FORMAT " µs",
+                     frame_clock->output_name,
+                     frr_or_vrr, double_or_triple,
+                     frame_info->view_frame_counter,
+@@ -807,8 +807,8 @@
+               if (last_presentation_time_us > 0)
+                 {
+                   CLUTTER_NOTE (FRAME_TIMINGS,
+-                                "%s frame %ld presented after %ld µs at %ld"
+-                                ", %4ld µs %s",
++                                "%s frame %" G_GINT64_FORMAT " presented after %" G_GINT64_FORMAT " µs at %" G_GINT64_FORMAT
++                                ", %4" G_GINT64_FORMAT " µs %s",
+                                 frame_clock->output_name,
+                                 frame_info->view_frame_counter,
+                                 frame_info->presentation_time -
+@@ -820,7 +820,7 @@
+               else
+                 {
+                   CLUTTER_NOTE (FRAME_TIMINGS,
+-                                "%s frame %ld presented at %ld, %4ld µs %s",
++                                "%s frame %" G_GINT64_FORMAT " presented at %" G_GINT64_FORMAT ", %4" G_GINT64_FORMAT " µs %s",
+                                 frame_clock->output_name,
+                                 frame_info->view_frame_counter,
+                                 frame_info->presentation_time,
+@@ -842,8 +842,8 @@
+                   if (last_presentation_time_us > 0)
+                     {
+                       CLUTTER_NOTE (FRAME_TIMINGS,
+-                                    "%s frame %ld presented after %ld µs at %ld"
+-                                    ", %4ld µs (%d refresh cycle%s) %s",
++                                    "%s frame %" G_GINT64_FORMAT " presented after %" G_GINT64_FORMAT " µs at %" G_GINT64_FORMAT
++                                    ", %4" G_GINT64_FORMAT " µs (%d refresh cycle%s) %s",
+                                     frame_clock->output_name,
+                                     frame_info->view_frame_counter,
+                                     frame_info->presentation_time -
+@@ -856,8 +856,8 @@
+                   else
+                     {
+                       CLUTTER_NOTE (FRAME_TIMINGS,
+-                                    "%s frame %ld presented at %ld"
+-                                    ", %4ld µs (%d refresh cycle%s) %s",
++                                    "%s frame %" G_GINT64_FORMAT " presented at %" G_GINT64_FORMAT
++                                    ", %4" G_GINT64_FORMAT " µs (%d refresh cycle%s) %s",
+                                     frame_clock->output_name,
+                                     frame_info->view_frame_counter,
+                                     frame_info->presentation_time,
+@@ -876,7 +876,7 @@
+           if (last_presentation_time_us > 0)
+             {
+               CLUTTER_NOTE (FRAME_TIMINGS,
+-                            "%s frame %ld presented after %ld µs at %ld",
++                            "%s frame %" G_GINT64_FORMAT " presented after %" G_GINT64_FORMAT " µs at %" G_GINT64_FORMAT,
+                             frame_clock->output_name,
+                             frame_info->view_frame_counter,
+                             frame_info->presentation_time -
+@@ -886,7 +886,7 @@
+           else
+             {
+               CLUTTER_NOTE (FRAME_TIMINGS,
+-                            "%s frame %ld presented at %ld",
++                            "%s frame %" G_GINT64_FORMAT " presented at %" G_GINT64_FORMAT,
+                             frame_clock->output_name,
+                             frame_info->view_frame_counter,
+                             frame_info->presentation_time);
+@@ -1924,7 +1924,7 @@
+                          prev_dispatch_interval_us) %
+                   frame_clock->refresh_interval_us;
+       this_dispatch->dispatch_interval_us = dispatch_interval_us;
+-      CLUTTER_NOTE (FRAME_CLOCK, "dispatch jitter %5ldµs (%3ld%%)",
++      CLUTTER_NOTE (FRAME_CLOCK, "dispatch jitter %5" G_GINT64_FORMAT "µs (%3" G_GINT64_FORMAT "%%)",
+                     jitter_us,
+                     jitter_us * 100 / frame_clock->refresh_interval_us);
+     }
+@@ -1962,7 +1962,7 @@
+   frame->has_frame_deadline = frame_clock->has_next_frame_deadline;
+   frame->frame_deadline_us = frame_clock->next_frame_deadline_us;
+ 
+-  CLUTTER_NOTE (FRAME_CLOCK, "Dispatching frame %ld for %s",
++  CLUTTER_NOTE (FRAME_CLOCK, "Dispatching frame %" G_GINT64_FORMAT " for %s",
+                 frame->frame_count,
+                 frame_clock->output_name);
+ 
+@@ -2000,7 +2000,7 @@
+       G_UNLIKELY (cogl_is_tracing_enabled ()))
+     {
+       g_autofree char *description = NULL;
+-      description = g_strdup_printf ("dispatched %ld µs late",
++      description = g_strdup_printf ("dispatched %" G_GINT64_FORMAT " µs late",
+                                      this_dispatch_time_us - this_dispatch_ready_time_us);
+       COGL_TRACE_DESCRIBE (ClutterFrameClockDispatch, description);
+     }
+@@ -2048,22 +2048,22 @@
+       return string;
+     }
+ 
+-  g_string_append_printf (string, "%ld µs", max_update_time_estimate_us);
++  g_string_append_printf (string, "%" G_GINT64_FORMAT " µs", max_update_time_estimate_us);
+ 
+   if (last_presentation && last_presentation->got_measurements)
+     g_string_append_printf (string, " =");
+   else
+     g_string_append_printf (string, " (no measurements last frame)");
+ 
+-  g_string_append_printf (string, "\nVblank duration: %ld µs +",
++  g_string_append_printf (string, "\nVblank duration: %" G_GINT64_FORMAT " µs +",
+                           frame_clock->vblank_duration_us);
+-  g_string_append_printf (string, "\nDeadline evasion: %ld µs +",
++  g_string_append_printf (string, "\nDeadline evasion: %" G_GINT64_FORMAT " µs +",
+                           frame_clock->deadline_evasion_us);
+-  g_string_append_printf (string, "\nMaximum update duration: %ld µs +",
++  g_string_append_printf (string, "\nMaximum update duration: %" G_GINT64_FORMAT " µs +",
+                           frame_clock->max_update_duration_us);
+-  g_string_append_printf (string, "\nMinimum update duration: %ld µs +",
++  g_string_append_printf (string, "\nMinimum update duration: %" G_GINT64_FORMAT " µs +",
+                           frame_clock->min_update_duration_us);
+-  g_string_append_printf (string, "\nMargin: %ld µs",
++  g_string_append_printf (string, "\nMargin: %" G_GINT64_FORMAT " µs",
+                           get_max_update_time_margin_us (frame_clock));
+ 
+   return string;
+--- a/clutter/clutter/pango/clutter-pango-private.h
++++ b/clutter/clutter/pango/clutter-pango-private.h
+@@ -34,6 +34,8 @@
+  */
+ 
+ #pragma once
++
++#include "config.h"
+ 
+ #include <pango/pango.h>
+ 
+@@ -80,7 +82,9 @@
+                           ClutterColorState *target_color_state);
+ 
+ #if !PANGO_VERSION_CHECK(1, 57, 2)
++#ifndef HAVE_PANGO_RENDERER_AUTOPTR
+ G_DEFINE_AUTOPTR_CLEANUP_FUNC (PangoRenderer, g_object_unref)
++#endif
+ #endif
+ 
+ static inline PangoDirection
+--- a/cogl/cogl/cogl-dma-buf-handle.c
++++ b/cogl/cogl/cogl-dma-buf-handle.c
+@@ -36,7 +36,27 @@
+ #include <errno.h>
+ #include <gio/gio.h>
+ #include <glib/gstdio.h>
++#ifdef __linux__
+ #include <linux/dma-buf.h>
++#else
++typedef uint64_t __u64;
++
++// From https://github.com/evadot/drm-subtree or https://reviews.freebsd.org/D23085
++struct dma_buf_sync
++{
++  __u64 flags;
++};
++
++#define DMA_BUF_SYNC_READ  (1 << 0)
++#define DMA_BUF_SYNC_WRITE (2 << 0)
++#define DMA_BUF_SYNC_RW    (DMA_BUF_SYNC_READ | DMA_BUF_SYNC_WRITE)
++#define DMA_BUF_SYNC_START (0 << 2)
++#define DMA_BUF_SYNC_END   (1 << 2)
++#define DMA_BUF_SYNC_VALID_FLAGS_MASK \
++    (DMA_BUF_SYNC_RW | DMA_BUF_SYNC_END)
++#define DMA_BUF_BASE       'b'
++#define DMA_BUF_IOCTL_SYNC _IOW(DMA_BUF_BASE, 0, struct dma_buf_sync)
++#endif
+ #include <sys/ioctl.h>
+ #include <sys/mman.h>
+ #include <unistd.h>
+--- a/config.h.meson
++++ b/config.h.meson
+@@ -112,6 +112,7 @@
+ 
+ /* Building with font rendering integration support */
+ #mesondefine HAVE_FONTS
++#mesondefine HAVE_PANGO_RENDERER_AUTOPTR
+ 
+ /* Whether libei has eis_event_ref() */
+ #mesondefine HAVE_EIS_EVENT_REF
+--- a/meson.build
++++ b/meson.build
+@@ -42,7 +42,7 @@
+ 
+ # optional version requirements
+ udev_req = '>= 228'
+-gudev_req = '>= 238'
++gudev_req = host_machine.system() == 'freebsd' ? '>= 232' : '>= 238'
+ umockdev_req = '>= 0.3.0'
+ 
+ # wayland version requirements
+@@ -238,11 +238,14 @@
+ 
+ libudev_dep = dependency('libudev', version: udev_req)
+ gudev_dep = dependency('gudev-1.0', version: gudev_req)
+-udev_dep = dependency('udev')
+-
+-udev_dir = get_option('udev_dir')
+-if udev_dir == ''
+-  udev_dir = udev_dep.get_variable('udevdir')
++if host_machine.system() == 'freebsd'
++  udev_dir = libdir / 'udev'
++else
++  udev_dep = dependency('udev')
++  udev_dir = get_option('udev_dir')
++  if udev_dir == ''
++    udev_dir = udev_dep.get_variable('udevdir')
++  endif
+ endif
+ 
+ libgbm_dep = dependency('gbm', version: gbm_req)
+@@ -561,6 +564,11 @@
+ cdata.set('HAVE_TIMERFD', have_timerfd)
+ cdata.set('HAVE_EVENTFD', have_eventfd)
+ cdata.set('HAVE_FONTS', have_fonts)
++if have_fonts
++  cdata.set('HAVE_PANGO_RENDERER_AUTOPTR', cc.compiles(
++    '#include <pango/pango.h>\nint main(void) { g_autoptr(PangoRenderer) r = NULL; return r != NULL; }',
++    dependencies: pango_dep, name: 'PangoRenderer automatic cleanup'))
++endif
+ cdata.set('HAVE_DRM_PLANE_SIZE_HINT', have_drm_plane_size_hint)
+ cdata.set('HAVE_XKBCOMMON_KANA_COMPOSE_LEDS',
+   xkbcommon_dep.version().version_compare('>= 1.8.0'))
+--- a/src/backends/meta-stage-impl.c
++++ b/src/backends/meta-stage-impl.c
+@@ -35,6 +35,7 @@
+ #include <math.h>
+ 
+ #include "backends/meta-renderer.h"
++#include "backends/native/meta-stage-native.h"
+ #include "backends/meta-stage-private.h"
+ #include "backends/meta-stage-view-private.h"
+ #include "clutter/clutter-mutter.h"
+@@ -615,7 +616,7 @@
+    * artefacts.
+    */
+   /* swap_region does not need damage history, set it up before that */
+-  if (!use_clipped_redraw)
++  if (!use_clipped_redraw && META_IS_STAGE_NATIVE (stage_window))
+     swap_region = mtk_region_create ();
+   else if (clutter_stage_view_has_shadowfb (stage_view))
+     swap_region = mtk_region_ref (fb_clip_region);
+--- a/src/backends/meta-udev.c
++++ b/src/backends/meta-udev.c
+@@ -137,7 +137,11 @@
+ {
+   const char * const *tags;
+ 
++#ifdef __FreeBSD__
++  tags = g_udev_device_get_tags (device);
++#else
+   tags = g_udev_device_get_current_tags (device);
++#endif
+   if (!tags)
+     return FALSE;
+ 
+@@ -156,7 +160,37 @@
+ 
+   device_type = g_udev_device_get_property (device, "DEVTYPE");
+   if (g_strcmp0 (device_type, DRM_CARD_UDEV_DEVICE_TYPE) != 0)
+-    return FALSE;
++    {
++#ifdef __FreeBSD__
++      const char *name = g_udev_device_get_name (device);
++      const char *path = g_udev_device_get_device_file (device);
++      const char *number;
++
++      /* libudev-devd supplies DRM nodes without Linux DEVTYPE metadata.
++       * Accept only canonical numeric DRM nodes in the DRM subsystem.
++       * Explicit incompatible metadata must still be rejected.
++       */
++      if (device_type || !name || !path ||
++          g_strcmp0 (g_udev_device_get_subsystem (device), "drm") != 0)
++        return FALSE;
++      if (g_str_has_prefix (name, "card"))
++        number = name + 4;
++      else if (g_str_has_prefix (name, "renderD"))
++        number = name + 7;
++      else
++        return FALSE;
++      if (!*number)
++        return FALSE;
++      for (; *number; number++)
++        if (*number < '0' || *number > '9')
++          return FALSE;
++      if (!g_str_has_prefix (path, "/dev/dri/") ||
++          g_strcmp0 (path + 9, name) != 0)
++        return FALSE;
++#else
++      return FALSE;
++#endif
++    }
+ 
+   /* Skip devices that do not belong to our seat. */
+   if (!meta_backend_is_headless (udev->backend))
+@@ -165,7 +199,11 @@
+       const char *device_seat;
+       const char *seat_id;
+ 
++#ifdef __FreeBSD__
++      g_return_val_if_fail (launcher, FALSE);
++#else
+       g_return_val_if_fail (launcher, TRUE);
++#endif
+ 
+       device_seat = g_udev_device_get_property (device, "ID_SEAT");
+       if (!device_seat)
+@@ -197,7 +235,12 @@
+     {
+     case META_UDEV_DEVICE_TYPE_CARD:
+       g_udev_enumerator_add_match_name (enumerator, "card*");
++#ifndef __FreeBSD__
++      /* FreeBSD's devd compatibility layer does not assign udev tags.
++       * Character-device, DRM identity and seat checks remain below.
++       */
+       g_udev_enumerator_add_match_tag (enumerator, "seat");
++#endif
+       break;
+     case META_UDEV_DEVICE_TYPE_RENDER_NODE:
+       g_udev_enumerator_add_match_name (enumerator, "render*");
+--- a/src/backends/native/meta-device-pool.c
++++ b/src/backends/native/meta-device-pool.c
+@@ -22,7 +22,9 @@
+ #include <fcntl.h>
+ #include <gio/gunixfdlist.h>
+ #include <sys/stat.h>
++#ifndef __FreeBSD__
+ #include <sys/sysmacros.h>
++#endif
+ #include <sys/types.h>
+ 
+ #include "backends/meta-launcher.h"
+--- a/src/backends/native/meta-kms-impl-device.c
++++ b/src/backends/native/meta-kms-impl-device.c
+@@ -22,7 +22,9 @@
+ #include <errno.h>
+ #include <fcntl.h>
+ #include <glib/gstdio.h>
++#ifdef __linux__
+ #include <linux/dma-buf.h>
++#endif
+ #include <poll.h>
+ #include <sys/ioctl.h>
+ #include <sys/timerfd.h>
+--- a/src/backends/native/meta-thread.c
++++ b/src/backends/native/meta-thread.c
+@@ -21,6 +21,10 @@
+ 
+ #include <glib.h>
+ #include <sys/resource.h>
++#ifdef __FreeBSD__
++#include <pthread.h>
++#include <pthread_np.h>
++#endif
+ 
+ #include "backends/meta-backend-private.h"
+ #include "backends/meta-backend-types.h"
+@@ -303,6 +307,13 @@
+ request_realtime_scheduling (MetaThread  *thread,
+                              GError     **error)
+ {
++#ifndef RLIMIT_RTTIME
++  /* Do not request unbounded realtime scheduling without its CPU watchdog. */
++  (void) thread;
++  g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
++                       "Realtime scheduling requires RLIMIT_RTTIME support");
++  return FALSE;
++#else
+   MetaThreadPrivate *priv = meta_thread_get_instance_private (thread);
+   g_autoptr (GError) local_error = NULL;
+   int64_t rttime;
+@@ -369,6 +380,7 @@
+     }
+ 
+   return TRUE;
++#endif
+ }
+ 
+ static gboolean
+@@ -536,7 +548,11 @@
+   meta_profiler_register_thread (profiler, thread_context, priv->name);
+ #endif
+ 
++#ifdef __FreeBSD__
++  priv->kernel.thread_id = pthread_getthreadid_np ();
++#else
+   priv->kernel.thread_id = gettid ();
++#endif
+   priv->kernel.realtime_inhibit_count = 0;
+ 
+   meta_thread_impl_setup (impl);
+--- a/src/helpers/meson.build
++++ b/src/helpers/meson.build
+@@ -1,20 +1,23 @@
+ helpers_cdata = configuration_data()
+ helpers_cdata.set('libexecdir', libexecdir)
+ 
+-# backlight helper
+-configure_file(
+-  input: 'org.gnome.mutter.backlight-helper.policy.in',
+-  output: 'org.gnome.mutter.backlight-helper.policy',
+-  configuration: helpers_cdata,
+-  install_dir: join_paths(datadir, 'polkit-1', 'actions')
+-)
++# The sysfs backlight helper is Linux-specific.
++if host_machine.system() == 'linux'
++  # backlight helper
++  configure_file(
++    input: 'org.gnome.mutter.backlight-helper.policy.in',
++    output: 'org.gnome.mutter.backlight-helper.policy',
++    configuration: helpers_cdata,
++    install_dir: join_paths(datadir, 'polkit-1', 'actions')
++  )
+ 
+-executable('mutter-backlight-helper',
+-  sources: [
+-    files('meta-backlight-helper.c'),
+-  ],
+-  include_directories: top_includepath,
+-  install_rpath: pkglibdir,
+-  install_dir: libexecdir,
+-  install: true,
+-)
++  executable('mutter-backlight-helper',
++    sources: [
++      files('meta-backlight-helper.c'),
++    ],
++    include_directories: top_includepath,
++    install_rpath: pkglibdir,
++    install_dir: libexecdir,
++    install: true,
++  )
++endif
+--- a/src/wayland/meta-wayland-dma-buf.c
++++ b/src/wayland/meta-wayland-dma-buf.c
+@@ -39,7 +39,9 @@
+ 
+ #include <drm_fourcc.h>
+ #include <glib/gstdio.h>
++#ifdef __linux__
+ #include <linux/dma-buf.h>
++#endif
+ #include <sys/ioctl.h>
+ #include <sys/stat.h>
+ #include <sys/types.h>
+@@ -1025,6 +1027,7 @@
+   return source;
+ }
+ 
++#ifdef __linux__
+ static int
+ get_sync_file (int dma_buf_fd)
+ {
+@@ -1042,6 +1045,8 @@
+ 
+   return -1;
+ }
++
++#endif
+ 
+ /**
+  * meta_wayland_dma_buf_create_source:
+@@ -1082,9 +1087,11 @@
+       if (!source)
+         source = create_source (buffer, dispatch, user_data);
+ 
++#ifdef __linux__
+       source->owned_sync_fd[i] = get_sync_file (fd);
+       if (source->owned_sync_fd[i] >= 0)
+         fd = source->owned_sync_fd[i];
++#endif
+ 
+       source->fd_tags[i] = g_source_add_unix_fd (&source->parent, fd, G_IO_IN);
+     }
+--- a/src/wayland/meta-wayland.c
++++ b/src/wayland/meta-wayland.c
+@@ -701,7 +701,7 @@
+                                                        g_variant_builder_end (&builder)),
+                                         NULL,
+                                         G_DBUS_CALL_FLAGS_NO_AUTO_START,
+-                                        -1, NULL, &error);
++                                        3000, NULL, &error);
+ 
+   if (error)
+     {
+@@ -734,7 +734,7 @@
+ 			       g_variant_new ("(ss)", name, value),
+ 			       NULL,
+ 			       G_DBUS_CALL_FLAGS_NO_AUTO_START,
+-			       -1, NULL, &error);
++			       3000, NULL, &error);
+   if (error)
+     {
+       g_autofree char *remote_error = NULL;
+@@ -742,6 +742,8 @@
+       remote_error = g_dbus_error_get_remote_error (error);
+       if (g_strcmp0 (remote_error, "org.freedesktop.DBus.Error.NameHasNoOwner") == 0)
+         {
++          if (g_getenv ("BSD3_SESSION_SOCKET"))
++            return FALSE;
+           return update_activation_environment (session_bus, name, value);
+         }
+       else if (g_strcmp0 (remote_error, "org.gnome.SessionManager.NotInInitialization") != 0)
+@@ -1074,11 +1076,15 @@
+       status &=
+         set_gnome_env ("XAUTHORITY", compositor->xwayland_manager.auth_file);
+ 
++      if (!status && g_getenv ("BSD3_SESSION_SOCKET"))
++        g_error ("Native session X11 environment publication failed");
+       meta_xwayland_set_should_enable_ei_portal (&compositor->xwayland_manager, status);
+     }
+ #endif
+ 
+-  set_gnome_env ("WAYLAND_DISPLAY", meta_wayland_get_wayland_display_name (compositor));
++  if (!set_gnome_env ("WAYLAND_DISPLAY", meta_wayland_get_wayland_display_name (compositor)) &&
++      g_getenv ("BSD3_SESSION_SOCKET"))
++    g_error ("Native session Wayland environment publication failed");
+ 
+   return compositor;
+ }
+--- a/src/wayland/meta-xwayland.c
++++ b/src/wayland/meta-xwayland.c
+@@ -311,6 +311,7 @@
+   return filename;
+ }
+ 
++#ifdef __linux__
+ static int
+ bind_to_abstract_socket (int      display,
+                          GError **error)
+@@ -351,6 +352,8 @@
+ 
+   return fd;
+ }
++
++#endif
+ 
+ static int
+ bind_to_unix_socket (int      display,
+@@ -601,12 +604,14 @@
+ {
+   g_autofd int abstract_fd = -1, unix_fd = -1;
+ 
++#ifdef __linux__
+   if (abstract_fd_out)
+     {
+       abstract_fd = bind_to_abstract_socket (display_index, error);
+       if (abstract_fd < 0)
+         return FALSE;
+     }
++#endif
+ 
+   unix_fd = bind_to_unix_socket (display_index, error);
+   if (unix_fd < 0)
+@@ -857,8 +862,10 @@
+ 
+   g_subprocess_launcher_take_fd (launcher,
+                                  steal_fd (&xwayland_client_fd[1]), 3);
++#ifdef __linux__
+   g_subprocess_launcher_take_fd (launcher,
+                                  steal_fd (&manager->public_connection.abstract_fd), 4);
++#endif
+   g_subprocess_launcher_take_fd (launcher,
+                                  steal_fd (&manager->public_connection.unix_fd), 5);
+   g_subprocess_launcher_take_fd (launcher,
+@@ -879,8 +886,10 @@
+   args[i++] = "-core";
+   args[i++] = "-auth";
+   args[i++] = manager->auth_file;
++#ifdef __linux__
+   args[i++] = XWAYLAND_LISTENFD;
+   args[i++] = "4";
++#endif
+   args[i++] = XWAYLAND_LISTENFD;
+   args[i++] = "5";
+   args[i++] = "-displayfd";
+@@ -1162,8 +1171,10 @@
+ 
+   if (policy == META_X11_DISPLAY_POLICY_ON_DEMAND)
+     {
++#ifdef __linux__
+       manager->abstract_fd_watch =
+         create_fd_watch (manager, manager->public_connection.abstract_fd, G_IO_IN);
++#endif
+       manager->unix_fd_watch =
+         create_fd_watch (manager, manager->public_connection.unix_fd, G_IO_IN);
+     }

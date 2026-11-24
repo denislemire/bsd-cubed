@@ -1,5 +1,10 @@
 version: 2.1
 
+parameters:
+  build-gnome51-packages:
+    type: boolean
+    default: false
+
 # One disposable FreeBSD executor: bound peak RAM and preserve one coherent
 # candidate/source set. Hardware rollout and catalogue publication are separate.
 jobs:
@@ -88,8 +93,32 @@ jobs:
           path: dist
           destination: freebsd
 
+  freebsd-gnome51-packages:
+    machine:
+      image: freebsd-15.1:current
+    resource_class: freebsd.medium
+    steps:
+      - checkout
+      - run:
+          name: Check GNOME 51 patches and stage the native Session build
+          command: |
+            sudo pkg install -y curl dbus glib pkgconf meson ninja gettext-tools gnome-desktop
+            sh tools/ci-gnome51-source.sh
+      - run:
+          name: Build and verify GNOME 51 bootstrap packages
+          no_output_timeout: 30m
+          command: sudo /bin/sh tools/ci-gnome51-packages.sh
+      - store_artifacts:
+          path: dist/gnome51
+          destination: freebsd-gnome51
+
 workflows:
   build:
     jobs:
       - freebsd-build-test-package:
+          serial-group: denislemire/ehws-freebsd-heavy
+  gnome51-packages:
+    when: << pipeline.parameters.build-gnome51-packages >>
+    jobs:
+      - freebsd-gnome51-packages:
           serial-group: denislemire/ehws-freebsd-heavy

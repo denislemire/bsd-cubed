@@ -14,7 +14,11 @@
 #define SESSION CK ".Session"
 #define MANAGER CK ".Manager"
 typedef struct {
+#ifdef BSD3_GSM_SYSTEM_CLASS
+    GsmSystem parent;
+#else
     GObject parent;
+#endif
     GDBusConnection *bus;
     char *owner, *path;
     guint active_watch, owner_watch, removed_watch;
@@ -23,10 +27,27 @@ typedef struct {
     int inhibitor;
     GsmInhibitorFlag held_flags;
 } GsmBsd3System;
+#ifdef BSD3_GSM_SYSTEM_CLASS
+typedef GsmSystemClass GsmBsd3SystemClass;
+G_DEFINE_TYPE(GsmBsd3System, gsm_bsd3_system, GSM_TYPE_SYSTEM)
+#else
 typedef GObjectClass GsmBsd3SystemClass;
 static void iface_init(GsmSystemInterface *);
 G_DEFINE_TYPE_WITH_CODE(GsmBsd3System, gsm_bsd3_system, G_TYPE_OBJECT,
     G_IMPLEMENT_INTERFACE(GSM_TYPE_SYSTEM, iface_init))
+#endif
+
+static void set_active(GsmBsd3System *s, gboolean active)
+{
+    if (s->active == active)
+        return;
+    s->active = active;
+#ifdef BSD3_GSM_SYSTEM_CLASS
+    g_object_set(s, "active", active, NULL);
+#else
+    g_object_notify(G_OBJECT(s), "active");
+#endif
+}
 
 static GVariant *
 request(GsmBsd3System *s, const char *path, const char *iface,
@@ -45,10 +66,7 @@ static void invalidate(GsmBsd3System *s)
 {
     s->valid = FALSE;
     close_inhibitor(s);
-    if (s->active) {
-        s->active = FALSE;
-        g_object_notify(G_OBJECT(s), "active");
-    }
+    set_active(s, FALSE);
 }
 static void bus_closed(GDBusConnection *bus, gboolean remote, GError *error, gpointer data)
 {
@@ -63,10 +81,7 @@ static gboolean refresh_active(GsmBsd3System *s, GError **error)
     if (!reply) { invalidate(s); return FALSE; }
     g_variant_get(reply, "(b)", &active);
     g_variant_unref(reply);
-    if (s->active != active) {
-        s->active = active;
-        g_object_notify(G_OBJECT(s), "active");
-    }
+    set_active(s, active);
     return TRUE;
 }
 static void changed(GDBusConnection *bus, const char *sender, const char *path,
@@ -92,6 +107,7 @@ static void changed(GDBusConnection *bus, const char *sender, const char *path,
         }
     }
 }
+#ifndef BSD3_GSM_SYSTEM_CLASS
 static void get_property(GObject *object, guint property, GValue *value, GParamSpec *spec)
 {
     GsmBsd3System *s = (GsmBsd3System *)object;
@@ -105,6 +121,7 @@ static void set_property(GObject *object, guint property, const GValue *value, G
     (void)value;
     if (property != 1) G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property, spec);
 }
+#endif
 static void finalize(GObject *object)
 {
     GsmBsd3System *s = (GsmBsd3System *)object;
@@ -117,13 +134,13 @@ static void finalize(GObject *object)
     g_free(s->owner); g_free(s->path);
     G_OBJECT_CLASS(gsm_bsd3_system_parent_class)->finalize(object);
 }
-static void gsm_bsd3_system_class_init(GsmBsd3SystemClass *class)
+static void gsm_bsd3_system_init(GsmBsd3System *s)
 {
-    class->get_property = get_property; class->set_property = set_property;
-    class->finalize = finalize;
-    g_object_class_override_property(class, 1, "active");
+    s->inhibitor = -1;
+#ifdef BSD3_GSM_SYSTEM_CLASS
+    g_object_set(s, "active", FALSE, NULL);
+#endif
 }
-static void gsm_bsd3_system_init(GsmBsd3System *s) { s->inhibitor = -1; }
 static gboolean connected(GsmBsd3System *s, GError **error)
 {
     /* A closed notification may still be queued on the main context. */
@@ -194,10 +211,15 @@ gboolean gsm_bsd3_system_inhibit_checked(GsmSystem *system, GsmInhibitorFlag fla
 static gboolean unavailable(GsmSystem *s) { (void)s; return FALSE; }
 static void deny(GsmSystem *s)
 {
+#ifdef BSD3_GSM_SYSTEM_CLASS
+    (void)s;
+    g_warning("Native privileged operation is not supported");
+#else
     GError *error = g_error_new_literal(G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
         "Native privileged operation is not supported");
     g_signal_emit_by_name(s, "request-completed", error);
     g_error_free(error);
+#endif
 }
 static void firmware(GsmSystem *s, gboolean enabled) { (void)enabled; deny(s); }
 static void prepare(GsmSystem *s, gboolean restart)
@@ -216,6 +238,36 @@ static void inhibit(GsmSystem *s, GsmInhibitorFlag flags)
         g_warning("Native inhibitor update failed: %s", error->message); g_error_free(error);
     }
 }
+#ifdef BSD3_GSM_SYSTEM_CLASS
+static GsmActionAvailability action_unavailable(GsmSystem *s)
+{
+    (void)s;
+    return GSM_ACTION_UNAVAILABLE;
+}
+
+static void gsm_bsd3_system_class_init(GsmBsd3SystemClass *class)
+{
+    G_OBJECT_CLASS(class)->finalize = finalize;
+    class->can_switch_user = unavailable;
+    class->can_shutdown = action_unavailable;
+    class->can_restart = action_unavailable;
+    class->can_restart_to_firmware_setup = unavailable;
+    class->can_suspend = action_unavailable;
+    class->suspend = deny;
+    class->set_restart_to_firmware_setup = firmware;
+    class->prepare_shutdown = prepare;
+    class->complete_shutdown = deny;
+    class->set_session_idle = idle;
+    class->set_inhibitors = inhibit;
+}
+#else
+static void gsm_bsd3_system_class_init(GsmBsd3SystemClass *class)
+{
+    class->get_property = get_property; class->set_property = set_property;
+    class->finalize = finalize;
+    g_object_class_override_property(class, 1, "active");
+}
+
 static void iface_init(GsmSystemInterface *iface)
 {
     iface->can_switch_user = unavailable; iface->can_stop = unavailable;
@@ -227,6 +279,7 @@ static void iface_init(GsmSystemInterface *iface)
     iface->prepare_shutdown = prepare; iface->complete_shutdown = deny;
     iface->set_session_idle = idle; iface->set_inhibitors = inhibit;
 }
+#endif
 GsmSystem *gsm_bsd3_system_new_for_connection(GDBusConnection *bus, uid_t trusted_uid, GError **error)
 {
     GsmBsd3System *s;
@@ -276,6 +329,11 @@ GsmSystem *gsm_bsd3_system_new_for_connection(GDBusConnection *bus, uid_t truste
     if (!reply) goto fail;
     g_variant_get(reply, "(&s)", &text);
     allowed = !strcmp(text, "user") || !strcmp(text, "greeter");
+#ifdef BSD3_GSM_SYSTEM_CLASS
+    if (allowed)
+        g_object_set(s, "session-class", !strcmp(text, "greeter") ?
+            GSM_SESSION_CLASS_GREETER : GSM_SESSION_CLASS_USER, NULL);
+#endif
     g_variant_unref(reply);
     if (!allowed) {
         g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED, "Native session is not a desktop or greeter session");

@@ -1,0 +1,115 @@
+--- a/meson.build
++++ b/meson.build
+@@ -222,14 +222,18 @@
+   error('Wayland support requires EGL to be enabled')
+ endif
+ 
+-logind_dep = dependency('libsystemd', required: false)
+-
+-if not logind_dep.found()
+-  logind_dep = dependency('libelogind', required: false)
+-endif
+-
+-if not logind_dep.found()
+-  error('No logind provider dependency found: tried libsystemd and libelogind')
++if host_machine.system() == 'freebsd'
++  logind_dep = dependency('bsd3-login')
++else
++  logind_dep = dependency('libsystemd', required: false)
++
++  if not logind_dep.found()
++    logind_dep = dependency('libelogind', required: false)
++  endif
++
++  if not logind_dep.found()
++    error('No logind provider dependency found: tried libsystemd and libelogind')
++  endif
+ endif
+ 
+ libudev_dep = dependency('libudev', version: udev_req)
+--- a/src/backends/meta-launcher.c
++++ b/src/backends/meta-launcher.c
+@@ -22,14 +22,20 @@
+ #include <gio/gunixfdlist.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
++#ifndef __FreeBSD__
+ #include <sys/sysmacros.h>
+ #include <malloc.h>
++#endif
+ #include <fcntl.h>
+ #include <errno.h>
+ #include <stdlib.h>
+ #include <string.h>
+ #include <unistd.h>
++#ifdef __FreeBSD__
++#include <bsd3/sd-login.h>
++#else
+ #include <systemd/sd-login.h>
++#endif
+ 
+ #include "backends/meta-backend-private.h"
+ #include "backends/meta-dbus-utils.h"
+--- a/src/core/meta-context-main.c
++++ b/src/core/meta-context-main.c
+@@ -25,7 +25,9 @@
+ #include <glib.h>
+ #include <gio/gio.h>
+ 
++#ifndef __FreeBSD__
+ #include <systemd/sd-login.h>
++#endif
+ 
+ #include "backends/meta-monitor-private.h"
+ #include "backends/meta-monitor-manager-private.h"
+@@ -130,15 +132,16 @@
+ meta_context_main_get_x11_display_policy (MetaContext *context)
+ {
+   MetaContextMain *context_main = META_CONTEXT_MAIN (context);
+-  g_autofree char *unit = NULL;
+-
+   if (context_main->options.no_x11)
+     return META_X11_DISPLAY_POLICY_DISABLED;
+ 
++#ifndef __FreeBSD__
++  g_autofree char *unit = NULL;
++
+   if (sd_pid_get_user_unit (0, &unit) < 0)
+     return META_X11_DISPLAY_POLICY_MANDATORY;
+-  else
+-    return META_X11_DISPLAY_POLICY_ON_DEMAND;
++#endif
++  return META_X11_DISPLAY_POLICY_ON_DEMAND;
+ }
+ 
+ static gboolean
+--- a/src/core/window.c
++++ b/src/core/window.c
+@@ -101,7 +101,9 @@
+ #include "wayland/meta-window-xwayland.h"
+ #endif
+ 
++#ifndef __FreeBSD__
+ #include <systemd/sd-login.h>
++#endif
+ 
+ #include "meta-private-enum-types.h"
+ 
+@@ -7240,6 +7242,9 @@
+ GFile *
+ meta_window_get_unit_cgroup (MetaWindow *window)
+ {
++#ifdef __FreeBSD__
++  return NULL;
++#else
+   g_autofree char *contents = NULL;
+   g_autofree char *complete_path = NULL;
+   g_autofree char *unit_name = NULL;
+@@ -7278,6 +7283,7 @@
+   window->cgroup_path = g_file_new_for_path (complete_path);
+ 
+   return window->cgroup_path;
++#endif
+ }
+ 
+ gboolean

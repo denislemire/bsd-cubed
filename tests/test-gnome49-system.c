@@ -4,7 +4,9 @@
 #define CK "org.freedesktop.ConsoleKit"
 #define ROOT "/org/freedesktop/ConsoleKit"
 static GDBusConnection *bus;
+#ifndef BSD3_GSM_SYSTEM_CLASS
 static guint denied;
+#endif
 static void activity_notified(GObject *object,GParamSpec *spec,gpointer data)
 { (void)object;(void)spec;*(gboolean *)data=TRUE; }
 static GVariant *control(const char *method, GVariant *args, const char *type)
@@ -37,12 +39,14 @@ static void counters(guint expected_idle, gboolean held, const char *what)
     if(what)g_assert_cmpstr(w,==,what);
     g_variant_unref(r);
 }
+#ifndef BSD3_GSM_SYSTEM_CLASS
 static void rejected(GsmSystem *s, GError *error, gpointer data)
 {
     (void)s;(void)data;
     g_assert_error(error,G_IO_ERROR,G_IO_ERROR_NOT_SUPPORTED);
     denied++;
 }
+#endif
 static void test_native_system(void)
 {
     GError *error=NULL;GsmSystem *s;GVariant *r;guint32 pid;
@@ -71,10 +75,18 @@ static void test_native_system(void)
     g_assert_true(gsm_bsd3_system_inhibit_checked(s,GSM_INHIBITOR_FLAG_IDLE,&error));
     g_assert_no_error(error);
     emit_active(FALSE);state(s,FALSE);emit_active(TRUE);state(s,TRUE);
+#ifdef BSD3_GSM_SYSTEM_CLASS
+    g_assert_cmpint(gsm_system_get_session_class(s), ==, GSM_SESSION_CLASS_USER);
+    g_assert_cmpint(gsm_system_can_shutdown(s), ==, GSM_ACTION_UNAVAILABLE);
+    g_assert_cmpint(gsm_system_can_restart(s), ==, GSM_ACTION_UNAVAILABLE);
+    g_assert_cmpint(gsm_system_can_suspend(s), ==, GSM_ACTION_UNAVAILABLE);
+    g_assert_false(gsm_system_can_restart_to_firmware_setup(s));
+#else
     g_assert_false(gsm_system_can_stop(s));g_assert_false(gsm_system_can_restart(s));
     g_signal_connect(s,"request-completed",G_CALLBACK(rejected),NULL);
     gsm_system_attempt_stop(s);gsm_system_attempt_restart(s);
     g_assert_cmpuint(denied,==,2);
+#endif
     mode("restart");state(s,FALSE);
     g_assert_false(gsm_bsd3_system_idle_checked(s,FALSE,&error));
     g_assert_error(error,G_IO_ERROR,G_IO_ERROR_NOT_CONNECTED);g_clear_error(&error);
@@ -135,6 +147,10 @@ int main(int argc,char **argv)
     GError *error=NULL;
     g_test_init(&argc,&argv,NULL);
     bus=g_bus_get_sync(G_BUS_TYPE_SYSTEM,NULL,&error);g_assert_no_error(error);
+#ifdef BSD3_GSM_SYSTEM_CLASS
+    g_test_add_func("/bsd3/gnome51-native-system",test_native_system);
+#else
     g_test_add_func("/bsd3/gnome49-native-system",test_native_system);
+#endif
     int result=g_test_run();g_object_unref(bus);return result;
 }
