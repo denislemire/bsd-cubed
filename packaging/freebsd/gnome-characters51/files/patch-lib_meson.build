@@ -1,0 +1,11 @@
+--- lib/meson.build.orig
++++ lib/meson.build
+@@ -21,7 +21,7 @@
+ ]
+ 
+ libgc = shared_library(
+-  characters_ns.to_lower(),
++  'gnome-characters',
+   sources: sources + gc_enums,
+   include_directories: top_inc,
+   dependencies: libgc_deps,

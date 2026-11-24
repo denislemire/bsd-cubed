@@ -1,0 +1,12 @@
+--- data/meson.build.orig
++++ data/meson.build
+@@ -25,8 +25,7 @@
+        output: 'gnome-system-monitor-kde.desktop',
+          type: 'desktop',
+        po_dir: '../po',
+-      install: true,
+-  install_dir: join_paths(get_option('datadir'), 'applications')
++      install: false
+ )
+ 
+ metainfo_file = i18n.merge_file(
