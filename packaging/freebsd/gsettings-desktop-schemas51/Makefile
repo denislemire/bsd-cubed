@@ -1,5 +1,6 @@
 PORTNAME=	gsettings-desktop-schemas
 DISTVERSION=	51.0
+PORTREVISION=	1
 CATEGORIES=	devel gnome
 MASTER_SITES=	GNOME
 DIST_SUBDIR=	gnome
@@ -52,5 +53,9 @@ GLIB_SCHEMAS=	org.gnome.desktop.a11y.applications.gschema.xml \
 		org.gnome.desktop.screen-time-limits.gschema.xml
 
 BINARY_ALIAS=	python3=${PYTHON_CMD}
+
+post-patch:
+	${REINPLACE_CMD} -e "s/join_paths(datadir, 'pkgconfig')/join_paths(prefix, 'libdata', 'pkgconfig')/" \
+		${WRKSRC}/meson.build
 
 .include <bsd.port.mk>

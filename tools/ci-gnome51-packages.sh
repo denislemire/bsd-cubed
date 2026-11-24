@@ -39,6 +39,8 @@ cp -R packaging/freebsd/bsd-cubed "$ports_root/sysutils/bsd-cubed"
 cp -R packaging/freebsd/dinit "$ports_root/sysutils/dinit"
 cp -R packaging/freebsd/gnome-qr51 "$ports_root/graphics/gnome-qr"
 
+mkdir "$work/repos"
+printf 'gnome51: { url: "file://%s", enabled: yes }\n' "$out/packages" >"$work/repos/gnome51.conf"
 for origin in devel/gsettings-desktop-schemas x11-themes/gnome-backgrounds \
     deskutils/gnome-font-viewer lang/gjs graphics/gnome-qr x11-wm/mutter x11/gnome-shell x11/gnome-session; do
     name=${origin##*/}
@@ -68,7 +70,9 @@ for origin in devel/gsettings-desktop-schemas x11-themes/gnome-backgrounds \
         exit 1
     }
     pkgname=$(make -C "$port" PORTSDIR="$ports_root" -V PKGNAME)
-    pkg add -f "$out/packages/All/$pkgname.pkg"
+    pkg repo "$out/packages"
+    pkg -R "$work/repos" update -f -r gnome51
+    pkg -R "$work/repos" install -Uy -r gnome51 "$pkgname"
 done
 
 # Smoke-test the exact staged schema tree and the newly packaged GJS runtime.
