@@ -42,7 +42,7 @@ cp -R packaging/freebsd/gnome-qr51 "$ports_root/graphics/gnome-qr"
 
 mkdir "$work/repos"
 printf 'gnome51: { url: "file://%s", enabled: yes }\n' "$out/packages" >"$work/repos/gnome51.conf"
-for origin in devel/glib20 x11-toolkits/gtk40 x11-toolkits/libadwaita devel/glibmm26 x11-toolkits/gtkmm40 sysutils/accountsservice \
+for origin in devel/glib20 devel/dconf x11-toolkits/gtk40 x11-toolkits/libadwaita devel/glibmm26 x11-toolkits/gtkmm40 sysutils/accountsservice \
     devel/gsettings-desktop-schemas x11-themes/gnome-backgrounds \
     deskutils/gnome-font-viewer x11/tecla lang/gjs graphics/gnome-qr x11/gnome-desktop sysutils/gnome-settings-daemon \
     net/gnome-online-accounts sysutils/gnome-control-center deskutils/baobab math/gnome-calculator \
@@ -66,7 +66,7 @@ for origin in devel/glib20 x11-toolkits/gtk40 x11-toolkits/libadwaita devel/glib
     while IFS= read -r dependency; do
         case "$dependency" in "$ports_root"/*) ;; *) exit 1 ;; esac
         case "${dependency#"$ports_root"/}" in
-            devel/glib20|devel/glibmm26|x11-toolkits/gtkmm40|x11-toolkits/gtk40|x11-toolkits/libadwaita|sysutils/accountsservice|sysutils/gnome-settings-daemon|x11/tecla) continue ;;
+            devel/glib20|devel/dconf|devel/glibmm26|x11-toolkits/gtkmm40|x11-toolkits/gtk40|x11-toolkits/libadwaita|sysutils/accountsservice|sysutils/gnome-settings-daemon|x11/tecla) continue ;;
             archivers/gnome-autoar|devel/tinysparql|net/gnome-online-accounts|accessibility/at-spi2-core|x11-toolkits/libshumate) continue ;;
             sysutils/bsd-cubed|graphics/gnome-qr|x11/gnome-desktop|lang/gjs|devel/gsettings-desktop-schemas|x11-wm/mutter|x11/gnome-shell) continue ;;
         esac
