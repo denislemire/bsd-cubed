@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 set -eu
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-[ "$(id -u)" -ne 0 ] || exit 77
 repo=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 patches="$repo/packaging/freebsd/gnome51"
 work=$(mktemp -d)
@@ -10,6 +9,20 @@ trap 'rm -rf "$work"' EXIT
 trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
+
+# The FreeBSD machine executor may check out under /root.
+if [ "$(id -u)" -eq 0 ]; then
+    id circleci >/dev/null
+    mkdir "$work/source"
+    git -C "$repo" archive --output="$work/source.tar" HEAD
+    tar -xf "$work/source.tar" -C "$work/source"
+    chown -R circleci "$work"
+    sudo -H -u circleci /usr/bin/env -i HOME=/home/circleci PATH="$PATH" \
+        /bin/sh "$work/source/tools/ci-gnome51-source.sh"
+    mkdir -p "$repo/dist/gnome51"
+    cp "$work/source/dist/gnome51/session-stage-manifest.txt" "$repo/dist/gnome51/"
+    exit 0
+fi
 
 while read -r checksum source; do
     archive="$work/${source##*/}"

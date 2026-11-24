@@ -12,19 +12,14 @@ Shell 51.1 and Session 51.0 are in
 | `shell-native.patch` | Use ConsoleKit and BSD³ readiness, keep the journal optional on FreeBSD, and decode backgrounds via GdkPixbuf. GNOME 51 moved image decoding from Mutter into Shell. Native ConsoleKit lacks the user-wide observation required by Shell's screen-time accounting. |
 | `session-native.patch` | Run the BSD³/Dinit graph and use the ConsoleKit adapter with GNOME 51's abstract `GsmSystem` class. Keep supported session state and inhibitors, and explicitly reject unavailable privileged power operations. The existing GNOME 49 build still selects the interface ABI. |
 
-The opt-in CircleCI pipeline uses `build-gnome51-packages=true`. It checks the
+The GNOME 51 topic branch runs this CircleCI pipeline automatically. Other branches can select it with `build-gnome51-packages=true`. It checks the
 source hashes, applies the consumer patches with zero fuzz, exercises the native
 Session adapter against a private ConsoleKit fixture, and stages the full Session
-build with the checkout's SDK. The package job also builds the initial GJS,
-schemas, backgrounds and font viewer packages.
+build with the checkout's SDK. The package job builds the bootstrap packages, then installs each candidate provider in build order for Mutter, Shell and Session. A complete package set still needs VM qualification.
 
 ## Remaining package and boot work
 
-1. Create the FreeBSD ports recipes and package manifests for Mutter 51, Shell 51
-   and Session 51. Mutter and Shell now use ABI suffix `51`. Build them against
-   the verified GNOME 51 schema and GJS packages. The pinned FreeBSD tree already
-   has Wayland 1.26.0, wayland-protocols 1.49, libinput 1.31.1 and libei 1.6.0,
-   which meet Mutter 51's declared minimums. Confirm the resolved versions in CI.
+1. Verify ports stage QA, package dependencies and the Mutter and Shell ABI 51 manifests on the pinned FreeBSD builder.
 2. Qualify the Dinit graph end to end on a disposable VM. Confirm the chosen
    Settings Daemon components, readiness, Wayland and Xwayland application launch,
    idle and inhibit handling, and bounded logout. Test native DRM/input and VT

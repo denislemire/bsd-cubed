@@ -94,6 +94,11 @@ jobs:
           destination: freebsd
 
   freebsd-gnome51-packages:
+    environment:
+      BSD3_USERSESSION: "yes"
+      PYTHON: /usr/local/bin/python3.12
+      BSD3_CI_PORTS_ROOT: /var/tmp/bsd3-ci-ports
+      PORTSDIR: /var/tmp/bsd3-ci-ports
     machine:
       image: freebsd-15.1:current
     resource_class: freebsd.medium
@@ -102,12 +107,20 @@ jobs:
       - run:
           name: Check GNOME 51 patches and stage the native Session build
           command: |
-            sudo pkg install -y curl dbus glib pkgconf meson ninja gettext-tools gnome-desktop
+            sudo pkg install -y git curl dbus glib pkgconf meson ninja gettext-tools gnome-desktop python312 gmake bind-tools consolekit2
             sh tools/ci-gnome51-source.sh
       - run:
-          name: Build and verify GNOME 51 bootstrap packages
+          name: Prepare the pinned ports tree and native session providers
           no_output_timeout: 30m
-          command: sudo /bin/sh tools/ci-gnome51-packages.sh
+          command: |
+            sh tools/ci-ports-tree.sh "$BSD3_CI_PORTS_ROOT" "$(cat packaging/freebsd/mutter49/PORTS_REVISION)"
+            sh tools/ci-consolekit.sh
+            sh tools/ci-user-session.sh
+            sh tools/ci-port.sh
+      - run:
+          name: Build and verify GNOME 51 packages
+          no_output_timeout: 30m
+          command: sh tools/ci-gnome51-packages.sh
       - store_artifacts:
           path: dist/gnome51
           destination: freebsd-gnome51
