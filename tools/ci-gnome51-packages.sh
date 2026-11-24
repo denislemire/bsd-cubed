@@ -50,10 +50,10 @@ printf 'gnome51: { url: "file://%s", enabled: yes }\n' "$out/packages" >"$work/r
 for origin in devel/glib20 devel/dconf x11-toolkits/gtk40 x11-toolkits/libadwaita devel/glibmm26 x11-toolkits/pangomm24 x11-toolkits/gtkmm40 sysutils/accountsservice \
     devel/gsettings-desktop-schemas x11-themes/gnome-backgrounds \
     deskutils/gnome-font-viewer x11/tecla lang/gjs devel/libpeas graphics/gnome-qr x11/gnome-desktop sysutils/gnome-settings-daemon \
-    devel/libsoup3 net/libcloudproviders security/libsecret security/gcr textproc/yelp-xsl x11/zenity \
+    devel/libsoup3 net/libcloudproviders security/libsecret security/gcr security/gnome-keyring textproc/yelp-xsl x11/zenity \
     net/gnome-online-accounts filesystems/gvfs databases/evolution-data-server net-im/folks sysutils/gnome-control-center deskutils/baobab math/gnome-calculator \
     x11-themes/adwaita-icon-theme deskutils/gnome-weather deskutils/gnome-clocks deskutils/gnome-calendar \
-    archivers/gnome-autoar mail/evolution devel/tinysparql sysutils/localsearch graphics/glycin x11-fm/nautilus graphics/papers x11-fm/sushi accessibility/at-spi2-core accessibility/orca x11/yelp x11-toolkits/libshumate deskutils/gnome-maps \
+    archivers/gnome-autoar mail/evolution devel/tinysparql sysutils/localsearch graphics/glycin deskutils/gnome-contacts x11-fm/nautilus graphics/papers x11-fm/sushi accessibility/at-spi2-core accessibility/orca x11/yelp x11-toolkits/libshumate deskutils/gnome-maps \
     sysutils/gnome-system-monitor x11/gnome-console deskutils/gnome-characters \
     editors/gnome-text-editor misc/gnome-user-docs x11/xdg-desktop-portal-gnome x11-wm/mutter x11/gnome-shell x11/gnome-shell-extensions x11/gnome-session www/webkit2-gtk www/epiphany; do
     name=${origin##*/}
@@ -74,7 +74,7 @@ for origin in devel/glib20 devel/dconf x11-toolkits/gtk40 x11-toolkits/libadwait
         case "${dependency#"$ports_root"/}" in
             www/webkit2-gtk@60) continue ;;
             devel/glib20|devel/dconf|devel/glibmm26|x11-toolkits/pangomm24|x11-toolkits/gtkmm40|x11-toolkits/gtk40|x11-toolkits/libadwaita|sysutils/accountsservice|sysutils/gnome-settings-daemon|x11/tecla) continue ;;
-            devel/libsoup3|net/libcloudproviders|security/libsecret|security/gcr|textproc/yelp-xsl|x11/zenity|graphics/glycin|x11-fm/nautilus) continue ;;
+            devel/libsoup3|net/libcloudproviders|security/libsecret|security/gcr|security/gnome-keyring|textproc/yelp-xsl|x11/zenity|graphics/glycin|x11-fm/nautilus) continue ;;
             archivers/gnome-autoar|devel/libpeas|filesystems/gvfs|devel/tinysparql|databases/evolution-data-server|net-im/folks|net/gnome-online-accounts|accessibility/at-spi2-core|x11-toolkits/libshumate) continue ;;
             sysutils/bsd-cubed|graphics/gnome-qr|x11/gnome-desktop|lang/gjs|devel/gsettings-desktop-schemas|x11-wm/mutter|x11/gnome-shell) continue ;;
         esac

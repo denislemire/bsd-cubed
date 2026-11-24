@@ -12,6 +12,13 @@ laptop candidate repository. Its 36 direct dependencies were already present.
 See the [architecture review and package priorities](gnome51-desktop-review.md).
 The internal main-branch channel still awaits publication.
 
+Contacts 51.0 and Keyring 51.1 are installed from the laptop candidate
+repository. Contacts passed all 13 upstream core and vCard tests. A disposable
+local Evolution address book passed create/read/delete. A fresh 51.1 Secret
+Service process unlocked and retrieved a test item written by 48.0, using a
+private bus and disposable home. This check exercised stored data compatibility;
+PAM unlock on the next real login remains a separate check.
+
 ## GNOME 49 baseline
 
 GNOME Shell 49.10 on Wayland, FreeBSD 15-STABLE. SDDM on labwc gets me in;
