@@ -1,0 +1,292 @@
+--- a/Makefile
++++ b/Makefile
+@@ -1,5 +1,5 @@
+ PORTNAME=	glib
+-DISTVERSION=	2.88.3
++DISTVERSION=	2.90.1
+ PORTEPOCH=	2
+ CATEGORIES=	devel
+ MASTER_SITES=	GNOME
+--- a/distinfo
++++ b/distinfo
+@@ -1,3 +1,3 @@
+-TIMESTAMP = 1785944598
+-SHA256 (gnome/glib-2.88.3.tar.xz) = ab24d24e698dfa1e408b7bcdb508f4aafc906185a8b8ce72fdf79bbbdc9b383b
+-SIZE (gnome/glib-2.88.3.tar.xz) = 5794356
++TIMESTAMP = 1795491665
++SHA256 (gnome/glib-2.90.1.tar.xz) = 93c941aa17d5eb1d53fe838365f29a8b4e539c222a256d974ec8f30fc413e396
++SIZE (gnome/glib-2.90.1.tar.xz) = 5871112
+--- a/pkg-plist
++++ b/pkg-plist
+@@ -691,6 +691,7 @@
+ %%DOCS%%share/doc/gio-2.0/ctor.DBusMessage.new.html
+ %%DOCS%%share/doc/gio-2.0/ctor.DBusMessage.new_from_blob.html
+ %%DOCS%%share/doc/gio-2.0/ctor.DBusMessage.new_method_call.html
++%%DOCS%%share/doc/gio-2.0/ctor.DBusMessage.new_method_error.html
+ %%DOCS%%share/doc/gio-2.0/ctor.DBusMessage.new_signal.html
+ %%DOCS%%share/doc/gio-2.0/ctor.DBusNodeInfo.new_for_xml.html
+ %%DOCS%%share/doc/gio-2.0/ctor.DBusObjectManagerClient.new_finish.html
+@@ -887,8 +888,6 @@
+ %%DOCS%%share/doc/gio-2.0/flags.TlsDatabaseVerifyFlags.html
+ %%DOCS%%share/doc/gio-2.0/flags.TlsPasswordFlags.html
+ %%DOCS%%share/doc/gio-2.0/fonts.css
+-%%DOCS%%share/doc/gio-2.0/func.DBUS_ACTION_GROUP.html
+-%%DOCS%%share/doc/gio-2.0/func.DBUS_ACTION_GROUP_CLASS.html
+ %%DOCS%%share/doc/gio-2.0/func.DBUS_AUTH_OBSERVER.html
+ %%DOCS%%share/doc/gio-2.0/func.DBUS_CONNECTION.html
+ %%DOCS%%share/doc/gio-2.0/func.DBUS_INTERFACE.html
+@@ -942,6 +941,7 @@
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_ENUMERATOR_IN_2_84_FOR.html
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_ENUMERATOR_IN_2_86_FOR.html
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_ENUMERATOR_IN_2_88_FOR.html
++%%DOCS%%share/doc/gio-2.0/func.DEPRECATED_ENUMERATOR_IN_2_90_FOR.html
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_FOR.html
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_IN_2_26_FOR.html
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_IN_2_28_FOR.html
+@@ -975,6 +975,7 @@
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_IN_2_84_FOR.html
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_IN_2_86_FOR.html
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_IN_2_88_FOR.html
++%%DOCS%%share/doc/gio-2.0/func.DEPRECATED_IN_2_90_FOR.html
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_MACRO_IN_2_26_FOR.html
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_MACRO_IN_2_28_FOR.html
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_MACRO_IN_2_30_FOR.html
+@@ -1007,6 +1008,7 @@
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_MACRO_IN_2_84_FOR.html
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_MACRO_IN_2_86_FOR.html
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_MACRO_IN_2_88_FOR.html
++%%DOCS%%share/doc/gio-2.0/func.DEPRECATED_MACRO_IN_2_90_FOR.html
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_TYPE_IN_2_26_FOR.html
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_TYPE_IN_2_28_FOR.html
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_TYPE_IN_2_30_FOR.html
+@@ -1039,6 +1041,7 @@
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_TYPE_IN_2_84_FOR.html
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_TYPE_IN_2_86_FOR.html
+ %%DOCS%%share/doc/gio-2.0/func.DEPRECATED_TYPE_IN_2_88_FOR.html
++%%DOCS%%share/doc/gio-2.0/func.DEPRECATED_TYPE_IN_2_90_FOR.html
+ %%DOCS%%share/doc/gio-2.0/func.TEST_DBUS.html
+ %%DOCS%%share/doc/gio-2.0/func.UNAVAILABLE.html
+ %%DOCS%%share/doc/gio-2.0/func.UNAVAILABLE_STATIC_INLINE.html
+@@ -1430,7 +1433,6 @@
+ %%DOCS%%share/doc/gio-2.0/method.DBusMessage.get_signature.html
+ %%DOCS%%share/doc/gio-2.0/method.DBusMessage.get_unix_fd_list.html
+ %%DOCS%%share/doc/gio-2.0/method.DBusMessage.lock.html
+-%%DOCS%%share/doc/gio-2.0/method.DBusMessage.new_method_error.html
+ %%DOCS%%share/doc/gio-2.0/method.DBusMessage.new_method_error_literal.html
+ %%DOCS%%share/doc/gio-2.0/method.DBusMessage.new_method_error_valist.html
+ %%DOCS%%share/doc/gio-2.0/method.DBusMessage.new_method_reply.html
+@@ -2613,8 +2615,11 @@
+ %%DOCS%%share/doc/gio-2.0/method.UnixConnection.send_fd.html
+ %%DOCS%%share/doc/gio-2.0/method.UnixCredentialsMessage.get_credentials.html
+ %%DOCS%%share/doc/gio-2.0/method.UnixFDList.append.html
++%%DOCS%%share/doc/gio-2.0/method.UnixFDList.append_take.html
+ %%DOCS%%share/doc/gio-2.0/method.UnixFDList.get.html
+ %%DOCS%%share/doc/gio-2.0/method.UnixFDList.get_length.html
++%%DOCS%%share/doc/gio-2.0/method.UnixFDList.lookup.html
++%%DOCS%%share/doc/gio-2.0/method.UnixFDList.peek.html
+ %%DOCS%%share/doc/gio-2.0/method.UnixFDList.peek_fds.html
+ %%DOCS%%share/doc/gio-2.0/method.UnixFDList.steal_fds.html
+ %%DOCS%%share/doc/gio-2.0/method.UnixSocketAddress.get_address_type.html
+@@ -2662,6 +2667,7 @@
+ %%DOCS%%share/doc/gio-2.0/migrating-gnome-vfs.html
+ %%DOCS%%share/doc/gio-2.0/migrating-posix.html
+ %%DOCS%%share/doc/gio-2.0/networking.html
++%%DOCS%%share/doc/gio-2.0/opensearch.xml
+ %%DOCS%%share/doc/gio-2.0/overview.html
+ %%DOCS%%share/doc/gio-2.0/pollable-utils.html
+ %%DOCS%%share/doc/gio-2.0/property.Action.enabled.html
+@@ -3854,6 +3860,7 @@
+ %%DOCS%%share/doc/gio-unix-2.0/method.OutputStream.get_close_fd.html
+ %%DOCS%%share/doc/gio-unix-2.0/method.OutputStream.get_fd.html
+ %%DOCS%%share/doc/gio-unix-2.0/method.OutputStream.set_close_fd.html
++%%DOCS%%share/doc/gio-unix-2.0/opensearch.xml
+ %%DOCS%%share/doc/gio-unix-2.0/property.DesktopAppInfo.filename.html
+ %%DOCS%%share/doc/gio-unix-2.0/property.FDMessage.fd-list.html
+ %%DOCS%%share/doc/gio-unix-2.0/property.InputStream.close-fd.html
+@@ -3983,6 +3990,7 @@
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_ENUMERATOR_IN_2_84_FOR.html
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_ENUMERATOR_IN_2_86_FOR.html
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_ENUMERATOR_IN_2_88_FOR.html
++%%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_ENUMERATOR_IN_2_90_FOR.html
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_FOR.html
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_IN_2_26_FOR.html
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_IN_2_28_FOR.html
+@@ -4016,6 +4024,7 @@
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_IN_2_84_FOR.html
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_IN_2_86_FOR.html
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_IN_2_88_FOR.html
++%%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_IN_2_90_FOR.html
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_MACRO_IN_2_26_FOR.html
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_MACRO_IN_2_28_FOR.html
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_MACRO_IN_2_30_FOR.html
+@@ -4048,6 +4057,7 @@
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_MACRO_IN_2_84_FOR.html
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_MACRO_IN_2_86_FOR.html
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_MACRO_IN_2_88_FOR.html
++%%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_MACRO_IN_2_90_FOR.html
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_TYPE_IN_2_26_FOR.html
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_TYPE_IN_2_28_FOR.html
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_TYPE_IN_2_30_FOR.html
+@@ -4080,6 +4090,7 @@
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_TYPE_IN_2_84_FOR.html
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_TYPE_IN_2_86_FOR.html
+ %%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_TYPE_IN_2_88_FOR.html
++%%DOCS%%share/doc/girepository-2.0/func.DEPRECATED_TYPE_IN_2_90_FOR.html
+ %%DOCS%%share/doc/girepository-2.0/func.UNAVAILABLE.html
+ %%DOCS%%share/doc/girepository-2.0/func.UNAVAILABLE_STATIC_INLINE.html
+ %%DOCS%%share/doc/girepository-2.0/func.VFUNC_INFO.html
+@@ -4287,6 +4298,7 @@
+ %%DOCS%%share/doc/girepository-2.0/method.VFuncInfo.invoke.html
+ %%DOCS%%share/doc/girepository-2.0/method.ValueInfo.get_value.html
+ %%DOCS%%share/doc/girepository-2.0/migrating-gi.html
++%%DOCS%%share/doc/girepository-2.0/opensearch.xml
+ %%DOCS%%share/doc/girepository-2.0/search.js
+ %%DOCS%%share/doc/girepository-2.0/solarized-dark.css
+ %%DOCS%%share/doc/girepository-2.0/solarized-light.css
+@@ -5231,12 +5243,16 @@
+ %%DOCS%%%%DOCSDIR%%-2.0/func.scanner_remove_symbol.html
+ %%DOCS%%%%DOCSDIR%%-2.0/func.scanner_thaw_symbol_table.html
+ %%DOCS%%%%DOCSDIR%%-2.0/func.set_application_name.html
++%%DOCS%%%%DOCSDIR%%-2.0/func.set_date_time.html
+ %%DOCS%%%%DOCSDIR%%-2.0/func.set_error.html
+ %%DOCS%%%%DOCSDIR%%-2.0/func.set_error_literal.html
+ %%DOCS%%%%DOCSDIR%%-2.0/func.set_prgname.html
+ %%DOCS%%%%DOCSDIR%%-2.0/func.set_print_handler.html
+ %%DOCS%%%%DOCSDIR%%-2.0/func.set_printerr_handler.html
+ %%DOCS%%%%DOCSDIR%%-2.0/func.set_str.html
++%%DOCS%%%%DOCSDIR%%-2.0/func.set_str_take.html
++%%DOCS%%%%DOCSDIR%%-2.0/func.set_strv.html
++%%DOCS%%%%DOCSDIR%%-2.0/func.set_strv_take.html
+ %%DOCS%%%%DOCSDIR%%-2.0/func.setenv.html
+ %%DOCS%%%%DOCSDIR%%-2.0/func.shell_error_quark.html
+ %%DOCS%%%%DOCSDIR%%-2.0/func.shell_parse_argv.html
+@@ -5403,6 +5419,7 @@
+ %%DOCS%%%%DOCSDIR%%-2.0/func.timeout_add_seconds_full.html
+ %%DOCS%%%%DOCSDIR%%-2.0/func.timeout_add_seconds_once.html
+ %%DOCS%%%%DOCSDIR%%-2.0/func.timeout_source_new.html
++%%DOCS%%%%DOCSDIR%%-2.0/func.timeout_source_new_ns.html
+ %%DOCS%%%%DOCSDIR%%-2.0/func.timeout_source_new_seconds.html
+ %%DOCS%%%%DOCSDIR%%-2.0/func.try_malloc.html
+ %%DOCS%%%%DOCSDIR%%-2.0/func.try_malloc0.html
+@@ -5799,6 +5816,7 @@
+ %%DOCS%%%%DOCSDIR%%-2.0/method.KeyFile.load_from_data_dirs.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.KeyFile.load_from_dirs.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.KeyFile.load_from_file.html
++%%DOCS%%%%DOCSDIR%%-2.0/method.KeyFile.load_unix_configurations.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.KeyFile.ref.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.KeyFile.remove_comment.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.KeyFile.remove_group.html
+@@ -5860,6 +5878,7 @@
+ %%DOCS%%%%DOCSDIR%%-2.0/method.MappedFile.unref.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.MarkupParseContext.end_parse.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.MarkupParseContext.free.html
++%%DOCS%%%%DOCSDIR%%-2.0/method.MarkupParseContext.get_attribute_position.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.MarkupParseContext.get_element.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.MarkupParseContext.get_element_stack.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.MarkupParseContext.get_offset.html
+@@ -6112,6 +6131,7 @@
+ %%DOCS%%%%DOCSDIR%%-2.0/method.Source.add_poll.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.Source.add_unix_fd.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.Source.attach.html
++%%DOCS%%%%DOCSDIR%%-2.0/method.Source.clear_ready_time.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.Source.destroy.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.Source.dup_context.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.Source.get_can_recurse.html
+@@ -6121,7 +6141,9 @@
+ %%DOCS%%%%DOCSDIR%%-2.0/method.Source.get_name.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.Source.get_priority.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.Source.get_ready_time.html
++%%DOCS%%%%DOCSDIR%%-2.0/method.Source.get_ready_time_ns.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.Source.get_time.html
++%%DOCS%%%%DOCSDIR%%-2.0/method.Source.get_time_ns.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.Source.is_destroyed.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.Source.modify_unix_fd.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.Source.query_unix_fd.html
+@@ -6137,6 +6159,7 @@
+ %%DOCS%%%%DOCSDIR%%-2.0/method.Source.set_name.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.Source.set_priority.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.Source.set_ready_time.html
++%%DOCS%%%%DOCSDIR%%-2.0/method.Source.set_ready_time_ns.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.Source.set_static_name.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.Source.unref.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.StaticMutex.free.html
+@@ -6177,6 +6200,7 @@
+ %%DOCS%%%%DOCSDIR%%-2.0/method.String.erase.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.String.free.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.String.free_and_steal.html
++%%DOCS%%%%DOCSDIR%%-2.0/method.String.free_deep.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.String.free_to_bytes.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.String.hash.html
+ %%DOCS%%%%DOCSDIR%%-2.0/method.String.insert.html
+@@ -6967,6 +6991,7 @@
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_ENUMERATOR_IN_2_84_FOR.html
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_ENUMERATOR_IN_2_86_FOR.html
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_ENUMERATOR_IN_2_88_FOR.html
++%%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_ENUMERATOR_IN_2_90_FOR.html
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_FOR.html
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_IN_2_26_FOR.html
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_IN_2_28_FOR.html
+@@ -7000,6 +7025,7 @@
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_IN_2_84_FOR.html
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_IN_2_86_FOR.html
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_IN_2_88_FOR.html
++%%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_IN_2_90_FOR.html
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_MACRO_IN_2_26_FOR.html
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_MACRO_IN_2_28_FOR.html
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_MACRO_IN_2_30_FOR.html
+@@ -7032,6 +7058,7 @@
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_MACRO_IN_2_84_FOR.html
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_MACRO_IN_2_86_FOR.html
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_MACRO_IN_2_88_FOR.html
++%%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_MACRO_IN_2_90_FOR.html
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_TYPE_IN_2_26_FOR.html
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_TYPE_IN_2_28_FOR.html
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_TYPE_IN_2_30_FOR.html
+@@ -7064,6 +7091,7 @@
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_TYPE_IN_2_84_FOR.html
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_TYPE_IN_2_86_FOR.html
+ %%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_TYPE_IN_2_88_FOR.html
++%%DOCS%%share/doc/gmodule-2.0/func.DEPRECATED_TYPE_IN_2_90_FOR.html
+ %%DOCS%%share/doc/gmodule-2.0/func.UNAVAILABLE.html
+ %%DOCS%%share/doc/gmodule-2.0/func.UNAVAILABLE_STATIC_INLINE.html
+ %%DOCS%%share/doc/gmodule-2.0/fzy.js
+@@ -7295,6 +7323,7 @@
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_ENUMERATOR_IN_2_84_FOR.html
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_ENUMERATOR_IN_2_86_FOR.html
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_ENUMERATOR_IN_2_88_FOR.html
++%%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_ENUMERATOR_IN_2_90_FOR.html
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_FOR.html
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_IN_2_26_FOR.html
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_IN_2_28_FOR.html
+@@ -7328,6 +7357,7 @@
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_IN_2_84_FOR.html
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_IN_2_86_FOR.html
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_IN_2_88_FOR.html
++%%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_IN_2_90_FOR.html
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_MACRO_IN_2_26_FOR.html
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_MACRO_IN_2_28_FOR.html
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_MACRO_IN_2_30_FOR.html
+@@ -7360,6 +7390,7 @@
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_MACRO_IN_2_84_FOR.html
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_MACRO_IN_2_86_FOR.html
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_MACRO_IN_2_88_FOR.html
++%%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_MACRO_IN_2_90_FOR.html
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_TYPE_IN_2_26_FOR.html
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_TYPE_IN_2_28_FOR.html
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_TYPE_IN_2_30_FOR.html
+@@ -7392,6 +7423,7 @@
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_TYPE_IN_2_84_FOR.html
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_TYPE_IN_2_86_FOR.html
+ %%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_TYPE_IN_2_88_FOR.html
++%%DOCS%%share/doc/gobject-2.0/func.DEPRECATED_TYPE_IN_2_90_FOR.html
+ %%DOCS%%share/doc/gobject-2.0/func.ENUM_CLASS_TYPE.html
+ %%DOCS%%share/doc/gobject-2.0/func.ENUM_CLASS_TYPE_NAME.html
+ %%DOCS%%share/doc/gobject-2.0/func.FLAGS_CLASS_TYPE.html
+@@ -8081,6 +8113,7 @@
+ %%NLS%%share/locale/ro/LC_MESSAGES/glib20.mo
+ %%NLS%%share/locale/ru/LC_MESSAGES/glib20.mo
+ %%NLS%%share/locale/rw/LC_MESSAGES/glib20.mo
++%%NLS%%share/locale/sat/LC_MESSAGES/glib20.mo
+ %%NLS%%share/locale/si/LC_MESSAGES/glib20.mo
+ %%NLS%%share/locale/sk/LC_MESSAGES/glib20.mo
+ %%NLS%%share/locale/sl/LC_MESSAGES/glib20.mo

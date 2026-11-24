@@ -20,7 +20,7 @@ ports_root=${BSD3_CI_PORTS_ROOT:-"$work/ports"}
 sh tools/ci-ports-tree.sh "$ports_root" "$revision"
 # Build dependencies come from the VM's configured FreeBSD package repository.
 pkg install -y pkgconf meson ninja python312 gettext-tools gettext-runtime \
-    glib gobject-introspection dbus spidermonkey140 libffi readline cairo \
+    glib glib-bootstrap gobject-introspection gobject-introspection-bootstrap dbus spidermonkey140 libffi readline cairo \
     libX11 libXext fontconfig freetype2 harfbuzz fribidi gtk4 libadwaita desktop-file-utils
 {
     freebsd-version -kru
@@ -41,19 +41,27 @@ cp -R packaging/freebsd/gnome-qr51 "$ports_root/graphics/gnome-qr"
 
 mkdir "$work/repos"
 printf 'gnome51: { url: "file://%s", enabled: yes }\n' "$out/packages" >"$work/repos/gnome51.conf"
-for origin in devel/gsettings-desktop-schemas x11-themes/gnome-backgrounds \
-    deskutils/gnome-font-viewer x11/tecla sysutils/gnome-settings-daemon lang/gjs graphics/gnome-qr x11-wm/mutter x11/gnome-shell x11/gnome-session; do
+for origin in devel/glib20 x11-toolkits/gtk40 sysutils/accountsservice \
+    devel/gsettings-desktop-schemas x11-themes/gnome-backgrounds \
+    deskutils/gnome-font-viewer x11/tecla lang/gjs graphics/gnome-qr x11/gnome-desktop sysutils/gnome-settings-daemon x11-wm/mutter x11/gnome-shell x11/gnome-session; do
     name=${origin##*/}
     port="$work/overlay/$origin"
     mkdir -p "${port%/*}"
-    cp -R "packaging/freebsd/${name}51" "$port"
+    recipe="$repo/packaging/freebsd/${name}51"
+    if [ -f "$recipe/port.patch" ]; then
+        cp -R "$ports_root/$origin" "$port"
+        patch -s -d "$port" -p1 <"$recipe/port.patch"
+    else
+        cp -R "$recipe" "$port"
+    fi
     make -C "$port" PORTSDIR="$ports_root" DEPENDS_SHOW_FLAVOR=yes \
         build-depends-list run-depends-list >"$work/dependencies"
     sort -u "$work/dependencies" >"$work/origins"
     while IFS= read -r dependency; do
         case "$dependency" in "$ports_root"/*) ;; *) exit 1 ;; esac
         case "${dependency#"$ports_root"/}" in
-            sysutils/bsd-cubed|graphics/gnome-qr|lang/gjs|devel/gsettings-desktop-schemas|x11-wm/mutter|x11/gnome-shell) continue ;;
+            devel/glib20|x11-toolkits/gtk40|sysutils/accountsservice) continue ;;
+            sysutils/bsd-cubed|graphics/gnome-qr|x11/gnome-desktop|lang/gjs|devel/gsettings-desktop-schemas|x11-wm/mutter|x11/gnome-shell) continue ;;
         esac
         case "$dependency" in
             *@*) make -C "${dependency%@*}" PORTSDIR="$ports_root" FLAVOR="${dependency##*@}" -V PKGBASE ;;
@@ -78,7 +86,8 @@ for origin in devel/gsettings-desktop-schemas x11-themes/gnome-backgrounds \
     else
         pkg -R "$work/repos" install -Uy -r gnome51 "$pkgname"
     fi
-    [ "$(pkg query '%n-%v' "$name")" = "$pkgname" ]
+    pkgbase=$(make -C "$port" PORTSDIR="$ports_root" -V PKGBASE)
+    [ "$(pkg query '%n-%v' "$pkgbase")" = "$pkgname" ]
 done
 
 # Smoke-test the exact staged schema tree and the newly packaged GJS runtime.

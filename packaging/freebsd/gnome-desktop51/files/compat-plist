@@ -1,0 +1,13 @@
+include/gnome-desktop-4.0/gnome-rr/gnome-rr-config.h
+include/gnome-desktop-4.0/gnome-rr/gnome-rr-output-info.h
+include/gnome-desktop-4.0/gnome-rr/gnome-rr-screen.h
+include/gnome-desktop-4.0/gnome-rr/gnome-rr-types.h
+include/gnome-desktop-4.0/gnome-rr/gnome-rr.h
+lib/girepository-1.0/GnomeRR-4.0.typelib
+lib/libgnome-desktop-3.so.20
+lib/libgnome-desktop-3.so.20.0.0
+lib/libgnome-rr-4.so
+lib/libgnome-rr-4.so.2
+lib/libgnome-rr-4.so.2.1.4
+libdata/pkgconfig/gnome-rr-4.pc
+share/gir-1.0/GnomeRR-4.0.gir

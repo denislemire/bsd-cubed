@@ -7,6 +7,8 @@ packaging/freebsd/gdm/*.patch -whitespace
 packaging/freebsd/gdm/files/patch-* -whitespace
 packaging/freebsd/gnome-session47/*.patch -whitespace
 packaging/freebsd/*49/files/patch-* -whitespace
+packaging/freebsd/*51/files/patch-* -whitespace
+packaging/freebsd/*51/port.patch -whitespace
 packaging/freebsd/gnome-session49/*.patch -whitespace
 packaging/freebsd/gnome51/*.patch -whitespace
 packaging/freebsd/bsdisks/files/patch-* -whitespace

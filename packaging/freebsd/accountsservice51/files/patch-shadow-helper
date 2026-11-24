@@ -1,0 +1,19 @@
+--- src/daemon.c.orig
++++ src/daemon.c
+@@ -233,6 +233,7 @@
+         g_remove (icon_filename);
+ }
+ 
++#ifdef HAVE_SHADOW_H
+ static int
+ fgetspent_r_compat (FILE         *fp,
+                     struct spwd  *spbuf,
+@@ -266,6 +267,8 @@
+         return fgetspent_r (fp, spbuf, buf, len, entry);
+ #endif
+ }
++
++#endif
+ 
+ typedef struct
+ {
