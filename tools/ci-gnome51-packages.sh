@@ -37,9 +37,10 @@ set -- dist/packages/All/bsd-cubed-*.pkg
 pkg add -f "$1"
 cp -R packaging/freebsd/bsd-cubed "$ports_root/sysutils/bsd-cubed"
 cp -R packaging/freebsd/dinit "$ports_root/sysutils/dinit"
+cp -R packaging/freebsd/gnome-qr51 "$ports_root/graphics/gnome-qr"
 
 for origin in devel/gsettings-desktop-schemas x11-themes/gnome-backgrounds \
-    deskutils/gnome-font-viewer lang/gjs x11-wm/mutter x11/gnome-shell x11/gnome-session; do
+    deskutils/gnome-font-viewer lang/gjs graphics/gnome-qr x11-wm/mutter x11/gnome-shell x11/gnome-session; do
     name=${origin##*/}
     port="$work/overlay/$origin"
     mkdir -p "${port%/*}"
@@ -50,7 +51,7 @@ for origin in devel/gsettings-desktop-schemas x11-themes/gnome-backgrounds \
     while IFS= read -r dependency; do
         case "$dependency" in "$ports_root"/*) ;; *) exit 1 ;; esac
         case "${dependency#"$ports_root"/}" in
-            sysutils/bsd-cubed|lang/gjs|devel/gsettings-desktop-schemas|x11-wm/mutter|x11/gnome-shell) continue ;;
+            sysutils/bsd-cubed|graphics/gnome-qr|lang/gjs|devel/gsettings-desktop-schemas|x11-wm/mutter|x11/gnome-shell) continue ;;
         esac
         case "$dependency" in
             *@*) make -C "${dependency%@*}" PORTSDIR="$ports_root" FLAVOR="${dependency##*@}" -V PKGBASE ;;
@@ -78,6 +79,21 @@ schema_prefix=$(make -C "$schema_port" PORTSDIR="$ports_root" -V PREFIX)
 glib-compile-schemas --strict --dry-run "$schema_stage$schema_prefix/share/glib-2.0/schemas"
 [ "$(gjs -c 'print(imports.system.version)')" = 19001 ]
 gjs -c 'if (typeof imports.gi.GLib.get_monotonic_time() !== "number") imports.system.exit(1)'
+
+pkg install -y wayland-utils
+mkdir "$work/runtime"
+cc tests/native-window.c -o "$work/runtime/native-window" $(pkg-config --cflags --libs gtk+-3.0)
+cp tests/native-shell49.py "$work/runtime/check-shell.py"
+# Keep the packages and build inputs private to the controller.
+runtime=$(mktemp -d)
+cp "$work/runtime/"* "$runtime/"
+chown -R circleci "$runtime"
+status=0
+(cd "$runtime" && sudo -H -u circleci /usr/bin/env -i HOME=/home/circleci PATH="$PATH" \
+    timeout -k 5 90 dbus-run-session -- python3.12 ./check-shell.py ./native-window 51.1) || status=$?
+if [ -d "$runtime/dist/shell51" ]; then cp -R "$runtime/dist/shell51" "$out/runtime"; fi
+rm -rf "$runtime"
+[ "$status" -eq 0 ]
 
 (cd "$out/packages/All" && sha256 -r ./*.pkg) >"$out/SHA256SUMS"
 cp -R "$work/distfiles/gnome" "$out/sources"

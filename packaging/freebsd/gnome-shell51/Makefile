@@ -29,7 +29,8 @@ LIB_DEPENDS=	libgcr-4.so:security/gcr \
 		libpipewire-0.3.so:multimedia/pipewire \
 		libibus-1.0.so:textproc/ibus
 
-RUN_DEPENDS=	gjs>=1.90:lang/gjs \
+RUN_DEPENDS=	gnome-qr>=51:graphics/gnome-qr \
+		gjs>=1.90:lang/gjs \
 		gsettings-desktop-schemas>=51:devel/gsettings-desktop-schemas \
 		bsd-cubed>=0.2.0.a1:sysutils/bsd-cubed \
 		tecla:x11/tecla

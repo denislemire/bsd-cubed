@@ -28,3 +28,10 @@ build with the checkout's SDK. The package job builds the bootstrap packages, th
    Install into the mounted clone with `pkg -c`, refresh its schema cache,
    use a separate settings profile, and select the candidate for a one-time boot.
    The current environment remains the default until interactive acceptance.
+
+The staged Shell 51.1 reported its version on a private D-Bus, served a GTK
+Wayland window on a virtual monitor and exited normally on the HP. This used
+Mutter 51.1, GJS 1.90.1, the GNOME 51 settings schemas and typings, and
+GnomeQR 4.0. The graphics/gnome-qr overlay builds the QR library from the
+pinned GNOME Desktop 51.0 distribution. This keeps the GNOME Desktop 3 ABI
+used by installed applications including Evolution and Evince.
