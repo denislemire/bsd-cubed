@@ -49,7 +49,7 @@ for origin in devel/glib20 x11-toolkits/gtk40 x11-toolkits/libadwaita devel/glib
     x11-themes/adwaita-icon-theme deskutils/gnome-weather deskutils/gnome-clocks deskutils/gnome-calendar \
     archivers/gnome-autoar devel/tinysparql sysutils/localsearch accessibility/at-spi2-core accessibility/orca x11/yelp x11-toolkits/libshumate deskutils/gnome-maps \
     sysutils/gnome-system-monitor x11/gnome-console deskutils/gnome-characters \
-    editors/gnome-text-editor misc/gnome-user-docs x11-wm/mutter x11/gnome-shell x11/gnome-shell-extensions x11/gnome-session; do
+    editors/gnome-text-editor misc/gnome-user-docs x11/xdg-desktop-portal-gnome x11-wm/mutter x11/gnome-shell x11/gnome-shell-extensions x11/gnome-session; do
     name=${origin##*/}
     port="$work/overlay/$origin"
     mkdir -p "${port%/*}"
