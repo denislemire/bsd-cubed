@@ -1,9 +1,13 @@
 # What I have running
 
-Last poked: 11 November 2026. Dated notes in this directory are older lab
+Updated 24 November 2026. Dated notes in this directory are older lab
 scribbles. This page and the root README are the current story.
 
-## On my machine
+## GNOME 51 trial
+
+The laptop is running FreeBSD 15.2-STABLE in the GNOME 51 trial boot environment. Files 51.1, Papers 51.1 and Sushi 51.2 are installed. Evolution and Evolution Data Server 3.62.1 are installed alongside GNOME Shell 51.1_1, Calendar 51.0_1 and Folks 0.15.12_1, rebuilt for the new shared libraries. Installed-file checks passed, and Files and Papers reported version 51.1. Interactive file previews, mail and the logout/login cycle still need desktop validation with this batch. Epiphany remains at 49.9.1 pending WebKitGTK. The stable boot environment remains the default.
+
+## GNOME 49 baseline
 
 GNOME Shell 49.10 on Wayland, FreeBSD 15-STABLE. SDDM on labwc gets me in;
 ordinary apps and logout work. Package set:
@@ -21,6 +25,6 @@ check, not a desktop.
 
 Your hardware will invent new problems. That is fine.
 
-GNOME 47 was the first thing that booted. GNOME 49 is what I use. Some
+GNOME 47 was the first thing that booted. GNOME 49 was the previous desktop. Some
 libraries keep their own numbers (gnome-desktop 44.5 is a GNOME 49 pick, not
 a leftover 47 port).
