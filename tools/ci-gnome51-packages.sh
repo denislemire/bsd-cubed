@@ -42,7 +42,7 @@ cp -R packaging/freebsd/gnome-qr51 "$ports_root/graphics/gnome-qr"
 mkdir "$work/repos"
 printf 'gnome51: { url: "file://%s", enabled: yes }\n' "$out/packages" >"$work/repos/gnome51.conf"
 for origin in devel/gsettings-desktop-schemas x11-themes/gnome-backgrounds \
-    deskutils/gnome-font-viewer lang/gjs graphics/gnome-qr x11-wm/mutter x11/gnome-shell x11/gnome-session; do
+    deskutils/gnome-font-viewer x11/tecla lang/gjs graphics/gnome-qr x11-wm/mutter x11/gnome-shell x11/gnome-session; do
     name=${origin##*/}
     port="$work/overlay/$origin"
     mkdir -p "${port%/*}"
