@@ -46,11 +46,11 @@ fi
 
 mkdir "$work/repos"
 printf 'gnome51: { url: "file://%s", enabled: yes }\n' "$out/packages" >"$work/repos/gnome51.conf"
-for origin in devel/glib20 devel/dconf x11-toolkits/gtk40 x11-toolkits/libadwaita devel/glibmm26 x11-toolkits/gtkmm40 sysutils/accountsservice \
+for origin in devel/glib20 devel/dconf x11-toolkits/gtk40 x11-toolkits/libadwaita devel/glibmm26 x11-toolkits/pangomm24 x11-toolkits/gtkmm40 sysutils/accountsservice \
     devel/gsettings-desktop-schemas x11-themes/gnome-backgrounds \
-    deskutils/gnome-font-viewer x11/tecla lang/gjs graphics/gnome-qr x11/gnome-desktop sysutils/gnome-settings-daemon \
+    deskutils/gnome-font-viewer x11/tecla lang/gjs devel/libpeas graphics/gnome-qr x11/gnome-desktop sysutils/gnome-settings-daemon \
     devel/libsoup3 net/libcloudproviders security/libsecret security/gcr textproc/yelp-xsl x11/zenity4 \
-    net/gnome-online-accounts databases/evolution-data-server net-im/folks sysutils/gnome-control-center deskutils/baobab math/gnome-calculator \
+    net/gnome-online-accounts filesystems/gvfs databases/evolution-data-server net-im/folks sysutils/gnome-control-center deskutils/baobab math/gnome-calculator \
     x11-themes/adwaita-icon-theme deskutils/gnome-weather deskutils/gnome-clocks deskutils/gnome-calendar \
     archivers/gnome-autoar mail/evolution devel/tinysparql sysutils/localsearch graphics/glycin x11-fm/nautilus graphics/papers x11-fm/sushi accessibility/at-spi2-core accessibility/orca x11/yelp x11-toolkits/libshumate deskutils/gnome-maps \
     sysutils/gnome-system-monitor x11/gnome-console deskutils/gnome-characters \
@@ -71,9 +71,9 @@ for origin in devel/glib20 devel/dconf x11-toolkits/gtk40 x11-toolkits/libadwait
     while IFS= read -r dependency; do
         case "$dependency" in "$ports_root"/*) ;; *) exit 1 ;; esac
         case "${dependency#"$ports_root"/}" in
-            devel/glib20|devel/dconf|devel/glibmm26|x11-toolkits/gtkmm40|x11-toolkits/gtk40|x11-toolkits/libadwaita|sysutils/accountsservice|sysutils/gnome-settings-daemon|x11/tecla) continue ;;
+            devel/glib20|devel/dconf|devel/glibmm26|x11-toolkits/pangomm24|x11-toolkits/gtkmm40|x11-toolkits/gtk40|x11-toolkits/libadwaita|sysutils/accountsservice|sysutils/gnome-settings-daemon|x11/tecla) continue ;;
             devel/libsoup3|net/libcloudproviders|security/libsecret|security/gcr|textproc/yelp-xsl|x11/zenity4|graphics/glycin|x11-fm/nautilus) continue ;;
-            archivers/gnome-autoar|devel/tinysparql|databases/evolution-data-server|net-im/folks|net/gnome-online-accounts|accessibility/at-spi2-core|x11-toolkits/libshumate) continue ;;
+            archivers/gnome-autoar|devel/libpeas|filesystems/gvfs|devel/tinysparql|databases/evolution-data-server|net-im/folks|net/gnome-online-accounts|accessibility/at-spi2-core|x11-toolkits/libshumate) continue ;;
             sysutils/bsd-cubed|graphics/gnome-qr|x11/gnome-desktop|lang/gjs|devel/gsettings-desktop-schemas|x11-wm/mutter|x11/gnome-shell) continue ;;
         esac
         case "$dependency" in
