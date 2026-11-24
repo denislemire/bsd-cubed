@@ -482,7 +482,18 @@
  
  #include <errno.h>
  #include <math.h>
-@@ -798,7 +799,14 @@
+@@ -34,9 +35,8 @@
+ 
+ #ifdef HAVE_SYSTEMD
+ #include <systemd/sd-login.h>
++#include <systemd/sd-daemon.h>
+ #endif /* HAVE_SYSTEMD */
+-
+-#include <systemd/sd-daemon.h>
+ 
+ static void
+ stop_pick (ClutterActor *actor)
+@@ -798,7 +798,16 @@
  {
    /* We only use NOTIFY_SOCKET exactly once; unset it so it doesn't remain in
     * our environment. */
@@ -493,8 +504,10 @@
 +      if (result < 0)
 +        g_error ("Native session readiness failed: %s", g_strerror (-result));
 +    }
++#ifdef HAVE_SYSTEMD
 +  else
 +    sd_notify (1, "READY=1");
++#endif
  }
  
  /**

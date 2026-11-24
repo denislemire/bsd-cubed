@@ -64,6 +64,7 @@ MESON_ARGS=	-Dbash_completion=false \
 		-Dinstalled_tests=false
 
 GLIB_SCHEMAS=	org.gnome.mutter.gschema.xml \
+		org.gnome.mutter.experimental.gschema.xml \
 		org.gnome.mutter.wayland.gschema.xml
 
 # The GNOME 51 native FreeBSD package is explicitly Wayland, with Xwayland apps.

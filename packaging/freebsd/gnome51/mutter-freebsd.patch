@@ -683,3 +683,28 @@
        manager->unix_fd_watch =
          create_fd_watch (manager, manager->public_connection.unix_fd, G_IO_IN);
      }
+--- a/src/core/window-private.h
++++ b/src/core/window-private.h
+@@ -526,7 +526,7 @@
+   guint placed : 1;
+ 
+   /* Have this window been positioned? */
+-  uint unconstrained_rect_valid : 1;
++  unsigned int unconstrained_rect_valid : 1;
+ 
+   /* Has this window not ever been shown yet? */
+   guint showing_for_first_time : 1;
+--- a/src/backends/meta-stream-source.c
++++ b/src/backends/meta-stream-source.c
+@@ -37,7 +37,11 @@
+ #include <spa/utils/result.h>
+ #include <stdint.h>
+ #include <sys/mman.h>
++#ifdef __FreeBSD__
++#include <sys/types.h>
++#else
+ #include <sys/sysmacros.h>
++#endif
+ 
+ #include <drm_fourcc.h>
+ 
