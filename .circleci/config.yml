@@ -107,7 +107,8 @@ jobs:
       - run:
           name: Check GNOME 51 patches and stage the native Session build
           command: |
-            sudo pkg install -y git curl dbus glib pkgconf meson ninja gettext-tools gnome-desktop python312 gmake bind-tools consolekit2
+            sudo pkg install -y git curl dbus glib pkgconf meson ninja gettext-tools gnome-desktop python312 expat gmake bind-tools consolekit2
+            python3.12 -c 'from xml.parsers import expat; expat.ParserCreate().Parse("<probe/>", True)'
             sh tools/ci-gnome51-source.sh
       - run:
           name: Prepare the pinned ports tree and native session providers
