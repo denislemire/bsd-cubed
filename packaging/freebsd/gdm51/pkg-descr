@@ -1,0 +1,2 @@
+GDM manages graphical greeters and login sessions for the GNOME desktop.
+This FreeBSD port uses bsd-cubed to query ConsoleKit session state.

@@ -1,0 +1,43 @@
+--- meson.build.orig
++++ meson.build
+@@ -71,7 +71,17 @@
+ # systemd
+ logind_provider = get_option('logind-provider')
+ systemd_dep = dependency('systemd', required: false)
+-if logind_provider == 'systemd'
++use_bsd_cubed = logind_provider == 'bsd-cubed'
++if use_bsd_cubed
++  assert(host_machine.system() == 'freebsd', 'bsd-cubed requires FreeBSD')
++  logind_dep = dependency('bsd3-login')
++  assert(cc.has_function('sd_session_get_vt',
++    prefix: '#include <bsd3/sd-login.h>', dependencies: logind_dep),
++    'bsd3-login lacks the GDM session-query API')
++  have_userdb = false
++  greeter_uid_min = 0
++  greeter_uid_max = 0
++elif logind_provider == 'systemd'
+   libsystemd_dep = dependency('libsystemd')
+   logind_dep = libsystemd_dep
+ 
+@@ -241,7 +251,8 @@
+ conf.set_quoted('GDM_DYN_HOME_DIR', gdm_dyn_home_dir)
+ conf.set_quoted('NOLOGIN_PATH', nologin_path)
+ conf.set('WITH_PLYMOUTH', plymouth_dep.found())
+-conf.set('HAVE_UDEV', gudev_dep.found())
++conf.set('HAVE_BSD_CUBED', use_bsd_cubed)
++conf.set('HAVE_UDEV', gudev_dep.found() and not use_bsd_cubed)
+ conf.set('HAVE_UT_UT_HOST', utmp_has_host_field)
+ conf.set('HAVE_UT_UT_PID', utmp_has_pid_field)
+ conf.set('HAVE_UT_UT_ID', utmp_has_id_field)
+@@ -265,7 +276,10 @@
+ subdir('daemon')
+ subdir('libgdm')
+ subdir('utils')
+-subdir('pam_gdm')
++# pam_gdm imports cryptsetup passwords from the Linux kernel keyring.
++if not use_bsd_cubed
++  subdir('pam_gdm')
++endif
+ subdir('po')
+ if libcheck_dep.found()
+   subdir('tests')

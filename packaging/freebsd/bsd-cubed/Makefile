@@ -1,6 +1,6 @@
 PORTNAME=	bsd-cubed
 DISTVERSION=	0.2.0-alpha3
-PORTREVISION=	1
+PORTREVISION=	2
 CATEGORIES=	sysutils
 MASTER_SITES=	https://github.com/denislemire/bsd-cubed/releases/download/v${DISTVERSION}/
 
@@ -35,6 +35,11 @@ USERSESSION_MAKE_ARGS= PYTHON=${PYTHON_CMD}
 USERSESSION_ALL_TARGET= user-session
 USERSESSION_INSTALL_TARGET= install-user-session
 USERSESSION_TEST_TARGET= test-user-session
+
+# ci-port builds the current checkout, which already contains these changes.
+.if ${BSD3_SOURCE_SNAPSHOT:Uno} != yes
+EXTRA_PATCHES=	${FILESDIR}/gdm-session-queries.diff:-p1
+.endif
 
 post-install:
 	${MKDIR} ${STAGEDIR}${PREFIX}/etc/dbus-1/system.d

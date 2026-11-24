@@ -13,5 +13,7 @@ packaging/freebsd/gnome-session49/*.patch -whitespace
 packaging/freebsd/gnome51/*.patch -whitespace
 packaging/freebsd/bsdisks/files/patch-* -whitespace
 
+packaging/freebsd/bsd-cubed/files/*.diff -whitespace
+
 # Generated review documents are binary artifacts.
 *.pdf binary

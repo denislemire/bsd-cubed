@@ -20,8 +20,8 @@ option_args=OPTIONS_UNSET=USERSESSION
 if [ "${BSD3_USERSESSION:-no}" = yes ]; then
     option_args=OPTIONS_SET=USERSESSION
 fi
-distname=$(make -C "$port" PORTSDIR="$ports_root" -V DISTNAME)
-pkgname=$(make -C "$port" PORTSDIR="$ports_root" -V PKGNAME)
+distname=$(make -C "$port" BSD3_SOURCE_SNAPSHOT=yes PORTSDIR="$ports_root" -V DISTNAME)
+pkgname=$(make -C "$port" BSD3_SOURCE_SNAPSHOT=yes PORTSDIR="$ports_root" -V PKGNAME)
 # Limit framework-derived names before using them as filesystem components.
 case "$distname:$pkgname" in *[!A-Za-z0-9_.:+-]*|:*|*:) exit 1 ;; esac
 source_root="$work_root/source/$distname"
@@ -55,10 +55,10 @@ ports_root=$2
 build_root=$3
 option_args=$4
 [ "$(id -u)" -gt 0 ] || exit 77
-make -C "$port" PORTSDIR="$ports_root" DISTDIR="$build_root/distfiles" \
+make -C "$port" BSD3_SOURCE_SNAPSHOT=yes PORTSDIR="$ports_root" DISTDIR="$build_root/distfiles" \
     WRKDIRPREFIX="$build_root/work" PACKAGES="$build_root/packages" \
     MASTER_SITES="file://$build_root/distfiles/" "$option_args" makesum
-make -C "$port" PORTSDIR="$ports_root" DISTDIR="$build_root/distfiles" \
+make -C "$port" BSD3_SOURCE_SNAPSHOT=yes PORTSDIR="$ports_root" DISTDIR="$build_root/distfiles" \
     WRKDIRPREFIX="$build_root/work" PACKAGES="$build_root/packages" \
     MASTER_SITES="file://$build_root/distfiles/" DEVELOPER=yes "$option_args" \
     stage test check-plist stage-qa package
@@ -76,10 +76,10 @@ BUILD
     mkdir -p "$repo_root/dist/packages/All"
     cp "$package" "$repo_root/dist/packages/All/$pkgname.pkg"
 else
-    make -C "$port" PORTSDIR="$ports_root" DISTDIR="$work_root/distfiles" \
+    make -C "$port" BSD3_SOURCE_SNAPSHOT=yes PORTSDIR="$ports_root" DISTDIR="$work_root/distfiles" \
         WRKDIRPREFIX="$work_root/work" PACKAGES="$repo_root/dist/packages" \
         MASTER_SITES="file://$work_root/distfiles/" $option_args makesum
-    make -C "$port" PORTSDIR="$ports_root" DISTDIR="$work_root/distfiles" \
+    make -C "$port" BSD3_SOURCE_SNAPSHOT=yes PORTSDIR="$ports_root" DISTDIR="$work_root/distfiles" \
         WRKDIRPREFIX="$work_root/work" PACKAGES="$repo_root/dist/packages" \
         MASTER_SITES="file://$work_root/distfiles/" DEVELOPER=yes $option_args \
         stage test check-plist stage-qa package

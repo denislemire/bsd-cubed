@@ -1,0 +1,11 @@
+--- meson_options.txt.orig
++++ meson_options.txt
+@@ -11,7 +11,7 @@
+ option('initial-vt', type: 'integer', value: 1, description: 'Initial virtual terminal to use.')
+ option('lang-file', type: 'string', value: '', description: 'File containing default language settings.')
+ option('libaudit', type: 'feature', value: 'auto', description: 'Add Linux audit support.')
+-option('logind-provider', type: 'combo', choices: ['systemd', 'elogind'], value: 'systemd', description: 'Which logind library to use.')
++option('logind-provider', type: 'combo', choices: ['systemd', 'elogind', 'bsd-cubed'], value: 'systemd', description: 'Which logind library to use.')
+ option('log-dir', type: 'string', value: '/var/log/gdm', description: 'Log directory.')
+ option('pam-services-dir', type: 'string', value: '', description: 'Directory to install PAM services in.')
+ option('pam-mod-dir', type: 'string', value: '', description: 'Directory to install PAM modules in.')
