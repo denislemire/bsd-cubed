@@ -35,3 +35,12 @@ Mutter 51.1, GJS 1.90.1, the GNOME 51 settings schemas and typings, and
 GnomeQR 4.0. The graphics/gnome-qr overlay builds the QR library from the
 pinned GNOME Desktop 51.0 distribution. This keeps the GNOME Desktop 3 ABI
 used by installed applications including Evolution and Evince.
+
+A second build used the pinned ports framework in a jail cloned from the HP's
+15.2-STABLE boot environment. All eight packages passed the ports manifest
+checks. After installation, pkg verified their dependencies and file checksums.
+The installed Shell reported 51.1 on D-Bus, mapped a GTK Wayland window,
+delivered five frame callbacks, and exited normally. A solver rehearsal using
+a copy of the HP's package database selected seven upgrades and the new
+gnome-qr package, with zero conflicts or removals. Hardware login, VT switching
+and logout through the display manager still require a boot trial.

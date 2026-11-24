@@ -72,7 +72,13 @@ for origin in devel/gsettings-desktop-schemas x11-themes/gnome-backgrounds \
     pkgname=$(make -C "$port" PORTSDIR="$ports_root" -V PKGNAME)
     pkg repo "$out/packages"
     pkg -R "$work/repos" update -f -r gnome51
-    pkg -R "$work/repos" install -Uy -r gnome51 "$pkgname"
+    # Only the disposable builder needs the new Mutter before Shell can be built.
+    if [ "$name" = mutter ] && pkg info -e 'gnome-shell<51'; then
+        pkg add -f "$out/packages/All/$pkgname.pkg"
+    else
+        pkg -R "$work/repos" install -Uy -r gnome51 "$pkgname"
+    fi
+    [ "$(pkg query '%n-%v' "$name")" = "$pkgname" ]
 done
 
 # Smoke-test the exact staged schema tree and the newly packaged GJS runtime.
