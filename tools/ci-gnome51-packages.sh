@@ -52,7 +52,7 @@ for origin in devel/glib20 devel/dconf x11-toolkits/gtk40 x11-toolkits/libadwait
     devel/libsoup3 net/libcloudproviders security/libsecret security/gcr textproc/yelp-xsl x11/zenity4 \
     net/gnome-online-accounts databases/evolution-data-server net-im/folks sysutils/gnome-control-center deskutils/baobab math/gnome-calculator \
     x11-themes/adwaita-icon-theme deskutils/gnome-weather deskutils/gnome-clocks deskutils/gnome-calendar \
-    archivers/gnome-autoar devel/tinysparql sysutils/localsearch graphics/glycin x11-fm/nautilus graphics/papers x11-fm/sushi accessibility/at-spi2-core accessibility/orca x11/yelp x11-toolkits/libshumate deskutils/gnome-maps \
+    archivers/gnome-autoar mail/evolution devel/tinysparql sysutils/localsearch graphics/glycin x11-fm/nautilus graphics/papers x11-fm/sushi accessibility/at-spi2-core accessibility/orca x11/yelp x11-toolkits/libshumate deskutils/gnome-maps \
     sysutils/gnome-system-monitor x11/gnome-console deskutils/gnome-characters \
     editors/gnome-text-editor misc/gnome-user-docs x11/xdg-desktop-portal-gnome x11-wm/mutter x11/gnome-shell x11/gnome-shell-extensions x11/gnome-session; do
     name=${origin##*/}
