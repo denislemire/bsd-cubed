@@ -5,7 +5,7 @@ scribbles. This page and the root README are the current story.
 
 ## GNOME 51 trial
 
-The laptop is running FreeBSD 15.2-STABLE in the GNOME 51 trial boot environment. Files 51.1, Papers 51.1 and Sushi 51.2 are installed. Evolution and Evolution Data Server 3.62.1 are installed alongside GNOME Shell 51.1_1, Calendar 51.0_1 and Folks 0.15.12_1, rebuilt for the new shared libraries. Installed-file checks passed, and Files and Papers reported version 51.1. Interactive file previews, mail and the logout/login cycle still need desktop validation with this batch. Epiphany remains at 49.9.1 pending WebKitGTK. The stable boot environment remains the default.
+The laptop is running FreeBSD 15.2-STABLE in the GNOME 51 trial boot environment. Files 51.1, Papers 51.1 and Sushi 51.2 are installed. Evolution and Evolution Data Server 3.62.1 are installed alongside GNOME Shell 51.1_1, Calendar 51.0_1 and Folks 0.15.12_1, rebuilt for the new shared libraries. Installed-file checks passed, and Files and Papers reported version 51.1. Interactive file previews, mail and the logout/login cycle still need desktop validation with this batch. Epiphany 51.1 and WebKitGTK 2.54.3 are now installed. With the FreeBSD IPC fix supplied to an isolated browser process, GTK 4.24.1_1 reported 495 DMA-BUF format/modifier combinations and WebKit painted the expected pixels on Intel ADL-N. The permanent IPC fix is packaged as WebKitGTK 2.54.3_1; its unassisted hardware run is pending. The GNOME 51 environment is selected for both the current and next boot. [Laptop deployment and verification](https://github.com/denislemire/hpbsd-lab/blob/d0c618f/docs/gnome51-laptop-2026-11-24.md).
 
 ## GNOME 49 baseline
 

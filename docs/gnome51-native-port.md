@@ -44,3 +44,39 @@ delivered five frame callbacks, and exited normally. A solver rehearsal using
 a copy of the HP's package database selected seven upgrades and the new
 gnome-qr package, with zero conflicts or removals. Hardware login, VT switching
 and logout through the display manager still require a boot trial.
+
+## Publishing the FreeBSD 15 amd64 GNOME 51 channel
+
+The feature branch runs the native package and session checks. On main the GNOME
+job builds from the checked-out revision and uploads directly from that builder.
+There is no CircleCI artifact or workspace transfer for this job. Other build
+workflows retain their own artifact settings.
+
+The CircleCI context `ehws-freebsd-packages` must supply `AWS_ACCESS_KEY_ID`
+and `AWS_SECRET_ACCESS_KEY` for the internal SeaweedFS package writer. Restrict
+that context to the bsd-cubed main branch in CircleCI before enabling the job.
+The S3 endpoint and public HTTPS reader are configured in
+`tools/publish-gnome51.sh`. This follows the existing internal TLS repository
+model; pkg catalogue signing is not configured for this channel.
+
+Packages and corresponding sources are uploaded once per build beneath
+`FreeBSD:15:amd64/bsd3-gnome51/snapshots/<commit>-<build>/`. The builder
+queries that snapshot from an isolated pkg database and fetches Epiphany over
+HTTPS for a byte comparison. After verifying that the commit is still the tip
+of main, it publishes the channel metadata and compares the live package list
+with the snapshot. Each catalogue references package paths unique to that build,
+so clients with an older catalogue can still fetch their original packages.
+The GNOME 49 and general latest channels use different prefixes.
+
+After the first successful publication, a client can inspect the repository
+with the following config in a temporary repos directory:
+
+```ucl
+bsd3_gnome51: {
+  url: "https://packages.ehws.generic.business/${ABI}/bsd3-gnome51",
+  enabled: yes
+}
+```
+
+Use `pkg -o PKG_DBDIR=<temporary-db> -R <repos-dir> update -f`, then
+`pkg -o PKG_DBDIR=<temporary-db> -R <repos-dir> rquery -U '%n %v'`.

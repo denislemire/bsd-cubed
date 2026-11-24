@@ -94,6 +94,10 @@ jobs:
           destination: freebsd
 
   freebsd-gnome51-packages:
+    parameters:
+      publish:
+        type: boolean
+        default: false
     environment:
       BSD3_USERSESSION: "yes"
       PYTHON: /usr/local/bin/python3.12
@@ -122,9 +126,14 @@ jobs:
           name: Build and verify GNOME 51 packages
           no_output_timeout: 30m
           command: sh tools/ci-gnome51-packages.sh
-      - store_artifacts:
-          path: dist/gnome51
-          destination: freebsd-gnome51
+      - when:
+          condition: << parameters.publish >>
+          steps:
+            - run:
+                name: Publish verified FreeBSD GNOME packages to the internal catalogue
+                command: |
+                  pkg install -y py312-awscli
+                  sh tools/publish-gnome51.sh
 
 workflows:
   build:
@@ -138,8 +147,20 @@ workflows:
   gnome51-packages:
     when:
       or:
+        - equal: [main, << pipeline.git.branch >>]
         - << pipeline.parameters.build-gnome51-packages >>
         - equal: [feat/gnome51-native, << pipeline.git.branch >>]
     jobs:
       - freebsd-gnome51-packages:
+          filters:
+            branches:
+              ignore: main
+          serial-group: denislemire/ehws-freebsd-heavy
+      - freebsd-gnome51-packages:
+          name: freebsd-gnome51-build-and-publish
+          publish: true
+          context: ehws-freebsd-packages
+          filters:
+            branches:
+              only: main
           serial-group: denislemire/ehws-freebsd-heavy

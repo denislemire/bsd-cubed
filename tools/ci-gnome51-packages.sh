@@ -19,7 +19,7 @@ revision=$(cat packaging/freebsd/mutter49/PORTS_REVISION)
 ports_root=${BSD3_CI_PORTS_ROOT:-"$work/ports"}
 sh tools/ci-ports-tree.sh "$ports_root" "$revision"
 # Build dependencies come from the VM's configured FreeBSD package repository.
-pkg install -y pkgconf meson ninja python312 gettext-tools gettext-runtime \
+pkg install -y pkgconf meson ninja libinotify python312 gettext-tools gettext-runtime \
     glib glib-bootstrap gobject-introspection gobject-introspection-bootstrap dbus spidermonkey140 libffi readline cairo \
     libX11 libXext fontconfig freetype2 harfbuzz fribidi gtk4 libadwaita desktop-file-utils
 {
@@ -36,6 +36,7 @@ set -- dist/packages/All/bsd-cubed-*.pkg
 [ "$#" -eq 1 ] && [ -f "$1" ]
 pkg add -f "$1"
 cp "$1" "$out/packages/All/"
+cp dist/consolekit/packages/All/consolekit2-*.pkg dist/user-session/packages/All/dinit-*.pkg "$out/packages/All/"
 cp -R packaging/freebsd/bsd-cubed "$ports_root/sysutils/bsd-cubed"
 cp -R packaging/freebsd/dinit "$ports_root/sysutils/dinit"
 cp -R packaging/freebsd/gnome-qr51 "$ports_root/graphics/gnome-qr"
@@ -54,7 +55,7 @@ for origin in devel/glib20 devel/dconf x11-toolkits/gtk40 x11-toolkits/libadwait
     x11-themes/adwaita-icon-theme deskutils/gnome-weather deskutils/gnome-clocks deskutils/gnome-calendar \
     archivers/gnome-autoar mail/evolution devel/tinysparql sysutils/localsearch graphics/glycin x11-fm/nautilus graphics/papers x11-fm/sushi accessibility/at-spi2-core accessibility/orca x11/yelp x11-toolkits/libshumate deskutils/gnome-maps \
     sysutils/gnome-system-monitor x11/gnome-console deskutils/gnome-characters \
-    editors/gnome-text-editor misc/gnome-user-docs x11/xdg-desktop-portal-gnome x11-wm/mutter x11/gnome-shell x11/gnome-shell-extensions x11/gnome-session; do
+    editors/gnome-text-editor misc/gnome-user-docs x11/xdg-desktop-portal-gnome x11-wm/mutter x11/gnome-shell x11/gnome-shell-extensions x11/gnome-session www/webkit2-gtk www/epiphany; do
     name=${origin##*/}
     port="$work/overlay/$origin"
     mkdir -p "${port%/*}"
@@ -71,6 +72,7 @@ for origin in devel/glib20 devel/dconf x11-toolkits/gtk40 x11-toolkits/libadwait
     while IFS= read -r dependency; do
         case "$dependency" in "$ports_root"/*) ;; *) exit 1 ;; esac
         case "${dependency#"$ports_root"/}" in
+            www/webkit2-gtk@60) continue ;;
             devel/glib20|devel/dconf|devel/glibmm26|x11-toolkits/pangomm24|x11-toolkits/gtkmm40|x11-toolkits/gtk40|x11-toolkits/libadwaita|sysutils/accountsservice|sysutils/gnome-settings-daemon|x11/tecla) continue ;;
             devel/libsoup3|net/libcloudproviders|security/libsecret|security/gcr|textproc/yelp-xsl|x11/zenity|graphics/glycin|x11-fm/nautilus) continue ;;
             archivers/gnome-autoar|devel/libpeas|filesystems/gvfs|devel/tinysparql|databases/evolution-data-server|net-im/folks|net/gnome-online-accounts|accessibility/at-spi2-core|x11-toolkits/libshumate) continue ;;
@@ -82,14 +84,22 @@ for origin in devel/glib20 devel/dconf x11-toolkits/gtk40 x11-toolkits/libadwait
         esac
     done <"$work/origins" >"$work/pkg-names"
     xargs pkg install -yA <"$work/pkg-names"
+    # WebKit can compile silently for longer than the executor output timeout.
+    echo "Building $origin"
+    (while sleep 60; do echo "Building $origin: $(tail -c 12000 "$out/$name-build.log" | tail -1 | cut -c1-120)"; done) &
+    progress=$!
     make -C "$port" PORTSDIR="$ports_root" BATCH=yes DEVELOPER=yes \
         BSD3_SERIES="$repo/packaging/freebsd/gnome51" BSD3_SOURCE="$repo/src" \
         DISTDIR="$work/distfiles" WRKDIRPREFIX="$work/build" \
         PACKAGES="$out/packages" MAKE_JOBS_NUMBER=3 \
         stage check-plist stage-qa package >"$out/$name-build.log" 2>&1 || {
+        kill "$progress" 2>/dev/null || :
         tail -100 "$out/$name-build.log"
         exit 1
     }
+    kill "$progress" 2>/dev/null || :
+    wait "$progress" 2>/dev/null || :
+    if grep '^Error:' "$out/$name-build.log"; then exit 1; fi
     pkgname=$(make -C "$port" PORTSDIR="$ports_root" -V PKGNAME)
     pkg repo "$out/packages"
     pkg -R "$work/repos" update -f -r gnome51
@@ -131,4 +141,6 @@ rm -rf "$runtime"
 [ "$status" -eq 0 ]
 
 (cd "$out/packages/All" && sha256 -r ./*.pkg) >"$out/SHA256SUMS"
-cp -R "$work/distfiles/gnome" "$out/sources"
+mv "$work/distfiles" "$out/sources"
+cp dist/consolekit/consolekit2-bsd3-*.tar.gz dist/user-session/dinit-*.tar.gz dist/bsd-cubed-*.tar.gz "$out/sources/"
+git -c safe.directory="$repo" archive --format=tar.gz --output="$out/sources/bsd-cubed-recipes.tar.gz" HEAD
