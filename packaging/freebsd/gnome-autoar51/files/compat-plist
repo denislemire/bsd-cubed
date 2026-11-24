@@ -1,0 +1,8 @@
+include/gnome-autoar-0/gnome-autoar/autoar-gtk-chooser.h
+include/gnome-autoar-0/gnome-autoar/autoar-gtk.h
+lib/girepository-1.0/GnomeAutoarGtk-0.1.typelib
+lib/libgnome-autoar-gtk-0.so
+lib/libgnome-autoar-gtk-0.so.0
+lib/libgnome-autoar-gtk-0.so.0.2.1
+libdata/pkgconfig/gnome-autoar-gtk-0.pc
+share/gir-1.0/GnomeAutoarGtk-0.1.gir
