@@ -41,10 +41,12 @@ cp -R packaging/freebsd/gnome-qr51 "$ports_root/graphics/gnome-qr"
 
 mkdir "$work/repos"
 printf 'gnome51: { url: "file://%s", enabled: yes }\n' "$out/packages" >"$work/repos/gnome51.conf"
-for origin in devel/glib20 x11-toolkits/gtk40 sysutils/accountsservice \
+for origin in devel/glib20 x11-toolkits/gtk40 x11-toolkits/libadwaita sysutils/accountsservice \
     devel/gsettings-desktop-schemas x11-themes/gnome-backgrounds \
     deskutils/gnome-font-viewer x11/tecla lang/gjs graphics/gnome-qr x11/gnome-desktop sysutils/gnome-settings-daemon \
-    sysutils/gnome-control-center deskutils/baobab math/gnome-calculator x11-wm/mutter x11/gnome-shell x11/gnome-session; do
+    sysutils/gnome-control-center deskutils/baobab math/gnome-calculator \
+    x11-themes/adwaita-icon-theme deskutils/gnome-weather deskutils/gnome-clocks deskutils/gnome-calendar \
+    editors/gnome-text-editor misc/gnome-user-docs x11-wm/mutter x11/gnome-shell x11/gnome-session; do
     name=${origin##*/}
     port="$work/overlay/$origin"
     mkdir -p "${port%/*}"
@@ -61,7 +63,7 @@ for origin in devel/glib20 x11-toolkits/gtk40 sysutils/accountsservice \
     while IFS= read -r dependency; do
         case "$dependency" in "$ports_root"/*) ;; *) exit 1 ;; esac
         case "${dependency#"$ports_root"/}" in
-            devel/glib20|x11-toolkits/gtk40|sysutils/accountsservice|sysutils/gnome-settings-daemon|x11/tecla) continue ;;
+            devel/glib20|x11-toolkits/gtk40|x11-toolkits/libadwaita|sysutils/accountsservice|sysutils/gnome-settings-daemon|x11/tecla) continue ;;
             sysutils/bsd-cubed|graphics/gnome-qr|x11/gnome-desktop|lang/gjs|devel/gsettings-desktop-schemas|x11-wm/mutter|x11/gnome-shell) continue ;;
         esac
         case "$dependency" in
@@ -89,6 +91,9 @@ for origin in devel/glib20 x11-toolkits/gtk40 sysutils/accountsservice \
     fi
     pkgbase=$(make -C "$port" PORTSDIR="$ports_root" -V PKGBASE)
     [ "$(pkg query '%n-%v' "$pkgbase")" = "$pkgname" ]
+    if [ "$name" != gsettings-desktop-schemas ]; then
+        make -C "$port" PORTSDIR="$ports_root" WRKDIRPREFIX="$work/build" NOCLEANDEPENDS=yes clean
+    fi
 done
 
 # Smoke-test the exact staged schema tree and the newly packaged GJS runtime.
