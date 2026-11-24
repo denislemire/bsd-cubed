@@ -42,7 +42,7 @@ client() {
 }
 client update -fr bsd3
 client rquery -U -r bsd3 '%n-%v %R' >"$work/list"
-for name in gtk4 webkit2-gtk_60 epiphany gnome-shell evolution; do
+for name in bsd3-gnome51-desktop gtk4 webkit2-gtk_60 epiphany gnome-shell evolution; do
     package=$(pkg query -F "$out"/packages/All/"$name"-[0-9]*.pkg '%n-%v')
     grep -Fx "$package bsd3" "$work/list" >/dev/null
 done

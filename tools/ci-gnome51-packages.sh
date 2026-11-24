@@ -116,6 +116,16 @@ for origin in devel/glib20 devel/dconf x11-toolkits/gtk40 x11-toolkits/libadwait
     fi
 done
 
+# All desktop providers have been built and installed on this executor.
+desktop="$work/overlay/x11/bsd3-gnome51-desktop"
+cp -R packaging/freebsd/bsd3-gnome51-desktop "$desktop"
+make -C "$desktop" PORTSDIR="$ports_root" BATCH=yes DEVELOPER=yes \
+    WRKDIRPREFIX="$work/build" PACKAGES="$out/packages" stage check-plist stage-qa package
+pkg repo "$out/packages"
+pkg -R "$work/repos" update -fr gnome51
+pkg -R "$work/repos" install -Uy -r gnome51 bsd3-gnome51-desktop
+pkg check -d bsd3-gnome51-desktop
+
 # Smoke-test the exact staged schema tree and the newly packaged GJS runtime.
 schema_port="$work/overlay/devel/gsettings-desktop-schemas"
 schema_stage=$(make -C "$schema_port" PORTSDIR="$ports_root" \

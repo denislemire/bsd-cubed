@@ -1,0 +1,4 @@
+The BSD³ native GNOME 51 Wayland session and desktop applications for
+FreeBSD, including Files, Papers, GNOME Web and Evolution. Install this
+metapackage to track the package set. Display manager configuration and
+activation of system services are administered separately.
