@@ -84,6 +84,10 @@ sudo -H -u circleci gdbus call --system --dest org.freedesktop.login1 \
 if sudo -H -u circleci /usr/local/bin/bsd3-session -- /usr/bin/touch "$work_root/should-not-exist" \
     >dist/consolekit/bootstrap-nonconsole.txt 2>&1; then exit 1; fi
 [ ! -e "$work_root/should-not-exist" ]
+status=0
+sudo -H -u circleci /usr/local/bin/bsd3-session --sddm -- /usr/bin/touch "$work_root/should-not-exist" \
+    </dev/null >dist/consolekit/bootstrap-sddm-nonconsole.txt 2>&1 || status=$?
+[ "$status" -eq 2 ] && [ ! -e "$work_root/should-not-exist" ] || exit 1
 if sudo /usr/local/bin/bsd3-session -- /usr/bin/touch "$fixture_root/should-not-exist" \
     >dist/consolekit/bootstrap-root.txt 2>&1; then exit 1; fi
 [ ! -e "$fixture_root/should-not-exist" ]

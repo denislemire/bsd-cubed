@@ -146,8 +146,8 @@ backend_alive(void)
 	return (alive);
 }
 
-int
-main(int argc, char **argv)
+static int
+run_session(int argc, char **argv)
 {
 	GVariant *reply;
 	GVariantBuilder params;
@@ -322,6 +322,18 @@ done:
 	g_free(owner); g_free(cookie); g_free(path); g_free(runtime);
 	fprintf(stderr, "bsd3-session: exit status=%d\n", result);
 	return (result);
+}
+int
+main(int argc, char **argv)
+{
+	if (argc > 1 && strcmp(argv[1], "--sddm") == 0) {
+		int status = run_session(argc - 1, argv + 1);
+
+		/* SDDM reserves 1 for authentication failure and leaves its
+		 * greeter stopped. This command runs only after authentication. */
+		return (status == 1 ? 2 : status);
+	}
+	return (run_session(argc, argv));
 }
 #else
 int main(void) {

@@ -7,6 +7,7 @@
 .Nd register and supervise an ordinary local Wayland session
 .Sh SYNOPSIS
 .Nm
+.Op Fl -sddm
 .Fl -
 .Ar command
 .Op Ar argument ...
@@ -38,6 +39,9 @@ An example SDDM fragment is installed under
 Installation does not enable it, modify PAM or replace a desktop entry.
 .Sh EXIT STATUS
 The child's exit status is returned after cleanup.
+In the display manager adapter,
+.Fl -sddm
+maps status 1 to SDDM session error 2 so the greeter returns after a failed session.
 Setup or cleanup failure returns nonzero.
 Root and invalid invocation are refused.
 .Sh SEE ALSO

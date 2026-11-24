@@ -35,6 +35,7 @@ mkdir -p "$work/distfiles" "$out/packages/All"
 set -- dist/packages/All/bsd-cubed-*.pkg
 [ "$#" -eq 1 ] && [ -f "$1" ]
 pkg add -f "$1"
+cp "$1" "$out/packages/All/"
 cp -R packaging/freebsd/bsd-cubed "$ports_root/sysutils/bsd-cubed"
 cp -R packaging/freebsd/dinit "$ports_root/sysutils/dinit"
 cp -R packaging/freebsd/gnome-qr51 "$ports_root/graphics/gnome-qr"
