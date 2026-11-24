@@ -45,10 +45,11 @@ printf 'gnome51: { url: "file://%s", enabled: yes }\n' "$out/packages" >"$work/r
 for origin in devel/glib20 x11-toolkits/gtk40 x11-toolkits/libadwaita devel/glibmm26 x11-toolkits/gtkmm40 sysutils/accountsservice \
     devel/gsettings-desktop-schemas x11-themes/gnome-backgrounds \
     deskutils/gnome-font-viewer x11/tecla lang/gjs graphics/gnome-qr x11/gnome-desktop sysutils/gnome-settings-daemon \
-    sysutils/gnome-control-center deskutils/baobab math/gnome-calculator \
+    net/gnome-online-accounts sysutils/gnome-control-center deskutils/baobab math/gnome-calculator \
     x11-themes/adwaita-icon-theme deskutils/gnome-weather deskutils/gnome-clocks deskutils/gnome-calendar \
+    accessibility/at-spi2-core accessibility/orca x11/yelp x11-toolkits/libshumate deskutils/gnome-maps \
     sysutils/gnome-system-monitor x11/gnome-console deskutils/gnome-characters \
-    editors/gnome-text-editor misc/gnome-user-docs x11-wm/mutter x11/gnome-shell x11/gnome-session; do
+    editors/gnome-text-editor misc/gnome-user-docs x11-wm/mutter x11/gnome-shell x11/gnome-shell-extensions x11/gnome-session; do
     name=${origin##*/}
     port="$work/overlay/$origin"
     mkdir -p "${port%/*}"
@@ -66,6 +67,7 @@ for origin in devel/glib20 x11-toolkits/gtk40 x11-toolkits/libadwaita devel/glib
         case "$dependency" in "$ports_root"/*) ;; *) exit 1 ;; esac
         case "${dependency#"$ports_root"/}" in
             devel/glib20|devel/glibmm26|x11-toolkits/gtkmm40|x11-toolkits/gtk40|x11-toolkits/libadwaita|sysutils/accountsservice|sysutils/gnome-settings-daemon|x11/tecla) continue ;;
+            net/gnome-online-accounts|accessibility/at-spi2-core|x11-toolkits/libshumate) continue ;;
             sysutils/bsd-cubed|graphics/gnome-qr|x11/gnome-desktop|lang/gjs|devel/gsettings-desktop-schemas|x11-wm/mutter|x11/gnome-shell) continue ;;
         esac
         case "$dependency" in
