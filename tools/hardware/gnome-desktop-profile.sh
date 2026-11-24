@@ -16,15 +16,11 @@ export XDG_CURRENT_DESKTOP=GNOME XDG_SESSION_DESKTOP=gnome
 export XDG_CONFIG_DIRS=/usr/local/etc/xdg:/etc/xdg
 export XDG_DATA_DIRS=/usr/local/share:/usr/share
 export XCURSOR_PATH=${XCURSOR_PATH:-/usr/local/share/icons:/usr/share/icons}
-# Browser-only fallback: this installed WebKit/GTK combination fails graphics
-# initialization and cannot import DMA-BUF textures. The compositor stays on GPU.
-export WEBKIT_DISABLE_COMPOSITING_MODE=1
 unset DISPLAY SESSION_MANAGER
 mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME" "$XDG_STATE_HOME"
 /usr/local/bin/dbus-update-activation-environment XDG_CONFIG_HOME XDG_CACHE_HOME \
     XDG_DATA_HOME XDG_STATE_HOME XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP \
-    XDG_SESSION_TYPE XDG_RUNTIME_DIR XDG_CONFIG_DIRS XDG_DATA_DIRS XCURSOR_PATH \
-    WEBKIT_DISABLE_COMPOSITING_MODE
+    XDG_SESSION_TYPE XDG_RUNTIME_DIR XDG_CONFIG_DIRS XDG_DATA_DIRS XCURSOR_PATH
 if [ ! -e "$profile/.initialized" ]; then
     if /usr/local/bin/gsettings set org.gnome.desktop.interface clock-format '12h' &&
         /usr/local/bin/gsettings set org.gnome.desktop.interface show-battery-percentage true; then
