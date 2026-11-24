@@ -2,7 +2,6 @@ PORTNAME=	zenity
 PORTVERSION=	4.2.2
 CATEGORIES=	x11 gnome
 MASTER_SITES=	GNOME
-PKGNAMESUFFIX=	4
 DIST_SUBDIR=	gnome
 
 MAINTAINER=	gnome@FreeBSD.org
@@ -21,6 +20,6 @@ USE_GNOME=	gtk40 libadwaita
 USE_XORG=	x11
 MESON_ARGS=	-Dwebkitgtk=false
 
-CONFLICTS_INSTALL=	zenity-3.*
+CONFLICTS_INSTALL=	zenity4-*
 
 .include <bsd.port.mk>
