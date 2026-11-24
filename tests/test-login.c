@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include <gio/gio.h>
 #include <gio/gunixfdlist.h>
+#include <pwd.h>
 #include "bsd3/sd-login.h"
 #define CK "org.freedesktop.ConsoleKit"
 #define MANAGER "/org/freedesktop/ConsoleKit/Manager"
@@ -34,7 +35,8 @@ mode(const char *value)
 static void
 test_discovery(void)
 {
-	char *id = NULL, *type = NULL, *seat = NULL;
+	char *id = NULL, *type = NULL, *seat = NULL, *service = NULL;
+	unsigned vt = 0;
 	uid_t uid = 0;
 	GVariant *r;
 	guint32 pid;
@@ -51,6 +53,29 @@ test_discovery(void)
 	g_assert_cmpuint(uid, ==, 1000);
 	g_assert_cmpint(sd_session_get_seat("Session2", &seat), ==, 0);
 	g_assert_cmpstr(seat, ==, "seat0"); free(seat);
+	char *tty = NULL, *username = NULL;
+	g_assert_cmpint(sd_session_get_tty("Session4", &tty), ==, 0);
+	g_assert_cmpstr(tty, ==, "ttyv8"); free(tty);
+	tty = NULL;
+	g_assert_cmpint(sd_session_get_tty("Session1", &tty), ==, -ENXIO);
+	g_assert_null(tty);
+	g_assert_cmpint(sd_session_get_tty("Session2", &tty), ==, -EPROTO);
+	g_assert_null(tty);
+	g_assert_cmpint(sd_session_get_username("Session6", &username), ==, 0);
+	g_assert_cmpstr(username, ==, getpwuid(getuid())->pw_name); free(username);
+	g_assert_cmpint(sd_session_get_vt("Session4", &vt), ==, 0);
+	g_assert_cmpuint(vt, ==, 9);
+	g_assert_cmpint(sd_session_get_vt("Session1", &vt), ==, -ENODATA);
+	g_assert_cmpuint(vt, ==, 9);
+	g_assert_cmpint(sd_session_get_service("Session4", &service), ==, 0);
+	g_assert_cmpstr(service, ==, "gdm-launch-environment");
+	free(service);
+	service = NULL;
+	g_assert_cmpint(sd_session_get_service("Session1", &service), ==, -ENODATA);
+	g_assert_null(service);
+	g_assert_cmpint(sd_session_is_remote("Session4"), ==, 0);
+	g_assert_cmpint(sd_session_is_remote("Session2"), ==, 1);
+	g_assert_cmpint(sd_session_is_remote("../Session4"), ==, -EINVAL);
 	g_assert_cmpint(sd_session_is_active("Session2"), ==, 0);
 	g_assert_cmpint(sd_session_is_active("Session3"), ==, 1);
 }

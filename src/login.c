@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <stdint.h>
+#include <pwd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -164,6 +165,107 @@ int sd_session_get_class(const char *s, char **r)
 { return (session_string(s, "GetSessionClass", r)); }
 int sd_session_get_state(const char *s, char **r)
 { return (session_string(s, "GetSessionState", r)); }
+
+int
+sd_session_get_service(const char *session, char **ret)
+{
+	char *value;
+	int rc;
+	if (ret == NULL)
+		return (-EINVAL);
+	rc = session_string(session, "GetSessionService", &value);
+	if (rc < 0)
+		return (rc);
+	if (*value == '\0') {
+		free(value);
+		return (-ENODATA);
+	}
+	*ret = value;
+	return (0);
+}
+
+int
+sd_session_get_username(const char *session, char **ret)
+{
+	struct passwd entry, *found;
+	uid_t uid;
+	size_t len = 1024;
+	int rc;
+	if (ret == NULL)
+		return (-EINVAL);
+	rc = sd_session_get_uid(session, &uid);
+	if (rc < 0)
+		return (rc);
+	for (;;) {
+		char *buf = malloc(len);
+		if (buf == NULL)
+			return (-ENOMEM);
+		rc = getpwuid_r(uid, &entry, buf, len, &found);
+		if (rc == 0) {
+			rc = found == NULL ? -ENXIO : copy_string(found->pw_name, ret);
+			free(buf);
+			return (rc);
+		}
+		free(buf);
+		if (rc != ERANGE || len > SIZE_MAX / 2)
+			return (-rc);
+		len *= 2;
+	}
+}
+
+int
+sd_session_get_tty(const char *session, char **ret)
+{
+	char *value;
+	int rc;
+	if (ret == NULL)
+		return (-EINVAL);
+	rc = session_string(session, "GetDisplayDevice", &value);
+	if (rc < 0)
+		return (rc);
+	if (*value == '\0')
+		rc = -ENXIO;
+	else if (!g_str_has_prefix(value, "/dev/") || value[5] == '\0' ||
+	    strstr(value, "//") != NULL || strchr(value + 5, '.') != NULL ||
+	    value[strlen(value) - 1] == '/')
+		rc = -EPROTO;
+	else
+		rc = copy_string(value + 5, ret);
+	free(value);
+	return (rc);
+}
+
+int
+sd_session_get_vt(const char *session, unsigned *ret)
+{
+	GVariant *reply;
+	guint32 vt;
+	int rc;
+	if (ret == NULL)
+		return (-EINVAL);
+	rc = session_value(session, "GetVTNr", "(u)", &reply);
+	if (rc < 0)
+		return (rc);
+	g_variant_get(reply, "(u)", &vt);
+	g_variant_unref(reply);
+	if (vt == 0)
+		return (-ENODATA);
+	*ret = vt;
+	return (0);
+}
+
+int
+sd_session_is_remote(const char *session)
+{
+	GVariant *reply;
+	gboolean local;
+	int rc = session_value(session, "IsLocal", "(b)", &reply);
+	if (rc < 0)
+		return (rc);
+	g_variant_get(reply, "(b)", &local);
+	g_variant_unref(reply);
+	return (local ? 0 : 1);
+}
 
 int
 sd_session_get_uid(const char *session, uid_t *ret)
