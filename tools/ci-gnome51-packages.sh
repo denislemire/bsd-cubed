@@ -43,7 +43,8 @@ mkdir "$work/repos"
 printf 'gnome51: { url: "file://%s", enabled: yes }\n' "$out/packages" >"$work/repos/gnome51.conf"
 for origin in devel/glib20 x11-toolkits/gtk40 sysutils/accountsservice \
     devel/gsettings-desktop-schemas x11-themes/gnome-backgrounds \
-    deskutils/gnome-font-viewer x11/tecla lang/gjs graphics/gnome-qr x11/gnome-desktop sysutils/gnome-settings-daemon x11-wm/mutter x11/gnome-shell x11/gnome-session; do
+    deskutils/gnome-font-viewer x11/tecla lang/gjs graphics/gnome-qr x11/gnome-desktop sysutils/gnome-settings-daemon \
+    sysutils/gnome-control-center deskutils/baobab math/gnome-calculator x11-wm/mutter x11/gnome-shell x11/gnome-session; do
     name=${origin##*/}
     port="$work/overlay/$origin"
     mkdir -p "${port%/*}"
@@ -60,7 +61,7 @@ for origin in devel/glib20 x11-toolkits/gtk40 sysutils/accountsservice \
     while IFS= read -r dependency; do
         case "$dependency" in "$ports_root"/*) ;; *) exit 1 ;; esac
         case "${dependency#"$ports_root"/}" in
-            devel/glib20|x11-toolkits/gtk40|sysutils/accountsservice) continue ;;
+            devel/glib20|x11-toolkits/gtk40|sysutils/accountsservice|sysutils/gnome-settings-daemon|x11/tecla) continue ;;
             sysutils/bsd-cubed|graphics/gnome-qr|x11/gnome-desktop|lang/gjs|devel/gsettings-desktop-schemas|x11-wm/mutter|x11/gnome-shell) continue ;;
         esac
         case "$dependency" in

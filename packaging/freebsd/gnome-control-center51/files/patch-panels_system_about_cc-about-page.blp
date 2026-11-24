@@ -1,0 +1,10 @@
+--- panels/system/about/cc-about-page.blp.orig
++++ panels/system/about/cc-about-page.blp
+@@ -46,6 +46,7 @@
+ 
+         Adw.PreferencesGroup {
+           $CcHostnameEntry hostname_row {
++            visible: false;
+             title: _("_Device Name");
+             use-underline: true;
+           }
