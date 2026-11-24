@@ -1,5 +1,6 @@
 PORTNAME=	gtk
 PORTVERSION=	4.24.1
+PORTREVISION=	1
 CATEGORIES=	x11-toolkits
 MASTER_SITES=	GNOME
 PKGNAMESUFFIX=	4
@@ -40,6 +41,8 @@ GLIB_SCHEMAS=	org.gtk.Demo4.gschema.xml \
 USE_LDCONFIG=	yes
 USE_PERL5=	build
 MESON_ARGS=	-Dbuild-testsuite=false
+# drm-kmod provides these ioctls without installing its UAPI header.
+CPPFLAGS+=	-I${FILESDIR}/freebsd-uapi
 LDFLAGS+=	-lexecinfo
 
 BINARY_ALIAS=	python3=${PYTHON_CMD}
