@@ -1,6 +1,6 @@
 include/gsettings-desktop-schemas/gdesktop-enums.h
 lib/girepository-1.0/GDesktopEnums-3.0.typelib
-libdata/pkgconfig/gsettings-desktop-schemas.pc
+share/pkgconfig/gsettings-desktop-schemas.pc
 share/gir-1.0/GDesktopEnums-3.0.gir
 share/locale/ab/LC_MESSAGES/gsettings-desktop-schemas.mo
 share/locale/as/LC_MESSAGES/gsettings-desktop-schemas.mo

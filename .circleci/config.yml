@@ -114,11 +114,18 @@ jobs:
 
 workflows:
   build:
+    unless:
+      or:
+        - << pipeline.parameters.build-gnome51-packages >>
+        - equal: [feat/gnome51-native, << pipeline.git.branch >>]
     jobs:
       - freebsd-build-test-package:
           serial-group: denislemire/ehws-freebsd-heavy
   gnome51-packages:
-    when: << pipeline.parameters.build-gnome51-packages >>
+    when:
+      or:
+        - << pipeline.parameters.build-gnome51-packages >>
+        - equal: [feat/gnome51-native, << pipeline.git.branch >>]
     jobs:
       - freebsd-gnome51-packages:
           serial-group: denislemire/ehws-freebsd-heavy
