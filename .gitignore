@@ -27,3 +27,5 @@
 /test-bus-ready-client
 
 /tmp/pdfs/
+/greeter-session.o
+/vt.o

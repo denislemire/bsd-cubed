@@ -59,7 +59,7 @@ for origin in devel/glib20 devel/dconf x11-toolkits/gtk40 textproc/ibus x11-tool
     x11-themes/adwaita-icon-theme deskutils/gnome-weather deskutils/gnome-clocks deskutils/gnome-calendar \
     archivers/gnome-autoar mail/evolution devel/tinysparql sysutils/localsearch graphics/glycin graphics/loupe deskutils/gnome-contacts x11-fm/nautilus graphics/papers x11-fm/sushi accessibility/at-spi2-core accessibility/orca x11/yelp x11-toolkits/libshumate deskutils/gnome-maps \
     sysutils/gnome-system-monitor x11/gnome-console deskutils/gnome-characters \
-    editors/gnome-text-editor misc/gnome-user-docs x11/xdg-desktop-portal-gnome x11-wm/mutter x11/gnome-shell x11/gnome-shell-extensions x11/gnome-session www/webkit2-gtk www/epiphany; do
+    editors/gnome-text-editor misc/gnome-user-docs x11/xdg-desktop-portal-gnome x11-wm/mutter x11/gnome-shell x11/gnome-shell-extensions x11/gnome-session www/webkit2-gtk www/epiphany x11/gdm; do
     name=${origin##*/}
     port="$work/overlay/$origin"
     mkdir -p "${port%/*}"
@@ -80,7 +80,7 @@ for origin in devel/glib20 devel/dconf x11-toolkits/gtk40 textproc/ibus x11-tool
             devel/glib20|devel/dconf|devel/glibmm26|x11-toolkits/pangomm24|x11-toolkits/gtkmm40|x11-toolkits/gtk40|x11-toolkits/libadwaita|sysutils/accountsservice|sysutils/gnome-settings-daemon|x11/tecla) continue ;;
             devel/libsoup3|net/libcloudproviders|textproc/ibus|security/libsecret|security/gcr|security/gnome-keyring|textproc/yelp-xsl|x11/zenity|graphics/glycin|x11-fm/nautilus) continue ;;
             archivers/gnome-autoar|devel/libpeas|filesystems/gvfs|devel/tinysparql|databases/evolution-data-server|net-im/folks|net/gnome-online-accounts|accessibility/at-spi2-core|x11-toolkits/libshumate) continue ;;
-            sysutils/bsd-cubed|graphics/gnome-qr|x11/gnome-desktop|lang/gjs|devel/gsettings-desktop-schemas|x11-wm/mutter|x11/gnome-shell) continue ;;
+            sysutils/bsd-cubed|graphics/gnome-qr|x11/gnome-desktop|lang/gjs|devel/gsettings-desktop-schemas|x11-wm/mutter|x11/gnome-shell|x11/gnome-session) continue ;;
         esac
         case "$dependency" in
             *@*) make -C "${dependency%@*}" PORTSDIR="$ports_root" FLAVOR="${dependency##*@}" -V PKGBASE ;;

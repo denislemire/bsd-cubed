@@ -1,0 +1,11 @@
+--- daemon/meson.build.orig
++++ daemon/meson.build
+@@ -183,7 +183,7 @@
+   'gdm-display-factory.c',
+   'gdm-display-store.c',
+   'gdm-display.c',
+-  'gdm-dynamic-user-store.c',
++  'gdm-static-user-store.c',
+   'gdm-launch-environment.c',
+   'gdm-local-display-factory.c',
+   'gdm-local-display.c',

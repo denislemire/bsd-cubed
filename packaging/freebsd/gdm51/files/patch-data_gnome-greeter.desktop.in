@@ -1,0 +1,17 @@
+--- data/gnome-greeter.desktop.in.orig
++++ data/gnome-greeter.desktop.in
+@@ -1,10 +1,10 @@
+ [Desktop Entry]
+ Name=GNOME Greeter
+ Comment=The default GNOME Greeter session
+-Exec=gnome-session --session gnome-login
+-TryExec=gnome-session
++Exec=@libexecdir@/bsd3-gdm-greeter
++TryExec=@libexecdir@/bsd3-gdm-greeter
+ Type=Application
+ DesktopNames=GNOME-Greeter:GNOME
+ NoDisplay=true
+-X-GDM-SessionRegisters=true
+-X-GDM-CanRunHeadless=true
++X-GDM-SessionRegisters=false
++X-GDM-CanRunHeadless=false

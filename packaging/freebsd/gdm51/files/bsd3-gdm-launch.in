@@ -1,0 +1,4 @@
+auth     requisite pam_exec.so %%PREFIX%%/libexec/bsd3-gdm-check-account
+account  requisite pam_exec.so %%PREFIX%%/libexec/bsd3-gdm-check-account
+password required  pam_deny.so
+session  required  pam_permit.so

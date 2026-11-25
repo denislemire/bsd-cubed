@@ -1,0 +1,5 @@
+type = scripted
+command = %%LOCALBASE%%/libexec/bsd3-session-initialized
+depends-on = gnome-shell
+restart = no
+start-timeout = 10

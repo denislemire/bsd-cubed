@@ -1,18 +1,42 @@
 --- common/gdm-common.c.orig
 +++ common/gdm-common.c
-@@ -36,7 +36,11 @@
+@@ -36,7 +36,12 @@
  
  #include "gdm-common.h"
  
 +#ifdef HAVE_BSD3_LOGIN
 +#include <bsd3/sd-login.h>
++#include <bsd3/greeter-session.h>
 +#else
  #include <systemd/sd-login.h>
 +#endif
  
  #define GDM_DBUS_NAME                            "org.gnome.DisplayManager"
  #define GDM_DBUS_LOCAL_DISPLAY_FACTORY_PATH      "/org/gnome/DisplayManager/LocalDisplayFactory"
-@@ -442,7 +446,11 @@
+@@ -379,6 +384,14 @@
+         g_return_val_if_fail (seat_id != NULL, FALSE);
+         g_return_val_if_fail (session_id != NULL, FALSE);
+ 
++#ifdef HAVE_BSD3_LOGIN
++        if (!bsd3_activate_display_session (connection, seat_id, session_id, cancellable, &local_error)) {
++                g_warning ("Unable to activate session: %s", local_error->message);
++                g_error_free (local_error);
++                return FALSE;
++        }
++        return TRUE;
++#else
+         reply = g_dbus_connection_call_sync (connection,
+                                              "org.freedesktop.login1",
+                                              "/org/freedesktop/login1",
+@@ -398,6 +411,7 @@
+         g_variant_unref (reply);
+ 
+         return TRUE;
++#endif
+ }
+ 
+ gboolean
+@@ -442,7 +456,11 @@
  
          g_return_val_if_fail (session_id != NULL, FALSE);
  
@@ -24,7 +48,7 @@
          if (res < 0) {
                  g_debug ("Failed to determine sessions: %s", strerror (-res));
                  return FALSE;
-@@ -475,6 +483,18 @@
+@@ -475,6 +493,18 @@
                  }
  
                  free (service_class);

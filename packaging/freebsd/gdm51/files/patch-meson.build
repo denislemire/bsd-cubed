@@ -6,10 +6,10 @@
    greeter_uid_max = systemd_dep.get_variable('greeter_uid_max', default_value: '60705')
 +elif logind_provider == 'bsd3'
 +  logind_dep = dependency('bsd3-login')
-+  if not cc.has_function('sd_session_get_service',
-+                         prefix: '#include <bsd3/sd-login.h>',
++  if not cc.has_function('bsd3_open_display_session',
++                         prefix: '#include <bsd3/greeter-session.h>',
 +                         dependencies: logind_dep)
-+    error('GDM requires the BSD³ login SDK with session service lookup')
++    error('GDM requires the BSD³ login SDK with authenticated display session registration')
 +  endif
 +  have_userdb = false
 +  greeter_uid_min = 0
@@ -25,3 +25,14 @@
  conf.set('HAVE_USERDB', have_userdb)
  conf.set('GREETER_UID_MIN', greeter_uid_min)
  conf.set('GREETER_UID_MAX', greeter_uid_max)
+@@ -265,7 +276,9 @@
+ subdir('daemon')
+ subdir('libgdm')
+ subdir('utils')
+-subdir('pam_gdm')
++if logind_provider != 'bsd3'
++  subdir('pam_gdm') # Linux keyring password handoff
++endif
+ subdir('po')
+ if libcheck_dep.found()
+   subdir('tests')

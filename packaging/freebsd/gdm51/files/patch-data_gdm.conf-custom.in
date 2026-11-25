@@ -1,0 +1,10 @@
+--- data/gdm.conf-custom.in.orig
++++ data/gdm.conf-custom.in
+@@ -1,6 +1,7 @@
+ # GDM configuration storage
+ 
+ [daemon]
++InitialSetupEnable=false
+ 
+ [security]
+ 

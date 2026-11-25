@@ -6,6 +6,7 @@
 #include <gio/gio.h>
 #include <gio/gunixfdlist.h>
 #include "bsd3/sd-login.h"
+#include "bsd3/greeter-session.h"
 #define CK "org.freedesktop.ConsoleKit"
 #define MANAGER "/org/freedesktop/ConsoleKit/Manager"
 static GDBusConnection *bus;
@@ -68,6 +69,31 @@ test_discovery(void)
 	g_assert_cmpint(sd_session_get_tty("Session1", &tty), ==, -ENXIO);
 	g_assert_cmpint(sd_session_get_vt("Session1", &vt), ==, -ENXIO);
 	g_assert_null(service); g_assert_null(tty); g_assert_cmpuint(vt, ==, 10);
+	char *active = NULL;
+	g_assert_cmpint(bsd3_seat_get_active_session("seat0", &active), ==, 0);
+	g_assert_cmpstr(active, ==, "Session2");
+	free(active);
+	active = NULL;
+	g_assert_cmpint(bsd3_seat_can_graphical("seat0"), ==, 1);
+	g_assert_cmpint(bsd3_seat_can_graphical("missing-seat"), ==, -ENXIO);
+	mode("duplicate-seat");
+	g_assert_cmpint(bsd3_seat_can_graphical("seat0"), ==, -EPROTO);
+	mode("empty");
+	g_assert_cmpint(bsd3_seat_get_active_session("seat0", &active), ==, -ENODATA);
+	g_assert_null(active);
+	mode("normal");
+	GError *error = NULL;
+	g_assert_true(bsd3_activate_display_session(bus, "seat0", "Session2", NULL, &error));
+	g_assert_no_error(error);
+	g_assert_false(bsd3_activate_display_session(bus, "seat1", "Session2", NULL, &error));
+	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_PERMISSION_DENIED);
+	g_clear_error(&error);
+	g_assert_true(bsd3_unlock_display_session(bus, "Session2", &error));
+	mode("denied");
+	g_assert_false(bsd3_unlock_display_session(bus, "Session2", &error));
+	g_assert_nonnull(error);
+	g_clear_error(&error);
+	mode("normal");
 }
 
 static void

@@ -2,7 +2,9 @@ bin/bsd3-session
 libexec/bsd3-sddm-session
 share/examples/bsd-cubed/sddm-wayland.conf
 etc/dbus-1/system.d/org.bsd3.login1.conf
+include/bsd3/greeter-session.h
 include/bsd3/sd-login.h
+include/bsd3/vt.h
 lib/libbsd3-login.a
 libdata/pkgconfig/bsd3-login.pc
 sbin/bsddd

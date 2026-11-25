@@ -1,53 +1,42 @@
-# GDM 51.0 on FreeBSD
+# GDM 51 on FreeBSD
 
-The upstream GDM 51.0 client library builds with the BSD³ login SDK. The
-FreeBSD ports build of `bsd-cubed-0.2.0.a3_2` passed its private-bus tests,
-user-session tests, packing-list check and package target. Its SDK adds four
-read-only calls backed by ConsoleKit: session service, terminal, VT number and
-remote status. The SDK returns a terminal name relative to /dev and obtains
-the VT number independently. On the GNOME laptop it returned `bsd3-sddm`,
-`ttyv9`, VT 10 and local. No SDK daemon update was required to perform these
-reads.
+The x11/gdm port builds the GDM 51.0 daemon, PAM session worker, Wayland
+session launcher, utilities and libgdm from the GNOME release tarball.
+The port's distinfo pins the source. BSD³ 0.2.0.a3_3 supplies the seat,
+session and virtual terminal interfaces. Build the SDK with
+`BSD3_USERSESSION=yes sh tools/ci-port.sh`. The GNOME package pipeline
+builds GDM after its GNOME Shell, session and keyring providers.
 
-To reproduce the client build, put the new SDK's pkg-config file on
-`PKG_CONFIG_PATH` (or install the SDK on a builder) and start with the
-GNOME GDM 51.0 source tarball, SHA-256
-`2ce5acf5a438b8f6dc1d14fd777a911be5eeb2f7ab9a7c4600166205b15d6536`.
+The worker opens a dedicated ConsoleKit connection for each authenticated
+session and holds it until logout. It passes the session cookie, native VT
+and validated runtime directory to its child. BSD³ handles VT allocation,
+activation and attachment. Session activation checks seat membership and
+retains the calling connection for ConsoleKit authorization. The upstream
+daemon still owns the greeter lifecycle and PAM conversations.
 
-```sh
-for p in packaging/freebsd/gdm51/files/patch-*; do
-    patch -s -d gdm-51.0 -p0 <"$p" || exit 1
-done
-meson setup build gdm-51.0 --prefix=/usr/local -Dlogind-provider=bsd3 \
-    -Dsystemd-journal=false -Dsystemdsystemunitdir=no -Dsystemduserunitdir=no
-ninja -C build libgdm/libgdm.so.1.0.0
-```
+The greeter uses the local gdm account on one seat. The package installs
+separate OpenPAM services for the greeter and the user's password login.
+A dinit service directory starts the GNOME session manager and GNOME Shell
+in GDM mode. The rc service defaults to disabled and checks for a running
+SDDM before starting.
 
-The resulting shared library enumerated the installed BSD³ Wayland desktop
-from the running local session. The upstream common library found the mock
-greeter for its own seat and rejected a different seat. The chooser looks up
-the calling process's session and the service reads the registered PAM
-service. The existing BSD³ bridge already listed seat0 and returned true for
-its CanGraphical property on this laptop. These checks exercised discovery
-without starting GDM or changing the active login.
+## Qualification
 
-## Scope of the local Wayland daemon
+On FreeBSD 15.2-STABLE amd64, the ports build passed stage, check-plist,
+stage-qa and package. In an isolated boot environment, the installed daemon
+acquired org.gnome.DisplayManager on a private bus and exposed the 51.0
+Manager interface. OpenPAM accepted the gdm greeter account, rejected root
+for the greeter, accepted the test user's password and rejected an incorrect
+password. These tests can run with display devices hidden.
 
-Estimates below are engineering time for a single local seat and a static
-greeter account. They include FreeBSD integration tests. They exclude remote
-login, dynamic per-display accounts and multi-seat qualification.
+Before enabling this port on a workstation, verify a visible greeter,
+password login into GNOME Shell, lock and unlock, logout back to the
+greeter, a second login and recovery to the original VT. Remote login,
+multiple greeter seats, automatic login and fingerprint authentication
+are outside this port's tested scope. FreeBSD lacks Linux session cgroup
+freezing, which upstream checks when choosing a reauthentication path.
+Forced termination of a conflicting session is unsupported.
 
-| Work | Minimum implementation and qualification | Estimate |
-| --- | --- | --- |
-| Seat and display factory | Use the existing BSD³ seat inventory, CanTTY and CanGraphical. Resolve the active session and observe real seat/session/VT changes. Replace the Linux sysfs watch with native events and the tested FreeBSD VT helper. Test removal during a lookup and failure to acquire the seat. | 1–2 days |
-| Greeter and worker | Use the package-owned, unprivileged gdm account for a single local greeter. Disable unsupported remote/dynamic account paths explicitly. Replace Linux shadow and VT dependencies at the consumer, integrate OpenPAM and ConsoleKit registration, and launch the greeter through the native session supervisor. Verify the registered class, service and VT for both greeter and user. | 2–3 days |
-| Session control and recovery | GDM calls ActivateSessionOnSeat, UnlockSession and TerminateSession. Bind requests to the intended seat, session and authorized caller. Use native tracking of the session process tree instead of reading cgroup.events. Test denied requests, bad credentials, a crashed compositor, return to the greeter and VT recovery in a GPU/VT-capable VM. | 2–3 days |
-
-A diagnostic build selected the BSD³ dependency and compiled the daemon and
-worker targets far enough to encounter unconditional systemd headers,
-Linux shadow.h and sys/vt.h. Disabling systemd userdb still leaves the
-dynamic-user fallback in the build. The local factory also opens
-/sys/class/tty/tty0/active. Removing includes alone cannot supply the missing
-account, VT and session-control behavior. Implement these in the consuming
-GDM paths or existing native services. A general systemd event loop, journal,
-user-unit database and cgroup compatibility layer are outside this scope.
+On a disposable FreeBSD 15.2-STABLE KVM guest the native VT probe activated
+a spare terminal, attached it to a new session, dropped to an unprivileged
+user and restored the original VT without a forced kill.

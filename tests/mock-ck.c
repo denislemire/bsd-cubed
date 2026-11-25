@@ -25,6 +25,7 @@ static char *inhibitor_what;
 struct fake_device { char *owner; gboolean paused; gboolean awaiting_ack; };
 static const char xml[] =
  "<node><interface name='org.freedesktop.ConsoleKit.Manager'>"
+ "<method name='ListSeats'><arg type='a(so)' direction='out'/></method>"
  "<method name='GetSeats'><arg type='ao' direction='out'/></method>"
  "<method name='GetSessions'><arg type='ao' direction='out'/></method>"
  "<method name='GetSessionsForUnixUser'><arg type='u' direction='in'/><arg type='ao' direction='out'/></method>"
@@ -32,6 +33,7 @@ static const char xml[] =
  "<method name='Inhibit'><arg type='s' direction='in'/><arg type='s' direction='in'/><arg type='s' direction='in'/><arg type='s' direction='in'/><arg type='h' direction='out'/></method>"
  "<signal name='SessionRemoved'><arg type='s'/><arg type='o'/></signal>"
  "</interface><interface name='org.freedesktop.ConsoleKit.Session'>"
+ "<method name='Unlock'/>"
  "<method name='GetSessionService'><arg type='s' direction='out'/></method>"
  "<method name='GetDisplayDevice'><arg type='s' direction='out'/></method>"
  "<method name='GetVTNr'><arg type='u' direction='out'/></method>"
@@ -65,6 +67,8 @@ static const char xml[] =
  "<method name='GetDeviceCounters'><arg type='u' direction='out'/><arg type='u' direction='out'/></method>"
  "<method name='GetCounters'><arg type='u' direction='out'/><arg type='u' direction='out'/><arg type='u' direction='out'/></method>"
  "</interface><interface name='org.freedesktop.ConsoleKit.Seat'>"
+ "<method name='ActivateSession'><arg type='o' direction='in'/></method>"
+ "<method name='GetActiveSession'><arg type='o' direction='out'/></method>"
  "<method name='GetName'><arg type='s' direction='out'/></method>"
  "<method name='CanActivateSessions'><arg type='b' direction='out'/></method>"
  "<property name='CanGraphical' type='b' access='read'/>"
@@ -222,6 +226,15 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 		    "org.freedesktop.DBus.Error.AccessDenied", "Fixture denial");
 		return;
 	} else if (strcmp(iface, CK ".Manager") == 0) {
+		if (strcmp(name, "ListSeats") == 0) {
+			GVariantBuilder seats;
+			g_variant_builder_init(&seats, G_VARIANT_TYPE("a(so)"));
+			g_variant_builder_add(&seats, "(so)", "seat0", ROOT "/Seat1");
+			if (strcmp(mode, "duplicate-seat") == 0)
+				g_variant_builder_add(&seats, "(so)", "seat0", ROOT "/seat0");
+			g_dbus_method_invocation_return_value(invocation, g_variant_new("(a(so))", &seats));
+			return;
+		}
 		if (strcmp(name, "Inhibit") == 0) {
 			GUnixFDList *fds;
 			const char *who, *why, *kind;
@@ -293,6 +306,18 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 			reply = g_variant_new("(ao)", &builder);
 		}
 	} else if (strcmp(iface, CK ".Seat") == 0) {
+		if (strcmp(name, "ActivateSession") == 0) {
+			const char *id;
+			g_variant_get(args, "(&o)", &id);
+			g_assert_cmpstr(id, ==, ROOT "/Session2");
+			g_dbus_method_invocation_return_value(invocation, NULL);
+			return;
+		}
+		if (strcmp(name, "GetActiveSession") == 0) {
+			g_dbus_method_invocation_return_value(invocation, g_variant_new("(o)",
+			    strcmp(mode, "empty") == 0 ? "/" : ROOT "/Session2"));
+			return;
+		}
 		if (strcmp(name, "CanActivateSessions") == 0) {
 			g_dbus_method_invocation_return_value(invocation,
 			    g_variant_new("(b)", strcmp(mode, "no-capabilities") != 0));
@@ -328,7 +353,9 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 		class_name = strcmp(mode, "system-bad-class") == 0 ? "manager" : id == 4 ? "greeter" : "user";
 		state = id == 5 ? "closing" : id == 2 || (id == 6 && !session6_active) ? "online" : "active";
 		created = id == 2 ? "2026-11-04T02:00:00Z" : "2026-11-04T03:00:00Z";
-		if (strcmp(name, "GetSessionType") == 0)
+		if (strcmp(name, "Unlock") == 0)
+			reply = g_variant_new("()");
+		else if (strcmp(name, "GetSessionType") == 0)
 			reply = g_variant_new("(s)", type);
 		else if (strcmp(name, "GetSessionService") == 0)
 			reply = g_variant_new("(s)", id == 2 ? "gdm-password" :

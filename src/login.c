@@ -311,6 +311,68 @@ sd_session_get_seat(const char *session, char **ret)
 	return (rc);
 }
 
+/* Resolve canonical seat names using the inventory of one ConsoleKit owner. */
+static int
+seat_query(const char *seat, char **active)
+{
+	GError *error = NULL;
+	g_autoptr(GDBusConnection) bus = NULL;
+	g_autoptr(GVariant) owner_reply = NULL, inventory = NULL, reply = NULL;
+	const char *owner, *name, *path;
+	g_autofree char *match = NULL;
+	GVariantIter *iter;
+	if (seat == NULL || *seat == '\0')
+		return (-EINVAL);
+	bus = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
+	if (bus == NULL)
+		return (error_code(error));
+	owner_reply = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus",
+	    "/org/freedesktop/DBus", "org.freedesktop.DBus", "GetNameOwner",
+	    g_variant_new("(s)", CK), G_VARIANT_TYPE("(s)"), 0, 3000, NULL, &error);
+	if (owner_reply == NULL)
+		return (error_code(error));
+	g_variant_get(owner_reply, "(&s)", &owner);
+	inventory = g_dbus_connection_call_sync(bus, owner, MANAGER, CK ".Manager",
+	    "ListSeats", NULL, G_VARIANT_TYPE("(a(so))"), 0, 3000, NULL, &error);
+	if (inventory == NULL)
+		return (error_code(error));
+	g_variant_get(inventory, "(a(so))", &iter);
+	while (g_variant_iter_loop(iter, "(&s&o)", &name, &path)) {
+		if (strcmp(name, seat) != 0)
+			continue;
+		if (match != NULL) {
+			g_variant_iter_free(iter);
+			return (-EPROTO);
+		}
+		match = g_strdup(path);
+	}
+	g_variant_iter_free(iter);
+	if (match == NULL)
+		return (-ENXIO);
+	if (active != NULL) {
+		reply = g_dbus_connection_call_sync(bus, owner, match, CK ".Seat",
+		    "GetActiveSession", NULL, G_VARIANT_TYPE("(o)"), 0, 3000, NULL, &error);
+		if (reply == NULL)
+			return (error_code(error));
+		g_variant_get(reply, "(&o)", &path);
+		return (strcmp(path, "/") == 0 ? -ENODATA : id_from_path(path, active));
+	}
+	reply = g_dbus_connection_call_sync(bus, owner, match, "org.freedesktop.DBus.Properties",
+	    "Get", g_variant_new("(ss)", CK ".Seat", "CanGraphical"),
+	    G_VARIANT_TYPE("(v)"), 0, 3000, NULL, &error);
+	if (reply == NULL)
+		return (error_code(error));
+	g_autoptr(GVariant) value = NULL;
+	g_variant_get(reply, "(v)", &value);
+	return (g_variant_is_of_type(value, G_VARIANT_TYPE_BOOLEAN) ?
+	    (int)g_variant_get_boolean(value) : -EPROTO);
+}
+
+int bsd3_seat_can_graphical(const char *seat)
+{ return (seat_query(seat, NULL)); }
+int bsd3_seat_get_active_session(const char *seat, char **active)
+{ return (active == NULL ? -EINVAL : seat_query(seat, active)); }
+
 static void
 free_vector(char **items)
 {

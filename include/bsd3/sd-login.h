@@ -29,6 +29,8 @@ int sd_session_get_service(const char *, char **);
 int sd_session_get_tty(const char *, char **);
 int sd_session_get_vt(const char *, unsigned *);
 int sd_session_is_remote(const char *);
+int bsd3_seat_can_graphical(const char *);
+int bsd3_seat_get_active_session(const char *, char **);
 #ifdef __cplusplus
 }
 #endif

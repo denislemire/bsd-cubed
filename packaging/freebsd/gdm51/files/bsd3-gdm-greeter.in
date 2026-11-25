@@ -1,0 +1,8 @@
+#!/bin/sh
+# SPDX-License-Identifier: BSD-2-Clause
+set -eu
+[ "$(id -un)" = gdm ] && [ "${XDG_SESSION_CLASS:-}" = greeter ] || exit 77
+: "${XDG_RUNTIME_DIR:?}" "${DBUS_SESSION_BUS_ADDRESS:?}"
+unset DISPLAY WAYLAND_DISPLAY WAYLAND_SOCKET XAUTHORITY
+export GNOME_SHELL_SESSION_MODE=gdm XDG_SESSION_TYPE=wayland
+exec %%LOCALBASE%%/bin/bsd3-user-session %%PREFIX%%/share/gdm/bsd3-services greeter
