@@ -1,41 +1,42 @@
 --- daemon/gdm-session-worker.c.orig
 +++ daemon/gdm-session-worker.c
-@@ -32,8 +32,8 @@
+@@ -32,8 +32,9 @@
  #include <sys/types.h>
  #include <sys/wait.h>
  #include <sys/ioctl.h>
 -#include <sys/vt.h>
 -#include <sys/kd.h>
 +#include <bsd3/vt.h>
++#include <termios.h>
 +#include <sys/ttycom.h>
  #include <errno.h>
  #include <grp.h>
  #include <pwd.h>
-@@ -52,10 +52,12 @@
+@@ -52,10 +53,12 @@
  
  #include <json-glib/json-glib.h>
  
-+
+-#include <systemd/sd-daemon.h>
+-#include <systemd/sd-login.h>
+ 
 +#include <bsd3/sd-login.h>
 +#include <bsd3/greeter-session.h>
 +
-+#ifdef ENABLE_SYSTEMD_JOURNAL
- #include <systemd/sd-daemon.h>
--#include <systemd/sd-login.h>
--
--#ifdef ENABLE_SYSTEMD_JOURNAL
+ #ifdef ENABLE_SYSTEMD_JOURNAL
++#include <systemd/sd-daemon.h>
  #include <systemd/sd-journal.h>
  #endif
  
-@@ -152,6 +154,7 @@
+@@ -152,6 +155,8 @@
  
          int               cred_flags;
          int               session_vt;
 +        GDBusConnection  *ck_connection;
++        struct termios    saved_tty_attributes;
          int               session_tty_fd;
  
          char            **arguments;
-@@ -802,7 +805,7 @@
+@@ -802,7 +807,7 @@
                          *response = strndup (user_answer, PAM_MAX_RESP_SIZE - 1);
                  }
  
@@ -44,7 +45,7 @@
  
                  g_debug ("GdmSessionWorker: trying to get updated username");
  
-@@ -899,7 +902,7 @@
+@@ -899,7 +904,7 @@
          }
  #endif
  
@@ -53,10 +54,13 @@
          free (reply->resp);
  }
  
-@@ -1011,152 +1014,6 @@
- }
- 
- static void
+@@ -1008,155 +1013,9 @@
+ {
+         g_object_unref (worker->auditor);
+         worker->auditor = NULL;
+-}
+-
+-static void
 -on_release_display (int signal)
 -{
 -        int fd;
@@ -96,9 +100,9 @@
 -        signal (ACQUIRE_DISPLAY_SIGNAL, on_acquire_display);
 -
 -        return succeeded;
--}
--
--static void
+ }
+ 
+ static void
 -fix_terminal_vt_mode (GdmSessionWorker  *worker,
 -                      int                tty_fd)
 -{
@@ -206,7 +210,7 @@
  gdm_session_worker_set_state (GdmSessionWorker      *worker,
                                GdmSessionWorkerState  state)
  {
-@@ -1191,6 +1048,14 @@
+@@ -1191,6 +1050,16 @@
                  pam_setcred (worker->pam_handle, PAM_DELETE_CRED);
          }
  
@@ -215,13 +219,15 @@
 +                g_clear_object (&worker->ck_connection);
 +        }
 +        if (worker->session_tty_fd >= 0) {
++                if (tcsetattr (worker->session_tty_fd, TCSAFLUSH, &worker->saved_tty_attributes) < 0 && errno != ENXIO && errno != EIO)
++                        g_warning ("Could not restore session VT attributes: %s", g_strerror (errno));
 +                close (worker->session_tty_fd);
 +                worker->session_tty_fd = -1;
 +        }
          pam_end (worker->pam_handle, status);
          worker->pam_handle = NULL;
  
-@@ -1242,7 +1107,20 @@
+@@ -1242,7 +1111,20 @@
                   username ? username : "(null)",
                   seat_id ? seat_id : "(null)");
  
@@ -243,7 +249,7 @@
          if (!service_path) {
                  g_debug ("GdmSessionWorker: PAM service %s was not found in search path: %s:%s",
                           service, PAM_CONFIG_SERVICES_DIR, PAM_SYS_SERVICES_DIR);
-@@ -1275,7 +1153,7 @@
+@@ -1275,7 +1157,7 @@
          pam_conversation.appdata_ptr = worker;
  
          gdm_session_worker_start_auditor (worker);
@@ -252,7 +258,7 @@
                                  username,
                                  &pam_conversation,
                                  &worker->pam_handle);
-@@ -1353,7 +1231,7 @@
+@@ -1353,7 +1235,7 @@
          if (g_strcmp0 (seat_id, "seat0") == 0 && worker->seat0_has_vts) {
                  /* Temporarily set PAM_TTY with the login VT,
                     PAM_TTY will be reset with the users VT right before the user session is opened */
@@ -261,7 +267,7 @@
                  pam_set_item (worker->pam_handle, PAM_TTY, tty_string);
          }
  
-@@ -1851,7 +1729,13 @@
+@@ -1851,7 +1733,13 @@
          if (g_strcmp0 (worker->display_seat_id, "seat0") != 0 || !worker->seat0_has_vts)
                  return;
  
@@ -276,7 +282,7 @@
          worker->session_vt = 0;
  }
  
-@@ -2073,7 +1957,12 @@
+@@ -2073,7 +1961,12 @@
           * ready, and in the reuse server case, we're already on the correct VT. */
          if (g_strcmp0 (worker->display_seat_id, "seat0") == 0 && worker->seat0_has_vts) {
                  if (worker->display_mode == GDM_SESSION_DISPLAY_MODE_NEW_VT) {
@@ -290,7 +296,7 @@
                  }
          }
  
-@@ -2095,9 +1984,9 @@
+@@ -2095,9 +1988,9 @@
                  gboolean has_journald = FALSE, needs_controlling_terminal = FALSE;
                  /* Leak the TTY into the session as stdin so that it stays open
                   * without any races. */
@@ -303,7 +309,7 @@
                          worker->session_tty_fd = -1;
                          needs_controlling_terminal = TRUE;
                  } else {
-@@ -2127,8 +2016,9 @@
+@@ -2127,8 +2020,9 @@
                  /* Take control of the tty
                   */
                  if (needs_controlling_terminal) {
@@ -315,7 +321,7 @@
                          }
                  }
  
-@@ -2217,7 +2107,7 @@
+@@ -2217,7 +2111,7 @@
                   */
                  signal (SIGPIPE, SIG_DFL);
  
@@ -324,16 +330,19 @@
  
                  gdm_session_execute (worker->arguments[0],
                                       worker->arguments,
-@@ -2233,7 +2123,7 @@
+@@ -2233,10 +2127,7 @@
                  _exit (EXIT_FAILURE);
          }
  
 -        if (worker->session_tty_fd > 0) {
-+        if (worker->session_tty_fd >= 0) {
-                 close (worker->session_tty_fd);
-                 worker->session_tty_fd = -1;
-         }
-@@ -2267,73 +2157,29 @@
+-                close (worker->session_tty_fd);
+-                worker->session_tty_fd = -1;
+-        }
++        /* Keep the original descriptor until logout to restore its line discipline. */
+ 
+         /* If we end up execing again, make sure we don't use the executable context set up
+          * by pam_selinux durin pam_open_session
+@@ -2267,73 +2158,41 @@
  static gboolean
  set_up_for_new_vt (GdmSessionWorker *worker)
  {
@@ -358,7 +367,10 @@
 +                                         &vt, device, sizeof device);
 +        if (fd < 0)
                  return FALSE;
--        }
++        if (pam_set_item (worker->pam_handle, PAM_TTY, device) != PAM_SUCCESS) {
++                close (fd);
++                return FALSE;
+         }
 -
 -        if (worker->display_is_initial) {
 -                session_vt = GDM_INITIAL_VT;
@@ -371,7 +383,12 @@
 -                        g_debug ("GdmSessionWorker: couldn't open new VT: %m");
 -                        goto fail;
 -                }
--        }
++        /* The graphical compositor reads keyboard events via libinput. The
++         * tty must not echo key bytes or signal its foreground process group. */
++        if (tcgetattr (fd, &worker->saved_tty_attributes) < 0) {
++                close (fd);
++                return FALSE;
+         }
 -
 -        worker->session_vt = session_vt;
 -
@@ -393,14 +410,15 @@
 -             g_snprintf (tty_string, sizeof (tty_string), "/dev/tty%d", session_vt);
 -             worker->session_tty_fd = open (tty_string, O_RDWR | O_NOCTTY);
 -             close (initial_vt_fd);
--        }
++        struct termios graphical = worker->saved_tty_attributes;
++        cfmakeraw (&graphical);
++        if (tcsetattr (fd, TCSAFLUSH, &graphical) < 0) {
++                close (fd);
++                return FALSE;
+         }
 -
 -        pam_set_item (worker->pam_handle, PAM_TTY, tty_string);
 -
-+        if (pam_set_item (worker->pam_handle, PAM_TTY, device) != PAM_SUCCESS) {
-+                close (fd);
-+                return FALSE;
-+        }
 +        worker->session_tty_fd = fd;
 +        worker->session_vt = vt;
 +        g_free (worker->display_device);
@@ -422,7 +440,7 @@
          g_autofree char *session_id = NULL;
          int error_code;
          int flags;
-@@ -2373,7 +2219,27 @@
+@@ -2373,7 +2232,27 @@
          g_debug ("GdmSessionWorker: state SESSION_OPENED");
          gdm_session_worker_set_state (worker, GDM_SESSION_WORKER_STATE_SESSION_OPENED);
  
@@ -451,7 +469,7 @@
  
          if (session_id != NULL) {
                  g_free (worker->session_id);
-@@ -2926,6 +2792,9 @@
+@@ -2926,6 +2805,9 @@
  static char **
  filter_extensions (const char * const *extensions)
  {
@@ -461,7 +479,7 @@
          g_autoptr(GPtrArray) array = NULL;
          g_auto(GStrv) filtered_extensions = NULL;
          size_t i, j;
-@@ -2945,6 +2814,7 @@
+@@ -2945,6 +2827,7 @@
          filtered_extensions = g_strdupv ((char **) array->pdata);
  
          return g_steal_pointer (&filtered_extensions);
@@ -469,7 +487,7 @@
  }
  
  static gboolean
-@@ -2990,7 +2860,7 @@
+@@ -2990,7 +2873,7 @@
                  }
          }
  
@@ -478,7 +496,7 @@
  
          worker->pending_invocation = invocation;
  
-@@ -3365,6 +3235,7 @@
+@@ -3365,6 +3248,7 @@
  static void
  gdm_session_worker_init (GdmSessionWorker *worker)
  {
