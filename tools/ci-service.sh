@@ -47,7 +47,7 @@ set +e
 sudo -u nobody timeout -k 1 5 /usr/local/sbin/bsddd --foreground >dist/service/unprivileged-owner.log 2>&1
 result=$?
 set -e
-[ "$result" -eq 1 ] || { echo "Root-only bus ownership policy failed (exit $result, probe UID $probe_uid)" >&2; exit 1; }
+[ "$result" -eq 1 ] || { echo "Service-account bus ownership policy failed (exit $result, probe UID $probe_uid)" >&2; exit 1; }
 for invocation in onestart quietstart faststart; do
     service_started=yes
     if [ "$invocation" = onestart ]; then
@@ -58,6 +58,7 @@ for invocation in onestart quietstart faststart; do
     sudo service bsddd onestatus
     pid=$(sudo cat /var/run/bsddd.pid)
     case "$pid" in *[!0-9]*|'') exit 1 ;; esac
+    [ "$(ps -o uid= -p "$pid" | tr -d ' ')" = "$(id -u _bsddd)" ]
     /usr/local/sbin/bsddd --check-owner "$pid"
     sudo service bsddd onestop
     service_started=no
@@ -70,7 +71,7 @@ done
 # rather than accept NameHasOwner=true as evidence that its own child is ready.
 guard_root=$(sudo mktemp -d /var/run/bsddd-test.XXXXXX)
 case "$guard_root" in /var/run/bsddd-test.??????) ;; *) exit 1 ;; esac
-sudo /usr/sbin/daemon -c -f -p "$guard_root/foreign.pid" -- /usr/local/sbin/bsddd --foreground
+sudo /usr/sbin/daemon -c -f -u _bsddd -p "$guard_root/foreign.pid" -- /usr/local/sbin/bsddd --foreground
 tries=0
 while :; do
     if foreign_pid=$(sudo cat "$guard_root/foreign.pid" 2>/dev/null) && \
@@ -87,5 +88,5 @@ if sudo service bsddd onestart >dist/service/foreign-owner.log 2>&1; then
     exit 1
 fi
 /usr/local/sbin/bsddd --check-owner "$foreign_pid"
-printf '%s\n' 'PASS: root-only policy, onestart/quietstart/faststart/status/stop, foreign-owner refusal' \
+printf '%s\n' 'PASS: service-account credentials and ownership policy, onestart/quietstart/faststart/status/stop, foreign-owner refusal' \
     | tee dist/service/result.txt

@@ -36,8 +36,12 @@ The rc.d script also clears that variable; the daemon does not depend on it.
 It does not replace or queue behind an existing owner.
 Bus policy must explicitly permit the caller to own that name.
 The FreeBSD port installs a disabled-by-default rc.d service and a policy
-permitting only root to own the name.
-The service uses daemon(8) and rc.subr.
+permitting the dedicated
+.Li _bsddd
+account to own the name.
+The rc.d script uses
+.Xr daemon 8
+to launch the service under that identity.
 Enable it only for controlled integration until device/VT behavior is verified.
 .Pp
 The

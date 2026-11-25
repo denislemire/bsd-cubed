@@ -1,0 +1,16 @@
+#!/bin/sh
+# Refuse to grant login1 ownership to a pre-existing unrelated account.
+set -eu
+root=${PKG_ROOTDIR:-/}
+if record=$(pw -R "$root" usershow _bsddd 2>/dev/null); then
+    case "$record" in
+    _bsddd:*:%%BSDDD_UID%%:%%BSDDD_GID%%:*:/nonexistent:/usr/sbin/nologin) ;;
+    *) echo "Conflicting _bsddd user in $root" >&2; exit 1 ;;
+    esac
+fi
+if record=$(pw -R "$root" groupshow _bsddd 2>/dev/null); then
+    case "$record" in
+    _bsddd:*:%%BSDDD_GID%%:) ;;
+    *) echo "Conflicting _bsddd group in $root" >&2; exit 1 ;;
+    esac
+fi

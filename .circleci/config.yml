@@ -46,7 +46,7 @@ jobs:
           no_output_timeout: 20m
           command: sh tools/ci-freebsd.sh
       - run:
-          name: Native service lifecycle and root-only system-bus policy
+          name: Native service lifecycle and service-account system-bus policy
           command: sh tools/ci-service.sh
       - run:
           name: Real ConsoleKit session, kernel revocation and VT switch regression
