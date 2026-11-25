@@ -1,5 +1,6 @@
 PORTNAME=	accountsservice
 DISTVERSION=	26.27.3
+PORTREVISION=	1
 CATEGORIES=	sysutils devel
 
 MAINTAINER=	desktop@FreeBSD.org

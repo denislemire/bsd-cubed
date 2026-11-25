@@ -1,0 +1,101 @@
+--- src/libaccountsservice/act-user-manager.c.orig
++++ src/libaccountsservice/act-user-manager.c
+@@ -100,9 +100,14 @@
+         char                   *id;
+         char                   *session_id;
+         guint                   load_idle_id;
++#ifdef CONSOLEKIT
++        guint                   session_subscription;
++        guint                   reload_source;
++#else
+         sd_login_monitor       *session_monitor;
+         GInputStream           *session_monitor_stream;
+         guint                   session_monitor_source_id;
++#endif
+ } ActUserManagerSeat;
+ 
+ typedef enum
+@@ -1674,7 +1679,30 @@
+         _remove_stale_systemd_sessions (manager, systemd_sessions);
+ }
+ 
++#ifdef CONSOLEKIT
+ static gboolean
++reload_consolekit_sessions (gpointer data)
++{
++        ActUserManager *manager = data;
++        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
++        priv->seat.reload_source = 0;
++        reload_systemd_sessions (manager);
++        return G_SOURCE_REMOVE;
++}
++
++static void
++on_consolekit_seat_changed (GDBusConnection *connection, const gchar *sender,
++                            const gchar *object_path, const gchar *interface,
++                            const gchar *signal, GVariant *parameters, gpointer data)
++{
++        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (data);
++        if (!priv->seat.reload_source &&
++            (g_str_equal (signal, "SessionAdded") || g_str_equal (signal, "SessionRemoved") ||
++             g_str_equal (signal, "ActiveSessionChanged")))
++                priv->seat.reload_source = g_idle_add (reload_consolekit_sessions, data);
++}
++#else
++static gboolean
+ on_session_monitor_event (GPollableInputStream *stream,
+                           ActUserManager       *manager)
+ {
+@@ -1716,12 +1744,21 @@
+         g_source_unref (source);
+ }
+ 
++#endif
++
+ static void
+ get_seat_proxy (ActUserManager *manager)
+ {
+         ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+ 
++#ifdef CONSOLEKIT
++        priv->seat.session_subscription = g_dbus_connection_signal_subscribe (
++                priv->connection, LOGIN_SERVICE, "org.freedesktop.ConsoleKit.Seat",
++                NULL, NULL, NULL, G_DBUS_SIGNAL_FLAGS_NONE, on_consolekit_seat_changed,
++                manager, NULL);
++#else
+         _monitor_for_systemd_session_changes (manager);
++#endif
+         priv->seat.state++;
+ }
+ 
+@@ -1730,6 +1767,13 @@
+ {
+         ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+ 
++#ifdef CONSOLEKIT
++        if (priv->seat.session_subscription) {
++                g_dbus_connection_signal_unsubscribe (priv->connection, priv->seat.session_subscription);
++                priv->seat.session_subscription = 0;
++        }
++        g_clear_handle_id (&priv->seat.reload_source, g_source_remove);
++#endif
+         priv->seat.state = ACT_USER_MANAGER_SEAT_STATE_UNLOADED;
+ 
+         g_free (priv->seat.id);
+@@ -2678,6 +2722,7 @@
+                 g_source_remove (priv->seat.load_idle_id);
+         }
+ 
++#ifndef CONSOLEKIT
+         if (priv->seat.session_monitor != NULL) {
+                 sd_login_monitor_unref (priv->seat.session_monitor);
+         }
+@@ -2690,6 +2735,8 @@
+                 g_source_remove (priv->seat.session_monitor_source_id);
+         }
+ 
++#endif
++
+         if (priv->accounts_proxy != NULL) {
+                 g_object_unref (priv->accounts_proxy);
+         }
