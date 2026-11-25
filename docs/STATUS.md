@@ -5,8 +5,12 @@ scribbles. This page and the root README are the current story.
 
 ## GNOME 51 with GDM
 
-FreeBSD 15.2-STABLE booted the GDM environment as its persistent default.
-The physical laptop passed GDM password login, GNOME Wayland startup,
+The persistent default is now `hpbsd-gnome51-bsddd-829`. Package revision 8
+runs the login1 broker as `_bsddd` (UID/GID 829). GDM login and manual
+lock/unlock passed. VT return failed and the power capability query returned
+AccessDenied. See the [service-account trial](bsddd-service-account.md).
+
+On the preceding GDM environment, the physical laptop passed GDM password login, GNOME Wayland startup,
 logout back to the greeter, console switching and password unlock after
 idle. During the lock check, the Shell screensaver became active and the
 ConsoleKit session reported `LockedHint=true`. The test restored the

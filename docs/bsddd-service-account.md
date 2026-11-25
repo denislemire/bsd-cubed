@@ -24,8 +24,22 @@ lifecycle test checked start, status and stop, rejected a name claim by
 nobody, and refused to start over a separately managed owner. A power query
 from nobody received AccessDenied.
 
-Before a desktop rollout, test GDM login, logout and relogin, device access
-and VT switching, idle lock and unlock, and authorized power and inhibitor
-requests with a real active seat in a trial BE. ConsoleKit and PolicyKit see
-the new daemon identity for backend calls. Record any denied operation and
-its original caller before considering a narrowly scoped privilege grant.
+## Physical laptop
+
+The laptop now defaults to `hpbsd-gnome51-bsddd-829`, running package
+revision 8 from commit `ca81335`. The previous `hpbsd-gnome51-gdm-trial`
+BE is available for rollback. GDM password login and manual lock/unlock
+worked. The broker owned login1 as UID/GID 829.
+
+A timed switch to VT2 displayed the text console. On return to VT10 the
+display stayed black with a cursor. ConsoleKit marked the GNOME session
+inactive even though the kernel reported VT10. Restarting GDM alone produced
+an inactive greeter. Restarting ConsoleKit with GDM stopped, then starting
+GDM, restored an active greeter and a successful login. The broker stayed
+up throughout. The role of the UID change in the VT failure is unresolved.
+
+CanPowerOff from the active desktop session returned AccessDenied.
+A direct PolicyKit check as the broker account confirmed that it lacks
+permission to check the power-off action for another identity. Idle locking,
+an ordinary logout/relogin cycle, and authorized inhibitor and power
+operations still need verification with this package.
