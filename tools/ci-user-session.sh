@@ -16,12 +16,19 @@ if [ "$(id -u)" -eq 0 ]; then
     trap 'exit 130' INT
     trap 'exit 143' TERM
     git clone --quiet --no-hardlinks "$repo_root" "$user_root/source"
+    # git clone excludes the package produced earlier in this job.
+    set -- "$repo_root"/dist/consolekit/packages/All/consolekit2-*.pkg
+    if [ "$#" -eq 1 ] && [ -f "$1" ]; then
+        mkdir -p "$user_root/source/dist/consolekit/packages/All"
+        cp "$1" "$user_root/source/dist/consolekit/packages/All/"
+    fi
     chown -R circleci "$user_root"
     set +e
     sudo -H -u circleci /usr/bin/env -i HOME=/home/circleci USER=circleci \
         LOGNAME=circleci PATH="$PATH" LANG=C.UTF-8 \
         PYTHON="${PYTHON:-/usr/local/bin/python3.12}" \
         PORTSDIR="${PORTSDIR:-}" BSD3_CI_DNS="${BSD3_CI_DNS:-}" \
+        BSD3_CI_PKG_URL="${BSD3_CI_PKG_URL:-}" \
         /bin/sh "$user_root/source/tools/ci-user-session.sh"
     user_status=$?
     set -e
@@ -53,29 +60,71 @@ trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
 # Reuse the qualified native dependency; do not rebuild or modify it here.
-ck_url=https://packages.ehws.generic.business/FreeBSD:15:amd64/bsd3-beta5/All/consolekit2-2.0.0_5.pkg
+# A network fetch uses only BSD3_CI_PKG_URL. There is no built-in mirror.
 ck_sha=08d42eb5055f6cdf3dd91d3613c24f16fa91a33180b8bee7473e1cd737454fd9
-ck_installed=$(pkg query '%v' consolekit2 2>/dev/null || :)
+ck_installed=$(sudo pkg query '%v' consolekit2 2>/dev/null || :)
+ck_old=no
 if [ -z "$ck_installed" ] || [ "$(pkg version -t "$ck_installed" 2.0.0_5)" = '<' ]; then
+    ck_old=yes
+fi
+# The ConsoleKit step in this job already built the native package. Prefer
+# that file over a mirror when the installed copy is older.
+if [ "$ck_old" = yes ]; then
+    set -- "$repo_root"/dist/consolekit/packages/All/consolekit2-*.pkg
+    if [ "$#" -eq 1 ] && [ -f "$1" ]; then
+        [ "$(pkg query -F "$1" '%o:%n')" = sysutils/consolekit2:consolekit2 ]
+        local_ver=$(pkg query -F "$1" '%v')
+        if [ -n "$local_ver" ] && [ "$(pkg version -t "$local_ver" 2.0.0_5)" != '<' ]; then
+            sudo pkg add -f "$1"
+            ck_installed=$(sudo pkg query '%v' consolekit2 2>/dev/null || :)
+            if [ -n "$ck_installed" ] && \
+                [ "$(pkg version -t "$ck_installed" 2.0.0_5)" != '<' ]; then
+                ck_old=no
+            fi
+        fi
+    fi
+fi
+if [ "$ck_old" = yes ]; then
+    pkg_url=${BSD3_CI_PKG_URL:-}
+    : "${pkg_url:?Set BSD3_CI_PKG_URL to the HTTPS URL of the pinned ConsoleKit package}"
+    address=$("${PYTHON:-python3}" - "$pkg_url" <<'URL'
+import re
+import sys
+from urllib.parse import urlsplit
+
+url = urlsplit(sys.argv[1])
+host = url.hostname or ""
+if (url.scheme != "https" or url.username is not None or url.password is not None
+        or not re.fullmatch(r"[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?", host)
+        or not url.path.endswith(".pkg") or url.fragment
+        or any(c.isspace() or ord(c) < 32 for c in sys.argv[1])):
+    sys.exit("Invalid HTTPS package URL in BSD3_CI_PKG_URL")
+port = url.port if url.port is not None else 443
+if port == 0:
+    sys.exit("Invalid package URL port")
+print(f"{host}:{port}")
+URL
+    )
+    pkg_host=${address%:*}
     if [ -n "${BSD3_CI_DNS:-}" ]; then
         "${PYTHON:-python3}" -c 'import ipaddress,sys; ipaddress.ip_address(sys.argv[1])' "$BSD3_CI_DNS"
-        # Query the lab resolver explicitly and scope the answer to this curl
-        # invocation. Never modify /etc/resolv.conf, /etc/hosts or TLS policy.
+        # Query the configured resolver explicitly and scope the answer to this
+        # curl invocation. Never modify /etc/resolv.conf, /etc/hosts or TLS policy.
         package_ip=$(dig +short +time=3 +tries=1 @"$BSD3_CI_DNS" \
-            packages.ehws.generic.business A | "${PYTHON:-python3}" -c '
+            "$pkg_host" A | "${PYTHON:-python3}" -c '
 import ipaddress,sys
 answers=[]
 for line in sys.stdin:
     try: ip=ipaddress.ip_address(line.strip())
     except ValueError: continue
     if ip.version==4 and ip.is_private: answers.append(str(ip))
-if not answers: raise SystemExit("No internal package mirror address returned")
+if not answers: raise SystemExit("No private package address returned")
 print(answers[0])')
         curl --fail --location --silent --show-error --connect-timeout 10 --max-time 60 \
-            --resolve "packages.ehws.generic.business:443:$package_ip" \
-            -o "$work_root/consolekit2.pkg" "$ck_url"
+            --resolve "${address}:${package_ip}" \
+            -o "$work_root/consolekit2.pkg" "$pkg_url"
     else
-        fetch -o "$work_root/consolekit2.pkg" "$ck_url"
+        fetch -o "$work_root/consolekit2.pkg" "$pkg_url"
     fi
     [ "$(sha256 -q "$work_root/consolekit2.pkg")" = "$ck_sha" ]
     sudo pkg add -f "$work_root/consolekit2.pkg"
