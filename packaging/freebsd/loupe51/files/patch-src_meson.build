@@ -1,0 +1,10 @@
+--- src/meson.build.orig
++++ src/meson.build
+@@ -16,7 +16,6 @@
+ endif
+ 
+ cargo_env = {
+-  'CARGO_HOME': build_root / 'cargo-home',
+   'APP_ID': app_id,
+   'VERSION': version,
+   'LOCALEDIR': localedir,

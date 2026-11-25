@@ -1,0 +1,15 @@
+--- meson.build.orig
++++ meson.build
+@@ -14,8 +14,10 @@
+ dependency('gtk4', version: '>=4.16.0')
+ dependency('libadwaita-1', version: '>=1.8.0')
+ dependency('gweather4', version: '>=4.0.0')
+-# Required by glycin crate
+-dependency('libseccomp', version: '>= 2.5.0')
++# The glycin crate selects its builtin backend on non-Linux targets.
++if host_machine.system() == 'linux'
++  dependency('libseccomp', version: '>= 2.5.0')
++endif
+ 
+ # Optional dependencies
+ gtk4_x11 = dependency('gtk4-x11', required: get_option('x11'))

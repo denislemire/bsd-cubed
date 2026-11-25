@@ -1,0 +1,30 @@
+--- a/Makefile
++++ b/Makefile
+@@ -1,6 +1,6 @@
+ PORTNAME=	ibus
+ DISTVERSION=	1.5.34
+-PORTREVISION=	1
++PORTREVISION=	2
+ CATEGORIES=	textproc
+ MASTER_SITES=	https://github.com/${PORTNAME}/${PORTNAME}/releases/download/${DISTVERSION}/
+ 
+--- /dev/null
++++ b/files/patch-client_gtk4_ibusimcontext.c
+@@ -0,0 +1,17 @@
++--- client/gtk4/ibusimcontext.c.orig
+++++ client/gtk4/ibusimcontext.c
++@@ -1631,12 +1631,8 @@
++         if (!ibusimcontext->use_button_press_event && _use_sync_mode == 0)
++             _connect_button_press_event (ibusimcontext, TRUE);
++ #endif
++-        ibusimcontext->text_view = g_object_ref_sink (gtk_text_view_new ());
++-#if GTK_CHECK_VERSION (2, 91, 0)
++-        style_context = gtk_widget_get_style_context (ibusimcontext->text_view);
++-#else
++-        style_context = gtk_widget_get_style (ibusimcontext->text_view);
++-#endif
+++        /* Creating a GtkTextView here constructs another input context. */
+++        style_context = gtk_widget_get_style_context (client);
++         ibusimcontext->rgba = ibus_themed_rgba_new (style_context);
++     }
++ #if GTK_CHECK_VERSION (3, 98, 4)

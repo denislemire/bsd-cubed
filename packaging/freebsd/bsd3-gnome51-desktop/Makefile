@@ -1,5 +1,6 @@
 PORTNAME=	bsd3-gnome51-desktop
 DISTVERSION=	51.1
+PORTREVISION=	2
 CATEGORIES=	x11 gnome
 
 MAINTAINER=	denis@lemire.name
@@ -18,8 +19,10 @@ RUN_DEPENDS=	adwaita-icon-theme>=51.0:x11-themes/adwaita-icon-theme \
 		gnome-characters>=51.0:deskutils/gnome-characters \
 		gnome-clocks>=51.0,1:deskutils/gnome-clocks \
 		gnome-console>=51.0:x11/gnome-console \
+		gnome-contacts>=51.0:deskutils/gnome-contacts \
 		gnome-control-center>=51.1:sysutils/gnome-control-center \
 		gnome-font-viewer>=50.0:deskutils/gnome-font-viewer \
+		gnome-keyring>=51.1:security/gnome-keyring \
 		gnome-maps>=51.2:deskutils/gnome-maps \
 		gnome-online-accounts>=3.58.1:net/gnome-online-accounts \
 		gnome-session>=51.0:x11/gnome-session \
@@ -33,6 +36,8 @@ RUN_DEPENDS=	adwaita-icon-theme>=51.0:x11-themes/adwaita-icon-theme \
 		gsettings-desktop-schemas>=51.0_1:devel/gsettings-desktop-schemas \
 		gtk4>=4.24.1_1:x11-toolkits/gtk40 \
 		gvfs>=1.62.0:filesystems/gvfs \
+		ibus>=1.5.34_2:textproc/ibus \
+		loupe>=51.0:graphics/loupe \
 		mutter>=51.1:x11-wm/mutter \
 		nautilus>=51.1:x11-fm/nautilus \
 		orca>=51.1:accessibility/orca \

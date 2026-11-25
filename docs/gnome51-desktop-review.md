@@ -9,6 +9,7 @@ Hardware VT transitions, multi-seat operation and suspend were outside this run.
 
 | Priority | Finding and user impact | Change and acceptance test |
 | --- | --- | --- |
+| High | On the laptop, the live `bsd3-session` process had 2,405 zombie children, including 1,673 from a stopped build jail. The jail remained in the dying state and held its build environment mounted. During the login, `src/session.c` waits for the main desktop PID and defers draining adopted children until teardown. | Reap all exited children during the session, record the desktop child’s status, and test with orphaned grandchildren while the desktop child stays alive. Verify that a stopped jail releases its mount without logging out. |
 | High | After the manager shutdown deadline, `src/user-session.c:198` requests a descendant kill and then calls blocking `waitpid` even when the kill failed. A surviving or stalled child can leave logout waiting indefinitely. The lab black screen has no confirmed attribution to this path. | Use a monotonic deadline when reaping, preserve the kill error and identify the cleanup phase in the exit report. Exercise the failure and timeout branches, then repeat physical logout and login. |
 | Medium | `src/session.c:252` polls the desktop child every 10 ms during its entire lifetime and synchronously queries backend ownership once per second. This adds idle wakeups and a stalled call can delay stop handling. | Use child-exit and D-Bus owner-change notifications with explicit stop deadlines. Test backend replacement during startup and during an active session. |
 | Medium | `src/bus-ready.c:72` waits a fixed 100 ms after child exit before deciding whether the session-ending signal arrived. The two events are delivered independently; under load a clean logout can be classified as failure. | Give teardown an explicit acknowledgement or supervise it from the component that initiates logout. Test both delivery orders and a delay exceeding 100 ms. |
@@ -41,10 +42,10 @@ Plan the next additions against the [GNOME release manifest](https://gitlab.gnom
 
 | Priority | Package gap on the laptop | Qualification |
 | --- | --- | --- |
-| 1 | Loupe 51.0 and Contacts 51.0 are missing. Eye of GNOME and Evolution Data Server are already installed. | Open common images from Files through glycin. Create, edit and reopen a local address-book entry; verify it in Evolution. |
+| 1 | At the initial inventory, Loupe 51.0 and Contacts 51.0 were missing. Eye of GNOME and Evolution Data Server are already installed. | Open common images from Files through glycin. Create, edit and reopen a local address-book entry; verify it in Evolution. |
 | 2 | Showtime 50.0 and Decibels 49.6.1 are missing. Totem 43.2 is installed. | Verify playback, seek, audio output and subtitle handling against local media before changing default handlers. |
 | 3 | Snapshot 51.0 and Simple Scan 50.0 are missing. Cheese 44.1 is installed. | Verify real camera capture and scanner discovery respectively; ship them as hardware-qualified additions. |
-| Maintenance | GNOME Keyring 48.0, Tweaks 46.1_1 and File Roller 44.6,1 are installed. The upstream release directories offer 51.1, 49.0 and 44.7 respectively. | Test keyring unlock across logout with a disposable test secret before migrating credentials. Test preferences persistence and archive open/create/extract. |
+| Maintenance | The initial inventory included GNOME Keyring 48.0, Tweaks 46.1_1 and File Roller 44.6,1. The upstream release directories offer 51.1, 49.0 and 44.7 respectively. | Test keyring unlock across logout with a disposable test secret before migrating credentials. Test preferences persistence and archive open/create/extract. |
 
 Connections 51.0 and Music 50.0 are further core-app gaps. Evaluate GNOME
 Software against a working FreeBSD pkg backend and GNOME Disks against the
@@ -53,3 +54,5 @@ and Font Viewer 50.0, and Yelp 49.2, already match this GNOME release's pins.
 Keep older viewers available until the new handlers and reverse dependencies
 have been checked. The existing stock `gnome-47` metapackage should be assessed
 separately before any transition or autoremove operation.
+
+See [current package and runtime results](STATUS.md#gnome-51-trial) for the subsequent Loupe, Contacts and Keyring builds.
