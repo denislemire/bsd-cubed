@@ -8,5 +8,16 @@ case "$#:$*" in 0:|1:--session=gnome) ;; *) echo 'Only native GNOME Wayland is s
 : "${DBUS_SESSION_BUS_ADDRESS:?private session bus required}"
 unset WAYLAND_DISPLAY WAYLAND_SOCKET DISPLAY XAUTHORITY GNOME_SETUP_DISPLAY
 export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=GNOME XDG_SESSION_DESKTOP=gnome
+# A legacy SDDM profile may request early DPMS blanking. In a GDM
+# session Shell owns the idle fade, password lock and subsequent blank.
+if [ "${BSD3_IDLE_DISPLAY:-}" = 1 ] && [ -n "${XDG_SESSION_ID:-}" ]; then
+    service=$(@LOCALBASE@/bin/gdbus call --system --timeout 2 \
+        --dest org.freedesktop.ConsoleKit \
+        --object-path "/org/freedesktop/ConsoleKit/$XDG_SESSION_ID" \
+        --method org.freedesktop.ConsoleKit.Session.GetSessionService) || service=
+    case "$service" in
+        "('gdm-password',)"|"('bsd3-gdm-password',)") unset BSD3_IDLE_DISPLAY ;;
+    esac
+fi
 export GNOME_SHELL_SESSION_MODE=user
 exec @PREFIX@/bin/bsd3-user-session @PREFIX@/share/bsd-cubed/gnome49/services gnome-session

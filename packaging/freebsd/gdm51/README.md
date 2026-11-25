@@ -76,3 +76,8 @@ active, ready greeter on VT9. The VM used virtual monitors for both user and
 greeter Shells. PAM successfully unlocked the test user's login keyring.
 Its PAM-started daemon can outlive the graphical session, so an 85-second
 whole-process-tree test deadline expired even after the screen had returned.
+
+The physical FreeBSD 15.2-STABLE laptop subsequently passed password login,
+logout to the branded greeter, switching to a console and back, and password
+unlock after an idle lock. GDM is the default boot environment on that
+machine. See the [desktop patch guide](../../../docs/gnome51-patches.md).
