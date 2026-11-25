@@ -196,6 +196,74 @@ sd_session_is_active(const char *session)
 }
 
 int
+sd_session_get_service(const char *session, char **ret)
+{
+	char *service;
+	if (ret == NULL)
+		return (-EINVAL);
+	int rc = session_string(session, "GetSessionService", &service);
+	if (rc < 0)
+		return (rc);
+	if (*service == '\0') {
+		free(service);
+		return (-ENXIO);
+	}
+	*ret = service;
+	return (0);
+}
+
+int
+sd_session_get_tty(const char *session, char **ret)
+{
+	char *device;
+	if (ret == NULL)
+		return (-EINVAL);
+	int rc = session_string(session, "GetDisplayDevice", &device);
+	if (rc < 0)
+		return (rc);
+	/* Consumers expect ttyvN or pts/N, without /dev/. */
+	if (*device == '\0')
+		rc = -ENXIO;
+	else if (!g_str_has_prefix(device, "/dev/") || device[5] == '\0')
+		rc = -EPROTO;
+	else
+		rc = copy_string(device + 5, ret);
+	free(device);
+	return (rc);
+}
+
+int
+sd_session_get_vt(const char *session, unsigned *ret)
+{
+	GVariant *reply;
+	guint32 vt;
+	if (ret == NULL)
+		return (-EINVAL);
+	int rc = session_value(session, "GetVTNr", "(u)", &reply);
+	if (rc < 0)
+		return (rc);
+	g_variant_get(reply, "(u)", &vt);
+	g_variant_unref(reply);
+	if (vt == 0)
+		return (-ENXIO);
+	*ret = vt;
+	return (0);
+}
+
+int
+sd_session_is_remote(const char *session)
+{
+	GVariant *reply;
+	gboolean local;
+	int rc = session_value(session, "IsLocal", "(b)", &reply);
+	if (rc < 0)
+		return (rc);
+	g_variant_get(reply, "(b)", &local);
+	g_variant_unref(reply);
+	return (local ? 0 : 1);
+}
+
+int
 sd_session_get_seat(const char *session, char **ret)
 {
 	GVariant *reply, *name_reply;

@@ -25,6 +25,10 @@ int sd_session_get_type(const char *, char **);
 int sd_session_get_class(const char *, char **);
 int sd_session_get_state(const char *, char **);
 int sd_session_get_seat(const char *, char **);
+int sd_session_get_service(const char *, char **);
+int sd_session_get_tty(const char *, char **);
+int sd_session_get_vt(const char *, unsigned *);
+int sd_session_is_remote(const char *);
 #ifdef __cplusplus
 }
 #endif

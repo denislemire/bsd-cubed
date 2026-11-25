@@ -1,0 +1,27 @@
+--- meson.build.orig
++++ meson.build
+@@ -80,6 +80,16 @@
+   # Our range is documented at https://systemd.io/UIDS-GIDS/
+   greeter_uid_min = systemd_dep.get_variable('greeter_uid_min', default_value: '60578')
+   greeter_uid_max = systemd_dep.get_variable('greeter_uid_max', default_value: '60705')
++elif logind_provider == 'bsd3'
++  logind_dep = dependency('bsd3-login')
++  if not cc.has_function('sd_session_get_service',
++                         prefix: '#include <bsd3/sd-login.h>',
++                         dependencies: logind_dep)
++    error('GDM requires the BSD³ login SDK with session service lookup')
++  endif
++  have_userdb = false
++  greeter_uid_min = 0
++  greeter_uid_max = 0
+ else
+   elogind_dep = dependency('libelogind')
+   logind_dep = elogind_dep
+@@ -235,6 +245,7 @@
+ conf.set_quoted('GDM_RUNTIME_CONF', gdm_runtime_conf)
+ conf.set_quoted('GDM_SESSION_DEFAULT_PATH', get_option('default-path'))
+ conf.set_quoted('GDM_GROUPNAME', get_option('group'))
++conf.set('HAVE_BSD3_LOGIN', logind_provider == 'bsd3')
+ conf.set('HAVE_USERDB', have_userdb)
+ conf.set('GREETER_UID_MIN', greeter_uid_min)
+ conf.set('GREETER_UID_MAX', greeter_uid_max)

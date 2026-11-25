@@ -53,6 +53,21 @@ test_discovery(void)
 	g_assert_cmpstr(seat, ==, "seat0"); free(seat);
 	g_assert_cmpint(sd_session_is_active("Session2"), ==, 0);
 	g_assert_cmpint(sd_session_is_active("Session3"), ==, 1);
+	char *service = NULL, *tty = NULL;
+	unsigned vt = 0;
+	g_assert_cmpint(sd_session_get_service("Session2", &service), ==, 0);
+	g_assert_cmpstr(service, ==, "gdm-password"); free(service);
+	g_assert_cmpint(sd_session_get_tty("Session2", &tty), ==, 0);
+	g_assert_cmpstr(tty, ==, "ttyv9"); free(tty);
+	g_assert_cmpint(sd_session_get_vt("Session2", &vt), ==, 0);
+	g_assert_cmpuint(vt, ==, 10);
+	g_assert_cmpint(sd_session_is_remote("Session2"), ==, 0);
+	g_assert_cmpint(sd_session_is_remote("Session1"), ==, 1);
+	service = tty = NULL;
+	g_assert_cmpint(sd_session_get_service("Session1", &service), ==, -ENXIO);
+	g_assert_cmpint(sd_session_get_tty("Session1", &tty), ==, -ENXIO);
+	g_assert_cmpint(sd_session_get_vt("Session1", &vt), ==, -ENXIO);
+	g_assert_null(service); g_assert_null(tty); g_assert_cmpuint(vt, ==, 10);
 }
 
 static void

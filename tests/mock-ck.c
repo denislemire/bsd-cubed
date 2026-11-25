@@ -32,6 +32,10 @@ static const char xml[] =
  "<method name='Inhibit'><arg type='s' direction='in'/><arg type='s' direction='in'/><arg type='s' direction='in'/><arg type='s' direction='in'/><arg type='h' direction='out'/></method>"
  "<signal name='SessionRemoved'><arg type='s'/><arg type='o'/></signal>"
  "</interface><interface name='org.freedesktop.ConsoleKit.Session'>"
+ "<method name='GetSessionService'><arg type='s' direction='out'/></method>"
+ "<method name='GetDisplayDevice'><arg type='s' direction='out'/></method>"
+ "<method name='GetVTNr'><arg type='u' direction='out'/></method>"
+ "<method name='IsLocal'><arg type='b' direction='out'/></method>"
  "<method name='GetSessionType'><arg type='s' direction='out'/></method>"
  "<method name='GetSessionClass'><arg type='s' direction='out'/></method>"
  "<method name='GetSessionState'><arg type='s' direction='out'/></method>"
@@ -326,6 +330,15 @@ method(GDBusConnection *bus, const char *sender, const char *path,
 		created = id == 2 ? "2026-11-04T02:00:00Z" : "2026-11-04T03:00:00Z";
 		if (strcmp(name, "GetSessionType") == 0)
 			reply = g_variant_new("(s)", type);
+		else if (strcmp(name, "GetSessionService") == 0)
+			reply = g_variant_new("(s)", id == 2 ? "gdm-password" :
+			    id == 4 ? "gdm-launch-environment" : "");
+		else if (strcmp(name, "GetDisplayDevice") == 0)
+			reply = g_variant_new("(s)", id == 2 ? "/dev/ttyv9" : "");
+		else if (strcmp(name, "GetVTNr") == 0)
+			reply = g_variant_new("(u)", id == 2 ? 10U : 0U);
+		else if (strcmp(name, "IsLocal") == 0)
+			reply = g_variant_new("(b)", id == 2);
 		else if (strcmp(name, "GetSessionClass") == 0)
 			reply = g_variant_new("(s)", class_name);
 		else if (strcmp(name, "GetSessionState") == 0)
