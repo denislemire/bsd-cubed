@@ -2,7 +2,7 @@
 
 The x11/gdm port builds the GDM 51.0 daemon, PAM session worker, Wayland
 session launcher, utilities and libgdm from the GNOME release tarball.
-The port's distinfo pins the source. BSD³ 0.2.0.a3_3 supplies the seat,
+The port's distinfo pins the source. BSD³ 0.2.0.a3_4 supplies the seat,
 session and virtual terminal interfaces. Build the SDK with
 `BSD3_USERSESSION=yes sh tools/ci-port.sh`. The GNOME package pipeline
 builds GDM after its GNOME Shell, session and keyring providers.
@@ -40,3 +40,28 @@ Forced termination of a conflicting session is unsupported.
 On a disposable FreeBSD 15.2-STABLE KVM guest the native VT probe activated
 a spare terminal, attached it to a new session, dropped to an unprivileged
 user and restored the original VT without a forced kill.
+
+On the same VM, a private FreeBSD root with an initialized machine ID and
+Mesa software rendering ran the packaged GNOME 51 stack. For this test
+the greeter compositor used a 1280×720 virtual monitor. GNOME Shell 51.1
+registered both its session and display with GDM. ConsoleKit reported UID
+92, class greeter, type wayland, active on /dev/ttyv8. Both the Shell and
+greeter services reached ready. The guard restored VT1 with a clean child
+exit and zero forced terminations. A separate registration probe checked
+the actual session class, PAM service and removal on bus connection close.
+
+This trial exposed two packaging fixes. The Shell imports GnomeAutoar on
+startup, including in GDM mode, so its port requires gnome-autoar. The
+Wayland-only greeter runs Shell with --no-x11. A failed greeter previously
+reentered display creation during teardown. Port revision 1 bounds new
+seat0 display launches to five per 30-second window.
+
+GDM 51.0_2, BSD³ 0.2.0.a3_4 and GNOME Shell 51.1_2 also passed an
+authenticated desktop round trip on the virtual monitor. A greeter-side
+test client answered the real GDM password conversation for a disposable
+user and selected the installed GNOME desktop. The user session ran Shell
+51.1 as UID 1001 on VT10. A call to the session manager's Logout method
+returned the guest to an active GDM greeter on VT9. Revision 4 uses
+ConsoleKit's Session.Activate after verifying seat membership. The earlier
+Seat.ActivateSession call failed on this backend even with a valid session
+object path. Physical scanout, input and unlock on the laptop remain open.

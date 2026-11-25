@@ -1,6 +1,6 @@
 PORTNAME=	gnome-shell
 PORTVERSION=	51.1
-PORTREVISION=	1
+PORTREVISION=	2
 CATEGORIES=	x11 gnome
 MASTER_SITES=	GNOME
 DIST_SUBDIR=	gnome
@@ -31,6 +31,7 @@ LIB_DEPENDS=	libgcr-4.so:security/gcr \
 		libibus-1.0.so:textproc/ibus
 
 RUN_DEPENDS=	gnome-qr>=51:graphics/gnome-qr \
+		gnome-autoar>=0.5.2:archivers/gnome-autoar \
 		gjs>=1.90:lang/gjs \
 		gsettings-desktop-schemas>=51:devel/gsettings-desktop-schemas \
 		bsd-cubed>=0.2.0.a1:sysutils/bsd-cubed \

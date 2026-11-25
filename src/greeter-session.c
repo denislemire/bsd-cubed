@@ -113,12 +113,9 @@ session_action(GDBusConnection *bus, const char *session, const char *seat,
 			g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_PERMISSION_DENIED, "Session is on another seat");
 			return FALSE;
 		}
-		result = g_dbus_connection_call_sync(bus, owner, seat_path, CK ".Seat", "ActivateSession",
-		    g_variant_new("(o)", path), G_VARIANT_TYPE_UNIT, 0, 5000, cancel, error);
-	} else {
-		result = g_dbus_connection_call_sync(bus, owner, path, CK ".Session", "Unlock", NULL,
-		    G_VARIANT_TYPE_UNIT, 0, 5000, cancel, error);
 	}
+	result = g_dbus_connection_call_sync(bus, owner, path, CK ".Session",
+	    seat ? "Activate" : "Unlock", NULL, G_VARIANT_TYPE_UNIT, 0, 5000, cancel, error);
 	return result != NULL;
 }
 

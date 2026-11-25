@@ -1,5 +1,6 @@
 PORTNAME=	gdm
 DISTVERSION=	51.0
+PORTREVISION=	2
 CATEGORIES=	x11 gnome
 MASTER_SITES=	GNOME
 DIST_SUBDIR=	gnome
@@ -11,12 +12,12 @@ WWW=		https://gitlab.gnome.org/GNOME/gdm
 LICENSE=	GPLv2+
 LICENSE_FILE=	${WRKSRC}/COPYING
 
-BUILD_DEPENDS=	bsd-cubed>=0.2.0.a3_3:sysutils/bsd-cubed
+BUILD_DEPENDS=	bsd-cubed>=0.2.0.a3_4:sysutils/bsd-cubed
 LIB_DEPENDS=	libaccountsservice.so:sysutils/accountsservice \
 		libgudev-1.0.so:devel/libgudev \
 		libjson-glib-1.0.so:devel/json-glib \
 		libpolkit-gobject-1.so:sysutils/polkit
-RUN_DEPENDS=	bsd-cubed>=0.2.0.a3_3:sysutils/bsd-cubed \
+RUN_DEPENDS=	bsd-cubed>=0.2.0.a3_4:sysutils/bsd-cubed \
 		gnome-session>=51:x11/gnome-session \
 		gnome-shell>=51:x11/gnome-shell \
 		gnome-keyring>=51:security/gnome-keyring

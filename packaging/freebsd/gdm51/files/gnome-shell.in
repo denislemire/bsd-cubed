@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 type = process
-command = %%LOCALBASE%%/bin/gnome-shell --wayland --mode=gdm
+command = %%LOCALBASE%%/bin/gnome-shell --wayland --no-x11 --mode=gdm
 depends-on = gnome-session-manager
 ready-notification = pipevar:BSD3_READY_FD
 restart = no

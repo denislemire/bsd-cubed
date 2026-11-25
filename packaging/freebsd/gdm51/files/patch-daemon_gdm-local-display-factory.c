@@ -13,7 +13,16 @@
  
  #include "gdm-common.h"
  #include "gdm-manager.h"
-@@ -279,7 +283,7 @@
+@@ -65,6 +69,8 @@
+ 
+         /* FIXME: this needs to be per seat? */
+         guint            num_failures;
++        guint            greeter_attempts;
++        gint64           greeter_window_end;
+ 
+         guint            seat_new_id;
+         guint            seat_removed_id;
+@@ -279,7 +285,7 @@
                        "session-id", &session_id,
                        NULL);
  
@@ -22,7 +31,7 @@
  
          status = gdm_display_get_status (display);
  
-@@ -543,6 +547,9 @@
+@@ -543,6 +549,9 @@
  
          g_debug ("GdmLocalDisplayFactory: display for seat %s requested", seat_id);
  
@@ -32,7 +41,7 @@
          /* If we already have a login window, switch to it */
          if (gdm_get_login_window_session_id (seat_id, &login_session_id)) {
                  GdmDisplay *display;
-@@ -583,7 +590,7 @@
+@@ -583,7 +592,7 @@
  
          g_clear_handle_id (&factory->seat0_graphics_check_timeout_id, g_source_remove);
  
@@ -41,7 +50,24 @@
  
          if (ret < 0) {
                  g_critical ("Failed to query CanGraphical information for seat %s", seat_id);
-@@ -764,7 +771,7 @@
+@@ -611,6 +620,16 @@
+                 return;
+         }
+ 
++        /* Preparation can synchronously emit both FAILED and FINISHED. Bound
++         * launches across both paths, including reentrant calls on seat0. */
++        gint64 now = g_get_monotonic_time ();
++        if (now >= factory->greeter_window_end) {
++                factory->greeter_window_end = now + 30 * G_TIME_SPAN_SECOND;
++                factory->greeter_attempts = 0;
++        }
++        if (factory->greeter_attempts >= MAX_DISPLAY_FAILURES)
++                return;
++        factory->greeter_attempts++;
+         g_debug ("GdmLocalDisplayFactory: Adding display on seat %s", seat_id);
+ 
+         display = gdm_local_display_new ();
+@@ -764,7 +783,7 @@
          if (!changed)
                  return;
  
@@ -50,16 +76,15 @@
          if (ret < 0)
                  return;
  
-@@ -838,61 +845,20 @@
+@@ -838,61 +857,20 @@
  }
  
  static gboolean
 -on_vt_changed (GIOChannel    *source,
 -               GIOCondition   condition,
 -               GdmLocalDisplayFactory *factory)
--{
 +on_vt_changed (gpointer user_data)
-+{
+ {
 +        GdmLocalDisplayFactory *factory = user_data;
          GdmDisplayStore *store;
 -        g_autofree char *tty_of_active_vt = NULL;
@@ -122,7 +147,7 @@
          /* don't do anything if we're on the same VT we were before */
          if (new_vt == factory->active_vt) {
                  g_debug ("GdmLocalDisplayFactory: VT changed to the same VT, ignoring");
-@@ -1062,16 +1028,8 @@
+@@ -1062,16 +1040,8 @@
                                                         factory);
  #endif
  
