@@ -1,14 +1,6 @@
 --- js/gdm/loginDialog.js.orig
 +++ js/gdm/loginDialog.js
-@@ -385,6 +385,7 @@
- 
-         this.add_constraint(new Layout.MonitorConstraint({primary: true}));
-         this.connect('destroy', this._onDestroy.bind(this));
-+        parentActor.set_style('background-color: #000000;');
-         parentActor.add_child(this);
- 
-         this._userManager = AccountsService.UserManager.get_default();
-@@ -506,6 +507,7 @@
+@@ -506,6 +506,7 @@
              x_align: Clutter.ActorAlign.CENTER,
              y_align: Clutter.ActorAlign.END,
          });
@@ -16,7 +8,7 @@
          this._logoBin.connect('resource-scale-changed', () => {
              this._updateLogoTexture(this._textureCache, this._logoFile);
          });
-@@ -619,7 +621,7 @@
+@@ -619,7 +620,7 @@
          const centerX = dialogBox.x1 + (dialogBox.x2 - dialogBox.x1) / 2;
  
          actorBox.x1 = Math.floor(centerX - natWidth / 2);
@@ -25,11 +17,10 @@
          actorBox.x2 = actorBox.x1 + natWidth;
          actorBox.y2 = actorBox.y1 + natHeight;
  
-@@ -666,6 +668,19 @@
- 
+@@ -667,6 +668,19 @@
          const themeNode = this.get_theme_node();
          dialogBox = themeNode.get_content_box(dialogBox);
-+
+ 
 +        // Reserve a header for the greeter logo before laying out the controls.
 +        let logoAllocation = null;
 +        if (this._logoFile && this._logoBin.visible) {
@@ -42,10 +33,11 @@
 +            this._logoBin.set_scale(scale, scale);
 +            dialogBox.y1 = logoAllocation.y1 + Math.ceil(logoHeight * scale);
 +        }
- 
++
          const dialogWidth = dialogBox.x2 - dialogBox.x1;
          const dialogHeight = dialogBox.y2 - dialogBox.y1;
-@@ -691,13 +706,6 @@
+ 
+@@ -691,13 +705,6 @@
          if (this._userSelectionBox.visible) {
              userSelectionAllocation = this._getCenterActorAllocation(dialogBox, this._userSelectionBox);
              userSelectionHeight = userSelectionAllocation.y2 - userSelectionAllocation.y1;
@@ -59,7 +51,7 @@
          }
  
          let bottomButtonGroupAllocation = null;
-@@ -752,10 +760,10 @@
+@@ -752,10 +759,10 @@
                      bannerAllocation.x1 = Math.floor(bannerAllocation.x2 - wideBannerWidth);
  
                      // figure out how tall it would like to be and try to accommodate
@@ -72,7 +64,7 @@
                      wideBannerHeight = Math.min(maxWideHeight, wideBannerHeight);
                      bannerAllocation.y1 = Math.floor(centerY - wideBannerHeight / 2);
                      bannerAllocation.y2 = bannerAllocation.y1 + wideBannerHeight;
-@@ -776,7 +784,7 @@
+@@ -776,7 +783,7 @@
              }
          } else if (userSelectionAllocation) {
              // Grow the user list to fill the space
