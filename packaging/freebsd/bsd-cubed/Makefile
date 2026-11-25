@@ -1,6 +1,6 @@
 PORTNAME=	bsd-cubed
 DISTVERSION=	0.2.0-alpha3
-PORTREVISION=	6
+PORTREVISION=	7
 CATEGORIES=	sysutils
 MASTER_SITES=	https://github.com/denislemire/bsd-cubed/releases/download/v${DISTVERSION}/
 
@@ -13,7 +13,8 @@ LICENSE_FILE=	${WRKSRC}/LICENSE
 
 BUILD_DEPENDS=	dbus-run-session:devel/dbus
 RUN_DEPENDS=	consolekit2>=2.0.0_5:sysutils/consolekit2 \
-		dbus-daemon:devel/dbus
+		dbus-daemon:devel/dbus \
+		polkit>=0:sysutils/polkit
 
 USES=		gnome pkgconfig
 USE_GNOME=	glib20

@@ -32,3 +32,5 @@
 /tmp/pdfs/
 /greeter-session.o
 /vt.o
+
+/power-auth.o

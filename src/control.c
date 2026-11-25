@@ -132,8 +132,8 @@ bsd3_controls_stop(void)
 }
 
 /* One credential snapshot. ProcessFD is held open across the session lookup. */
-static gboolean
-peer_credentials(const char *sender, pid_t *pid, uid_t *uid, bool *pinned,
+gboolean
+bsd3_peer_credentials(GDBusConnection *bus, const char *sender, pid_t *pid, uid_t *uid, bool *pinned,
     int *fd_out)
 {
 	GError *error = NULL;
@@ -148,7 +148,7 @@ peer_credentials(const char *sender, pid_t *pid, uid_t *uid, bool *pinned,
 	int fd = -1;
 
 	*fd_out = -1;
-	reply = g_dbus_connection_call_with_unix_fd_list_sync(front_bus,
+	reply = g_dbus_connection_call_with_unix_fd_list_sync(bus,
 	    "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
 	    "GetConnectionCredentials", g_variant_new("(s)", sender),
 	    G_VARIANT_TYPE("(a{sv})"), G_DBUS_CALL_FLAGS_NONE, 3000, NULL, &fds,
@@ -211,7 +211,7 @@ peer_session(const char *sender, char **session_out)
 	int fd = -1;
 	char *session = NULL;
 
-	if (!peer_credentials(sender, &pid, &uid, &pinned, &fd))
+	if (!bsd3_peer_credentials(front_bus, sender, &pid, &uid, &pinned, &fd))
 		return (FALSE);
 	if (pinned && !bsd3_process_fd_still(fd, pid))
 		goto fail;

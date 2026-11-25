@@ -77,8 +77,11 @@ vt.o: src/vt.c include/bsd3/vt.h
 libbsd3-login.a: login.o greeter-session.o vt.o
 	$(AR) rcs $@ login.o greeter-session.o vt.o
 
-bsddd: src/bsddd.c src/control.c src/control.h src/device-allow.c src/peer-cred.c src/hardening.h src/seats.c src/seats.h libbsd3-login.a
-	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ src/bsddd.c src/control.c src/device-allow.c src/peer-cred.c src/seats.c libbsd3-login.a $(BSD3_LIBS)
+power-auth.o: src/power-auth.c src/power-auth.h
+	$(CC) $(CPPFLAGS) -Isrc $(CFLAGS) $(BSD3_CFLAGS) -c src/power-auth.c -o $@
+
+bsddd: src/bsddd.c src/control.c src/device-allow.c src/peer-cred.c src/hardening.h src/control.h src/power.c src/power.h src/power-auth.c src/power-auth.h src/seats.c src/seats.h libbsd3-login.a power-auth.o
+	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ src/bsddd.c src/device-allow.c src/peer-cred.c src/control.c src/power.c src/seats.c libbsd3-login.a power-auth.o $(BSD3_LIBS)
 
 bsd3-vt-guard: src/vt-guard.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ src/vt-guard.c
@@ -92,8 +95,8 @@ bsd3-sddm-session: packaging/bsd3-sddm-session.in Makefile FORCE
 mock-ck: tests/mock-ck.c
 	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ tests/mock-ck.c $(BSD3_LIBS)
 
-test-login: tests/test-login.c libbsd3-login.a
-	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ tests/test-login.c libbsd3-login.a $(BSD3_LIBS)
+test-login: tests/test-login.c libbsd3-login.a power-auth.o
+	$(CC) $(CPPFLAGS) -Isrc $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ tests/test-login.c libbsd3-login.a power-auth.o $(BSD3_LIBS)
 
 test-hardening: tests/test-hardening.c src/device-allow.c src/peer-cred.c src/hardening.h
 	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) -Isrc $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ tests/test-hardening.c src/device-allow.c src/peer-cred.c $(BSD3_LIBS)
@@ -127,8 +130,11 @@ install: all
 	$(INSTALL) -m 644 man/bsd3-session.1 $(DESTDIR)$(PREFIX)/share/man/man1/bsd3-session.1
 	$(INSTALL) -m 644 man/bsd3-vt-guard.8 $(DESTDIR)$(PREFIX)/share/man/man8/bsd3-vt-guard.8
 	$(INSTALL) -m 644 man/bsddd.8 $(DESTDIR)$(PREFIX)/share/man/man8/bsddd.8
+	$(INSTALL) -d $(DESTDIR)$(PREFIX)/share/polkit-1/actions $(DESTDIR)$(PREFIX)/share/polkit-1/rules.d
+	$(INSTALL) -m 644 packaging/polkit/org.bsd3.login1.policy $(DESTDIR)$(PREFIX)/share/polkit-1/actions/org.bsd3.login1.policy
+	$(INSTALL) -m 644 packaging/polkit/org.bsd3.login1.rules $(DESTDIR)$(PREFIX)/share/polkit-1/rules.d/org.bsd3.login1.rules
 
 clean:
-	rm -f bsddd bsd3-vt-guard bsd3-session bsd3-sddm-session login.o greeter-session.o vt.o libbsd3-login.a mock-ck test-login bsd3-login.pc
+	rm -f bsddd bsd3-vt-guard bsd3-session bsd3-sddm-session login.o greeter-session.o vt.o power-auth.o libbsd3-login.a mock-ck test-login bsd3-login.pc
 	rm -f test-hardening hardening-preload.so system-bus-path
 	rm -f bsd3-user-session user-session-api.o libbsd3-user-session.a bsd3-user-session.pc test-user-session-client bsd3-bus-ready bsd3-session-initialized test-bus-ready-client

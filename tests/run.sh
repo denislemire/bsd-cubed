@@ -81,12 +81,15 @@ monitor_pid=$!
 ./mock-ck >"$test_tmp/mock.log" 2>&1 &
 mock_pid=$!
 gdbus wait --system --timeout 5 org.freedesktop.ConsoleKit
+power_group_file=$test_tmp/power-group
+printf 'power_group="%s"\n' "$(id -gn)" > "$power_group_file"
+export BSD3_POWER_GROUP_FILE="$power_group_file"
 env LD_PRELOAD="$preload${LD_PRELOAD:+:$LD_PRELOAD}" \
     DYLD_INSERT_LIBRARIES="$preload${DYLD_INSERT_LIBRARIES:+:$DYLD_INSERT_LIBRARIES}" \
     BSD3_REDIRECT_SYSTEM_BUS_FROM="$default_bus_path" \
     BSD3_REDIRECT_SYSTEM_BUS_TO="$private_sock" \
     DBUS_SYSTEM_BUS_ADDRESS="unix:path=$test_tmp/decoy" \
-    ./bsddd --foreground >"$test_tmp/daemon.log" 2>&1 &
+    ./bsddd --foreground --power-group-file "$power_group_file" >"$test_tmp/daemon.log" 2>&1 &
 daemon_pid=$!
 gdbus wait --system --timeout 5 org.freedesktop.login1
 # login1 appeared on the redirected default socket. The variable still names
