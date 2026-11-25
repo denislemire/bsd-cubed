@@ -11,8 +11,10 @@ No production system-bus policy, startup service or laptop configuration is adde
 
 Only the unique frontend connection that acquired TakeControl may use device
 methods. Devices remain owned by ConsoleKit on the controller's dedicated backend
-connection. Device IDs are typed unsigned major/minor numbers; the bridge does not
-open client-provided paths or change devfs permissions.
+connection. Device IDs are typed unsigned major/minor numbers. TakeDevice
+resolves them with devname(3) and forwards only DRM and evdev nodes; FreeBSD
+majors are dynamic and are not an allowlist. The bridge does not open
+client-provided paths or change devfs permissions.
 
 TakeDevice accepts exactly one ancillary descriptor with handle0 and preserves
 the backend's paused flag. Extra descriptors are rejected; the newly acquired

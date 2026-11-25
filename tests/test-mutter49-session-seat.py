@@ -61,7 +61,7 @@ int main(void) {
 '''
 flags = shlex.split(subprocess.check_output(
     ['pkg-config', '--cflags', '--libs', 'gio-unix-2.0'], text=True))
-subprocess.run(['make', '-C', str(repo), 'bsddd', 'mock-ck'], check=True)
+subprocess.run(['make', '-C', str(repo), 'bsddd', 'mock-ck', 'hardening-preload.so', 'system-bus-path'], check=True)
 with tempfile.TemporaryDirectory(prefix='bsd3-mutter49-seat-') as tmp:
     work = Path(tmp)
     generated = work / 'meta-dbus-login1'
@@ -96,7 +96,12 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 ./mock-ck >/dev/null 2>&1 & mock_pid=$!
 gdbus wait --system --timeout 5 org.freedesktop.ConsoleKit
-"${BSD3_TEST_SEAT_DAEMON:-./bsddd}" --foreground >/dev/null 2>&1 & daemon_pid=$!
+address=${DBUS_SESSION_BUS_ADDRESS%%,*}
+case $address in unix:path=/*) ;; *) exit 1 ;; esac
+env LD_PRELOAD="$PWD/hardening-preload.so" \
+    BSD3_REDIRECT_SYSTEM_BUS_FROM="$(./system-bus-path)" \
+    BSD3_REDIRECT_SYSTEM_BUS_TO="${address#unix:path=}" \
+    "${BSD3_TEST_SEAT_DAEMON:-./bsddd}" --foreground >/dev/null 2>&1 & daemon_pid=$!
 gdbus wait --system --timeout 5 org.freedesktop.login1
 "$2"
 '''

@@ -77,8 +77,8 @@ vt.o: src/vt.c include/bsd3/vt.h
 libbsd3-login.a: login.o greeter-session.o vt.o
 	$(AR) rcs $@ login.o greeter-session.o vt.o
 
-bsddd: src/bsddd.c src/control.c src/control.h src/seats.c src/seats.h libbsd3-login.a
-	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ src/bsddd.c src/control.c src/seats.c libbsd3-login.a $(BSD3_LIBS)
+bsddd: src/bsddd.c src/control.c src/control.h src/device-allow.c src/peer-cred.c src/hardening.h src/seats.c src/seats.h libbsd3-login.a
+	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ src/bsddd.c src/control.c src/device-allow.c src/peer-cred.c src/seats.c libbsd3-login.a $(BSD3_LIBS)
 
 bsd3-vt-guard: src/vt-guard.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ src/vt-guard.c
@@ -95,7 +95,16 @@ mock-ck: tests/mock-ck.c
 test-login: tests/test-login.c libbsd3-login.a
 	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ tests/test-login.c libbsd3-login.a $(BSD3_LIBS)
 
-test: all mock-ck test-login
+test-hardening: tests/test-hardening.c src/device-allow.c src/peer-cred.c src/hardening.h
+	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) -Isrc $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ tests/test-hardening.c src/device-allow.c src/peer-cred.c $(BSD3_LIBS)
+
+hardening-preload.so: tests/hardening-preload.c
+	$(CC) -shared -fPIC $(CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ tests/hardening-preload.c
+
+system-bus-path: tests/system-bus-path.c
+	$(CC) $(CPPFLAGS) $(BSD3_CPPFLAGS) $(CFLAGS) $(BSD3_CFLAGS) $(LDFLAGS) -o $@ tests/system-bus-path.c $(BSD3_LIBS)
+
+test: all mock-ck test-login test-hardening hardening-preload.so system-bus-path
 	dbus-run-session --config-file=tests/dbus.conf -- sh tests/run.sh
 
 FORCE:
@@ -121,4 +130,5 @@ install: all
 
 clean:
 	rm -f bsddd bsd3-vt-guard bsd3-session bsd3-sddm-session login.o greeter-session.o vt.o libbsd3-login.a mock-ck test-login bsd3-login.pc
+	rm -f test-hardening hardening-preload.so system-bus-path
 	rm -f bsd3-user-session user-session-api.o libbsd3-user-session.a bsd3-user-session.pc test-user-session-client bsd3-bus-ready bsd3-session-initialized test-bus-ready-client

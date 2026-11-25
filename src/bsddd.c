@@ -370,6 +370,15 @@ stop(gpointer data)
 	return (G_SOURCE_REMOVE);
 }
 
+static void
+ignore_bus_override(void)
+{
+	/* GLib selects G_BUS_TYPE_SYSTEM from DBUS_SYSTEM_BUS_ADDRESS when it
+	 * is set. The daemon always uses the system bus GLib was built with.
+	 * The rc wrapper also clears the variable; that is not the mechanism. */
+	g_unsetenv("DBUS_SYSTEM_BUS_ADDRESS");
+}
+
 static int
 probe(void)
 {
@@ -443,6 +452,7 @@ main(int argc, char **argv)
 {
 	GError *error = NULL;
 	guint owner;
+	ignore_bus_override();
 	if (argc == 2 && strcmp(argv[1], "--probe") == 0)
 		return (probe());
 	if (argc == 3 && strcmp(argv[1], "--check-owner") == 0)
