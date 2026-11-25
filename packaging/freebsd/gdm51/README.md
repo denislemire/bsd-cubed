@@ -65,3 +65,14 @@ returned the guest to an active GDM greeter on VT9. Revision 4 uses
 ConsoleKit's Session.Activate after verifying seat membership. The earlier
 Seat.ActivateSession call failed on this backend even with a valid session
 object path. Physical scanout, input and unlock on the laptop remain open.
+
+Repeating the login exposed a race: the outgoing display was still releasing
+the greeter account when the next display tried to acquire it. Revision 3
+defers and coalesces retries and checks for an active user session before
+restoring the login screen. With one GDM daemon running, two consecutive
+password conversations started distinct GNOME Shell 51.1 user sessions on
+VT10. Both logged out via the session manager and the guest returned to an
+active, ready greeter on VT9. The VM used virtual monitors for both user and
+greeter Shells. PAM successfully unlocked the test user's login keyring.
+Its PAM-started daemon can outlive the graphical session, so an 85-second
+whole-process-tree test deadline expired even after the screen had returned.

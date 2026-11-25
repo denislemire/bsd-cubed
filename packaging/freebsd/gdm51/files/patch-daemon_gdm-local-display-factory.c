@@ -13,16 +13,48 @@
  
  #include "gdm-common.h"
  #include "gdm-manager.h"
-@@ -65,6 +69,8 @@
+@@ -65,6 +69,9 @@
  
          /* FIXME: this needs to be per seat? */
          guint            num_failures;
 +        guint            greeter_attempts;
++        guint            retry_source;
 +        gint64           greeter_window_end;
  
          guint            seat_new_id;
          guint            seat_removed_id;
-@@ -279,7 +285,7 @@
+@@ -253,6 +260,30 @@
+         factory->wait_to_finish_timeout_id = 0;
+ 
+         return G_SOURCE_REMOVE;
++}
++
++static gboolean
++retry_local_greeter (gpointer data)
++{
++        GdmLocalDisplayFactory *factory = data;
++        g_autofree char *active = NULL, *session_class = NULL;
++        factory->retry_source = 0;
++        if (!factory->is_started)
++                return G_SOURCE_REMOVE;
++        if (bsd3_seat_get_active_session ("seat0", &active) == 0 && active &&
++            sd_session_get_class (active, &session_class) == 0 &&
++            g_strcmp0 (session_class, "user") == 0)
++                return G_SOURCE_REMOVE;
++        ensure_display_for_seat (factory, "seat0");
++        return G_SOURCE_REMOVE;
++}
++
++static void
++queue_local_greeter (GdmLocalDisplayFactory *factory)
++{
++        /* The previous display still owns its account until stop completes. */
++        if (!factory->retry_source)
++                factory->retry_source = g_timeout_add_seconds (3, retry_local_greeter, factory);
+ }
+ 
+ static void
+@@ -279,7 +310,7 @@
                        "session-id", &session_id,
                        NULL);
  
@@ -31,17 +63,35 @@
  
          status = gdm_display_get_status (display);
  
-@@ -543,6 +549,9 @@
+@@ -298,7 +329,7 @@
+                         /* reset num failures */
+                         factory->num_failures = 0;
+ 
+-                        ensure_display_for_seat (factory, seat_id);
++                        queue_local_greeter (factory);
+                 }
+                 break;
+         case GDM_DISPLAY_FAILED:
+@@ -313,7 +344,7 @@
+                         if (factory->num_failures > MAX_DISPLAY_FAILURES)
+                                 g_warning ("GdmLocalDisplayFactory: maximum number of display failures reached. Giving up.");
+                         else
+-                                ensure_display_for_seat (factory, seat_id);
++                                queue_local_greeter (factory);
+                 }
+                 break;
+         case GDM_DISPLAY_UNMANAGED:
+@@ -542,6 +573,9 @@
+         int ret;
  
          g_debug ("GdmLocalDisplayFactory: display for seat %s requested", seat_id);
- 
++
 +        if (g_strcmp0 (seat_id, "seat0") != 0)
 +                return;
-+
+ 
          /* If we already have a login window, switch to it */
          if (gdm_get_login_window_session_id (seat_id, &login_session_id)) {
-                 GdmDisplay *display;
-@@ -583,7 +592,7 @@
+@@ -583,7 +617,7 @@
  
          g_clear_handle_id (&factory->seat0_graphics_check_timeout_id, g_source_remove);
  
@@ -50,7 +100,7 @@
  
          if (ret < 0) {
                  g_critical ("Failed to query CanGraphical information for seat %s", seat_id);
-@@ -611,6 +620,16 @@
+@@ -611,6 +645,16 @@
                  return;
          }
  
@@ -67,7 +117,7 @@
          g_debug ("GdmLocalDisplayFactory: Adding display on seat %s", seat_id);
  
          display = gdm_local_display_new ();
-@@ -764,7 +783,7 @@
+@@ -764,7 +808,7 @@
          if (!changed)
                  return;
  
@@ -76,7 +126,7 @@
          if (ret < 0)
                  return;
  
-@@ -838,61 +857,20 @@
+@@ -838,61 +882,20 @@
  }
  
  static gboolean
@@ -147,7 +197,7 @@
          /* don't do anything if we're on the same VT we were before */
          if (new_vt == factory->active_vt) {
                  g_debug ("GdmLocalDisplayFactory: VT changed to the same VT, ignoring");
-@@ -1062,16 +1040,8 @@
+@@ -1062,16 +1065,8 @@
                                                         factory);
  #endif
  
@@ -166,3 +216,11 @@
  }
  
  static void
+@@ -1103,6 +1098,7 @@
+                                                       factory->seat_attention_key);
+                 factory->seat_attention_key = 0;
+         }
++        g_clear_handle_id (&factory->retry_source, g_source_remove);
+         g_clear_handle_id (&factory->active_vt_watch_id, g_source_remove);
+         g_clear_handle_id (&factory->wait_to_finish_timeout_id, g_source_remove);
+         g_clear_handle_id (&factory->seat0_graphics_check_timeout_id, g_source_remove);
